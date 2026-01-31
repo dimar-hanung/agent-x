@@ -1,3 +1,13 @@
+# Next.js Boilerplate
+
+boilerplate featuring:
+
+- **Next.js** - React framework with App Router
+- **TailwindCSS** - Utility-first CSS framework
+- **Dashboard** - Pre-built dashboard layout with sidebar navigation
+- **Login Page** - Authentication-ready login interface
+- **Dark Mode** - Built-in theme switching support
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
