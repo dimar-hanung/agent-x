@@ -10,6 +10,11 @@ boilerplate featuring:
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Prerequisites
+
+- **Node.js 24.x** (Active LTS) — use `nvm use` to read the version from `.nvmrc`
+- npm, pnpm, yarn, or bun
+
 ## Getting Started
 
 First, run the development server:
