@@ -1,0 +1,54 @@
+export async function requestScheduleNotificationPermission(): Promise<NotificationPermission | null> {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return null;
+  }
+
+  if (Notification.permission !== "default") {
+    return Notification.permission;
+  }
+
+  try {
+    return await Notification.requestPermission();
+  } catch {
+    return Notification.permission;
+  }
+}
+
+export function showScheduleCompleteNotification({
+  title,
+  success,
+  chatId,
+}: {
+  title: string;
+  success: boolean;
+  chatId: string | null;
+}) {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return;
+  }
+
+  if (Notification.permission !== "granted") {
+    return;
+  }
+
+  const body = success
+    ? "Jadwal selesai dijalankan."
+    : "Jadwal gagal dijalankan. Buka chat untuk detail.";
+
+  const notification = new Notification(
+    success ? `Jadwal selesai: ${title}` : `Jadwal gagal: ${title}`,
+    {
+      body,
+      tag: `schedule-${title}`,
+      icon: "/favicon.ico",
+    }
+  );
+
+  if (chatId) {
+    notification.onclick = () => {
+      window.focus();
+      window.location.assign(`/chat/${chatId}`);
+      notification.close();
+    };
+  }
+}

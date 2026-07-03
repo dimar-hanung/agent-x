@@ -1,6 +1,6 @@
-# Next.js Boilerplate
+# AgentX
 
-boilerplate featuring:
+AgentX — intelligent agent platform built with:
 
 - **Next.js** - React framework with App Router
 - **TailwindCSS** - Utility-first CSS framework
@@ -14,6 +14,47 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 - **Node.js 24.x** (Active LTS) — use `nvm use` to read the version from `.nvmrc`
 - npm, pnpm, yarn, or bun
+
+## Environment
+
+Copy `.env.example` to `.env.local` and fill in the values:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Description |
+|----------|-------------|
+| `OPENROUTER_API_KEY` | OpenRouter API key for the chat model |
+| `OPENROUTER_MODEL` | Model id (default: `deepseek/deepseek-v4-pro`) |
+| `DATABASE_URL` | PostgreSQL connection string (`127.0.0.1:5432/agentx`) |
+| `SESSION_SECRET` | Random string (32+ chars) for session cookies |
+| `INTEGRATIONS_ENCRYPTION_KEY` | 32-byte key (hex or base64) for encrypting Gmail app passwords at rest. Generate with `openssl rand -hex 32` |
+| `EXA_API_KEY` | Exa API key for web search tools (`student`/`admin` roles). Get one at [dashboard.exa.ai/api-keys](https://dashboard.exa.ai/api-keys) |
+
+## Database setup
+
+PostgreSQL 16 on the local research server (`127.0.0.1:5432`):
+
+```bash
+# 1. Create database + role (password must match DATABASE_URL in .env.local)
+AGENTX_DB_PASSWORD=YOUR_PASSWORD npm run db:provision
+
+# 2. Push schema and seed demo users
+npm run db:push
+npm run db:seed
+```
+
+## Demo login
+
+After `npm run db:seed`, sign in at [http://localhost:3000/login](http://localhost:3000/login):
+
+| Email | Password |
+|-------|----------|
+| `admin@agentx.local` | `admin12345` |
+| `student@agentx.local` | `student12345` |
+
+Chat is at [http://localhost:3000/chat](http://localhost:3000/chat) (requires login).
 
 ## Getting Started
 
@@ -32,6 +73,25 @@ bun dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+## AI Tools
+
+AgentX uses [Vercel AI SDK v7](https://sdk.vercel.ai) with `ToolLoopAgent`, role-gated tools, and PostgreSQL-backed chat history.
+
+- **Chat**: [http://localhost:3000/chat](http://localhost:3000/chat) (authenticated)
+- **Add a native tool**: [docs/adding-ai-tools.md](docs/adding-ai-tools.md)
+- **Add an MCP tool**: [docs/adding-mcp-tools.md](docs/adding-mcp-tools.md)
+- **User roles**: stored in PostgreSQL (`admin`, `student`, `guest`); tool access is configured in `lib/ai/roles/tools-by-role.ts`
+
+### Web search (Exa)
+
+With `EXA_API_KEY` set, sign in as `student@agentx.local` and try:
+
+```
+Cari berita AI terbaru
+```
+
+The agent uses native `exa_web_search` and `exa_web_fetch` tools via the Exa REST API.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
