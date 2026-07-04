@@ -81,7 +81,31 @@ AgentX uses [Vercel AI SDK v7](https://sdk.vercel.ai) with `ToolLoopAgent`, role
 - **Chat**: [http://localhost:3000/chat](http://localhost:3000/chat) (authenticated)
 - **Add a native tool**: [docs/adding-ai-tools.md](docs/adding-ai-tools.md)
 - **Add an MCP tool**: [docs/adding-mcp-tools.md](docs/adding-mcp-tools.md)
+- **Scheduled jobs**: [docs/adding-scheduled-jobs.md](docs/adding-scheduled-jobs.md)
 - **User roles**: stored in PostgreSQL (`admin`, `student`, `guest`); tool access is configured in `lib/ai/roles/tools-by-role.ts`
+
+### Scheduled jobs
+
+Users with role `student` or `admin` can create recurring or one-time AI jobs via chat. A background worker executes them with `node-schedule` and saves results to chat history.
+
+Run the app and scheduler worker in **separate terminals**:
+
+```bash
+npm run dev
+npm run scheduler:worker
+```
+
+Optional env: `SCHEDULER_POLL_INTERVAL_MS` (default `15000`) — how often the worker syncs jobs from PostgreSQL.
+
+Chat examples (sign in at [http://localhost:3000/chat](http://localhost:3000/chat)):
+
+```
+Ingatkan saya setiap pagi jam 9 untuk merangkum inbox
+Besok jam 15:00 kirim pengingat untuk review PR
+Tampilkan jadwal aktif saya
+```
+
+Active schedules appear under **Jadwal aktif** in the chat sidebar. See [docs/adding-scheduled-jobs.md](docs/adding-scheduled-jobs.md) for architecture and tool details.
 
 ### Web search (Exa)
 
