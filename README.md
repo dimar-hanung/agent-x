@@ -86,7 +86,7 @@ AgentX uses [Vercel AI SDK v7](https://sdk.vercel.ai) with `ToolLoopAgent`, role
 
 ### Scheduled jobs
 
-Users with role `student` or `admin` can create recurring or one-time AI jobs via chat. A background worker executes them with `node-schedule` and saves results to chat history.
+Users with role `student` or `admin` can create recurring or one-time AI jobs via chat. A background worker executes them with `node-schedule` and saves results to the user's **Kanal utama** (main channel).
 
 Run the app and scheduler worker in **separate terminals**:
 
@@ -106,6 +106,24 @@ Tampilkan jadwal aktif saya
 ```
 
 Active schedules appear under **Jadwal aktif** in the chat sidebar. See [docs/adding-scheduled-jobs.md](docs/adding-scheduled-jobs.md) for architecture and tool details.
+
+### Main channel & WhatsApp
+
+Each user has one pinned **Kanal utama** at `/chat` (cron output and default chat land here). WhatsApp uses a **single global channel number**:
+
+1. **Admin** — open [Dashboard → Channel WhatsApp](http://localhost:3000/dashboard/whatsapp-channel), scan QR (Evolution API).
+2. **Users** — open [Settings → Integrations](http://localhost:3000/settings/integrations), register their phone number, then message the global channel number from that phone.
+
+**Full setup guide (same server or remote Evolution):** [docs/evolution-api-setup.md](docs/evolution-api-setup.md)
+
+Quick start on this machine:
+
+```bash
+cp infra/evolution/.env.example infra/evolution/.env   # edit keys & URLs
+npm run evolution:up
+```
+
+AgentX env: see `.env.example` (`EVOLUTION_*`, `WHATSAPP_WEBHOOK_SECRET`, `AGENTX_PUBLIC_URL`).
 
 ### Web search (Exa)
 

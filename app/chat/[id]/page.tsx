@@ -4,7 +4,7 @@ import { ChatPanel } from "@/components/chat/chat-panel";
 import { isExaConfigured } from "@/lib/ai/exa/env";
 import { userHasExaTools } from "@/lib/ai/roles/tools-by-role";
 import { getSessionUser } from "@/lib/auth/get-session-user";
-import { loadChatMessages } from "@/lib/db/repositories/chat-repository";
+import { loadChatMessagesPage } from "@/lib/db/repositories/chat-repository";
 import { siteConfig } from "@/lib/site-config";
 
 export const metadata = {
@@ -26,9 +26,19 @@ export default async function ChatPage({
   const { id } = await params;
 
   let initialMessages;
+  let initialHasMore = false;
+  let initialOldestSequence: number | null = null;
+  let initialSequences: Array<{ id: string; sequence: number }> = [];
 
   try {
-    initialMessages = await loadChatMessages(id, user.userId);
+    const page = await loadChatMessagesPage(id, user.userId, { limit: 30 });
+    initialMessages = page.messages.map(({ sequence: _sequence, ...message }) => message);
+    initialHasMore = page.hasMore;
+    initialOldestSequence = page.oldestSequence;
+    initialSequences = page.messages.map((message) => ({
+      id: message.id,
+      sequence: message.sequence,
+    }));
   } catch {
     notFound();
   }
@@ -38,6 +48,9 @@ export default async function ChatPage({
       <ChatPanel
         id={id}
         initialMessages={initialMessages}
+        initialHasMore={initialHasMore}
+        initialOldestSequence={initialOldestSequence}
+        initialSequences={initialSequences}
         exaConfigured={isExaConfigured()}
         hasExaTools={userHasExaTools(user.role)}
       />

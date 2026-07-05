@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { ChatAgentRuntimeContext } from "@/lib/ai/agents/chat-agent";
 import type { UserContext } from "@/lib/ai/roles/types";
+import { getOrCreateMainChannel } from "@/lib/db/repositories/channel-repository";
 import { createScheduledJob } from "@/lib/db/repositories/schedule-repository";
 import { formatNextRunAt } from "@/lib/scheduler/format-schedule";
 
@@ -10,7 +11,7 @@ import type { CreateScheduleToolResult } from "../ai-tools.types";
 
 export function createCreateScheduleTool(
   user: UserContext,
-  runtimeContext?: ChatAgentRuntimeContext
+  _runtimeContext?: ChatAgentRuntimeContext
 ) {
   return tool({
     description:
@@ -39,9 +40,10 @@ export function createCreateScheduleTool(
     }),
     execute: async (input): Promise<CreateScheduleToolResult> => {
       try {
+        const chatId = await getOrCreateMainChannel(user.userId);
         const summary = await createScheduledJob({
           userId: user.userId,
-          chatId: runtimeContext?.chatId ?? null,
+          chatId,
           title: input.title,
           prompt: input.prompt,
           scheduleKind: input.schedule_kind,

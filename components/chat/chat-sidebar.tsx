@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageSquare, Plus, Sparkles } from "lucide-react";
+import { MessageSquare, Plus, Radio, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -19,6 +19,7 @@ interface ChatHistoryItem {
 }
 
 interface ChatSidebarProps {
+  mainChannel: ChatHistoryItem | null;
   chats: ChatHistoryItem[];
   schedules: ScheduleListItem[];
   activeChatId?: string;
@@ -70,6 +71,7 @@ function RelativeTime({ iso }: { iso: string }) {
 }
 
 export function ChatSidebar({
+  mainChannel,
   chats,
   schedules,
   activeChatId,
@@ -97,18 +99,48 @@ export function ChatSidebar({
           onClick={handleNewChat}
         >
           <Plus className="size-4" />
-          New chat
+          Chat baru
         </Button>
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+        {mainChannel ? (
+          <>
+            <p className="text-muted-foreground px-2 pb-1 pt-2 text-xs font-medium tracking-wider uppercase">
+              Kanal
+            </p>
+            <Link
+              href={`/chat/${mainChannel.id}`}
+              onClick={onNavigate}
+              aria-current={activeChatId === mainChannel.id ? "page" : undefined}
+              className={cn(
+                "hover:bg-muted relative flex flex-col gap-0.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                activeChatId === mainChannel.id && "bg-muted"
+              )}
+            >
+              {activeChatId === mainChannel.id ? (
+                <span className="bg-primary absolute top-1/2 left-0 h-6 w-1 -translate-y-1/2 rounded-r-full" />
+              ) : null}
+              <span className="flex items-start gap-2">
+                <Radio className="text-primary mt-0.5 size-4 shrink-0" />
+                <span className="line-clamp-2 flex-1 leading-snug font-medium">
+                  {mainChannel.title}
+                </span>
+              </span>
+              <span className="text-muted-foreground pl-6 text-xs">
+                <RelativeTime iso={mainChannel.updatedAt} />
+              </span>
+            </Link>
+          </>
+        ) : null}
+
         <p className="text-muted-foreground px-2 pb-1 pt-2 text-xs font-medium tracking-wider uppercase">
-          Recent
+          Terbaru
         </p>
 
         {chats.length === 0 ? (
           <p className="text-muted-foreground px-2 py-3 text-sm">
-            No chats yet. Start a new conversation.
+            Belum ada chat. Mulai percakapan baru.
           </p>
         ) : (
           chats.map((chat) => {

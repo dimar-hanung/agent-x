@@ -4,6 +4,10 @@ import { ChatPanel } from "@/components/chat/chat-panel";
 import { isExaConfigured } from "@/lib/ai/exa/env";
 import { userHasExaTools } from "@/lib/ai/roles/tools-by-role";
 import { getSessionUser } from "@/lib/auth/get-session-user";
+import {
+  getMainChannelId,
+  getOrCreateMainChannel,
+} from "@/lib/db/repositories/channel-repository";
 import { siteConfig } from "@/lib/site-config";
 
 export const metadata = {
@@ -23,6 +27,13 @@ export default async function ChatIndexPage({
   }
 
   const { new: draftKey } = await searchParams;
+
+  if (!draftKey) {
+    const mainChannelId =
+      (await getMainChannelId(user.userId)) ??
+      (await getOrCreateMainChannel(user.userId));
+    redirect(`/chat/${mainChannelId}`);
+  }
 
   return (
     <main className="flex min-h-0 flex-1 flex-col">

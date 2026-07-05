@@ -27,6 +27,7 @@ export default async function Page() {
   return (
     <SidebarProvider>
       <AppSidebar
+        role={user.role}
         user={{
           name: user.displayName,
           email: user.email,

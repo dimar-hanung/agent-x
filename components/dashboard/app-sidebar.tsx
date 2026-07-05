@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import {
-  Sparkles,
   LifeBuoy,
   MessageSquare,
+  Radio,
   Send,
   Settings2,
+  Sparkles,
   SquareTerminal,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  role?: string;
   user: {
     name: string;
     email: string;
@@ -32,7 +34,24 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   };
 }
 
-export function AppSidebar({ user, ...props }: AppSidebarProps) {
+export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
+  const adminNav =
+    role === "admin"
+      ? [
+          {
+            title: "Channel WhatsApp",
+            url: "/dashboard/whatsapp-channel",
+            icon: Radio,
+            items: [
+              {
+                title: "Kelola channel",
+                url: "/dashboard/whatsapp-channel",
+              },
+            ],
+          },
+        ]
+      : [];
+
   const data = {
     user,
     navMain: [
@@ -59,6 +78,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
           },
         ],
       },
+      ...adminNav,
       {
         title: "Settings",
         url: "/settings/integrations",

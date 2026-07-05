@@ -20,14 +20,15 @@ export interface ChatAgentRuntimeContext {
 export async function createChatAgent(
   user: UserContext,
   runtimeContext?: ChatAgentRuntimeContext,
-  toolsOverride?: Partial<Record<ToolKey, Tool>>
+  toolsOverride?: Partial<Record<ToolKey, Tool>>,
+  options?: { instructions?: string }
 ) {
   const tools = (toolsOverride ??
     (await createAllToolsForUser(user, { runtimeContext }))) as ToolSet;
 
   return new ToolLoopAgent({
     model: getChatModel(),
-    instructions: buildSystemPrompt(user),
+    instructions: options?.instructions ?? buildSystemPrompt(user),
     tools,
     stopWhen: isStepCount(MAX_AGENT_STEPS),
   });
@@ -44,16 +45,20 @@ export interface RunChatAgentOptions {
 export async function createChatAgentForRun({
   user,
   chatId,
+  instructions,
 }: {
   user: UserContext;
   chatId: string;
+  instructions?: string;
 }) {
   const runtimeContext = {
     userId: user.userId,
     chatId,
   } satisfies ChatAgentRuntimeContext;
 
-  const agent = await createChatAgent(user, runtimeContext);
+  const agent = await createChatAgent(user, runtimeContext, undefined, {
+    instructions,
+  });
 
   return {
     agent,

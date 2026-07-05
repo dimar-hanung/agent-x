@@ -3,31 +3,22 @@
 import {
   AlertCircle,
   ArrowUp,
-  Bot,
-  CheckCircle2,
   Loader2,
   Menu,
   Sparkles,
   SquarePen,
-  User,
-  Wrench,
 } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
-  getToolName,
   isToolUIPart,
+  getToolName,
   type UIMessage,
 } from "ai";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { MessageMarkdown } from "@/components/chat/message-markdown";
-import { ExaSourceCards } from "@/components/chat/exa-source-cards";
-import {
-  ExaToolChip,
-  isExaToolPart,
-} from "@/components/chat/exa-tool-chip";
+import { ChatMessageList } from "@/components/chat/chat-message-list";
 import { ExaUnavailableBanner } from "@/components/chat/exa-unavailable-banner";
 import { useChatSidebar } from "@/components/chat/chat-shell";
 import { Button } from "@/components/ui/button";
@@ -37,10 +28,14 @@ import {
   type ScheduleRunCompleteDetail,
 } from "@/lib/scheduler/schedule-run-events";
 import { cn } from "@/lib/utils";
+import { AssistantAvatar } from "@/components/chat/message-row";
 
 interface ChatPanelProps {
   id?: string;
   initialMessages?: UIMessage[];
+  initialHasMore?: boolean;
+  initialOldestSequence?: number | null;
+  initialSequences?: Array<{ id: string; sequence: number }>;
   exaConfigured?: boolean;
   hasExaTools?: boolean;
 }
@@ -61,158 +56,12 @@ function getSuggestions(hasExaTools: boolean, exaConfigured: boolean): string[] 
   return BASE_SUGGESTIONS;
 }
 
-function AssistantAvatar() {
-  return (
-    <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
-      <Bot className="size-4" />
-    </div>
-  );
-}
-
-function UserAvatar() {
-  return (
-    <div className="border-muted-foreground/20 bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-full border">
-      <User className="size-4" />
-    </div>
-  );
-}
-
-function TypingDots() {
-  return (
-    <div className="flex items-center gap-1 py-1.5">
-      {[0, 150, 300].map((delay) => (
-        <span
-          key={delay}
-          className="bg-muted-foreground/60 animate-chat-typing size-1.5 rounded-full"
-          style={{ animationDelay: `${delay}ms` }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function ToolChip({ part }: { part: UIMessage["parts"][number] }) {
-  if (!isToolUIPart(part)) {
-    return null;
-  }
-
-  const toolName = getToolName(part);
-  const state = part.state;
-  const isRunning = state !== "output-available" && state !== "output-error";
-
-  const Icon =
-    state === "output-error"
-      ? AlertCircle
-      : isRunning
-        ? Loader2
-        : CheckCircle2;
-  const label =
-    state === "output-error" ? "error" : isRunning ? "running" : "done";
-
-  return (
-    <span className="text-muted-foreground inline-flex items-center gap-1.5 rounded-md border bg-background/60 px-2 py-1 text-xs">
-      <Wrench className="size-3" />
-      <span className="font-medium">{toolName}</span>
-      <span className="inline-flex items-center gap-1 opacity-70">
-        <Icon className={cn("size-3", isRunning && "animate-spin")} />
-        {label}
-      </span>
-    </span>
-  );
-}
-
-function MessageContent({
-  message,
-  isUser,
-}: {
-  message: UIMessage;
-  isUser: boolean;
-}) {
-  const nodes: React.ReactNode[] = [];
-  let textRun = "";
-  let textRunStart = 0;
-  const toolRun: UIMessage["parts"] = [];
-  let toolRunStart = 0;
-
-  const flushTextRun = () => {
-    if (!textRun) return;
-    nodes.push(
-      <div
-        key={`${message.id}-text-${textRunStart}`}
-        className={cn(
-          "rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-xs",
-          isUser
-            ? "bg-primary text-primary-foreground whitespace-pre-wrap rounded-tr-sm"
-            : "bg-muted rounded-tl-sm"
-        )}
-      >
-        {isUser ? textRun : <MessageMarkdown content={textRun} />}
-      </div>
-    );
-    textRun = "";
-  };
-
-  const flushToolRun = () => {
-    if (toolRun.length === 0) return;
-
-    const toolNodes: React.ReactNode[] = [];
-
-    for (const [index, part] of toolRun.entries()) {
-      const key =
-        isToolUIPart(part) && part.toolCallId
-          ? part.toolCallId
-          : `${message.id}-tool-${toolRunStart + index}`;
-
-      if (isExaToolPart(part)) {
-        toolNodes.push(<ExaToolChip key={key} part={part} />);
-
-        if (isToolUIPart(part) && getToolName(part) === "exa_web_search") {
-          toolNodes.push(
-            <ExaSourceCards key={`${key}-sources`} part={part} />
-          );
-        }
-
-        continue;
-      }
-
-      toolNodes.push(<ToolChip key={key} part={part} />);
-    }
-
-    nodes.push(
-      <div
-        key={`${message.id}-tools-${toolRunStart}`}
-        className="flex w-full flex-col gap-2"
-      >
-        {toolNodes}
-      </div>
-    );
-    toolRun.length = 0;
-  };
-
-  for (const [index, part] of message.parts.entries()) {
-    if (part.type === "text") {
-      flushToolRun();
-      if (!textRun) textRunStart = index;
-      textRun += part.text;
-      continue;
-    }
-
-    if (isToolUIPart(part)) {
-      flushTextRun();
-      if (toolRun.length === 0) toolRunStart = index;
-      toolRun.push(part);
-    }
-  }
-
-  flushTextRun();
-  flushToolRun();
-
-  return <>{nodes}</>;
-}
-
 export function ChatPanel({
   id,
   initialMessages = [],
+  initialHasMore = false,
+  initialOldestSequence = null,
+  initialSequences = [],
   exaConfigured = false,
   hasExaTools = false,
 }: ChatPanelProps) {
@@ -225,35 +74,102 @@ export function ChatPanel({
   const navigatedRef = React.useRef(false);
 
   const [input, setInput] = React.useState("");
-  const scrollRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const { messages, sendMessage, status, error, setMessages } = useChat({
-    id: chatId,
-    messages: initialMessages,
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      prepareSendMessagesRequest: ({ id: sendChatId, messages: allMessages }) => ({
-        body: {
-          id: sendChatId,
-          message: allMessages.at(-1),
-        },
-      }),
-    }),
-  });
+  const [olderMessages, setOlderMessages] = React.useState<UIMessage[]>([]);
+  const [hasMore, setHasMore] = React.useState(initialHasMore);
+  const [oldestSequence, setOldestSequence] = React.useState<number | null>(
+    initialOldestSequence
+  );
+  const [isLoadingOlder, setIsLoadingOlder] = React.useState(false);
 
-  const isReady = status === "ready";
-  const hasMessages = messages.length > 0;
-  const lastMessage = messages.at(-1);
-  const lastAssistantHasText =
-    lastMessage?.role === "assistant" &&
-    lastMessage.parts.some(
-      (part) => part.type === "text" && part.text.length > 0
-    );
-  const refreshedScheduleTools = React.useRef(new Set<string>());
+  const sequenceByIdRef = React.useRef(new Map<string, number>());
 
   React.useEffect(() => {
-    for (const message of messages) {
+    const map = sequenceByIdRef.current;
+    map.clear();
+
+    for (const entry of initialSequences) {
+      map.set(entry.id, entry.sequence);
+    }
+  }, [id, initialSequences]);
+
+  const { messages: liveMessages, sendMessage, status, error, setMessages } =
+    useChat({
+      id: chatId,
+      messages: initialMessages,
+      transport: new DefaultChatTransport({
+        api: "/api/chat",
+        prepareSendMessagesRequest: ({ id: sendChatId, messages: allMessages }) => ({
+          body: {
+            id: sendChatId,
+            message: allMessages.at(-1),
+          },
+        }),
+      }),
+    });
+
+  React.useEffect(() => {
+    let nextSequence =
+      sequenceByIdRef.current.size > 0
+        ? Math.max(...sequenceByIdRef.current.values())
+        : -1;
+
+    for (const message of liveMessages) {
+      if (!sequenceByIdRef.current.has(message.id)) {
+        nextSequence += 1;
+        sequenceByIdRef.current.set(message.id, nextSequence);
+      }
+    }
+  }, [liveMessages]);
+
+  const displayMessages = React.useMemo(
+    () => [...olderMessages, ...liveMessages],
+    [olderMessages, liveMessages]
+  );
+
+  const isReady = status === "ready";
+  const hasMessages = displayMessages.length > 0;
+  const refreshedScheduleTools = React.useRef(new Set<string>());
+
+  const loadOlderMessages = React.useCallback(async () => {
+    if (!id || !hasMore || oldestSequence === null || isLoadingOlder) {
+      return;
+    }
+
+    setIsLoadingOlder(true);
+
+    try {
+      const response = await fetch(
+        `/api/chats/${id}/messages?before=${oldestSequence}&limit=30`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const body = (await response.json()) as {
+        messages: UIMessage[];
+        sequences?: Array<{ id: string; sequence: number }>;
+        hasMore: boolean;
+        oldestSequence: number | null;
+      };
+
+      for (const entry of body.sequences ?? []) {
+        sequenceByIdRef.current.set(entry.id, entry.sequence);
+      }
+
+      setOlderMessages((current) => [...(body.messages ?? []), ...current]);
+      setHasMore(body.hasMore);
+      setOldestSequence(body.oldestSequence);
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }, [id, hasMore, oldestSequence, isLoadingOlder]);
+
+  React.useEffect(() => {
+    for (const message of liveMessages) {
       for (const part of message.parts) {
         if (!isToolUIPart(part)) {
           continue;
@@ -279,7 +195,7 @@ export function ChatPanel({
         router.refresh();
       }
     }
-  }, [messages, router]);
+  }, [liveMessages, router]);
 
   React.useEffect(() => {
     if (!id || status !== "ready") {
@@ -293,17 +209,39 @@ export function ChatPanel({
         return;
       }
 
+      const maxSequence = Math.max(0, ...sequenceByIdRef.current.values());
+
       try {
-        const response = await fetch(`/api/chats/${id}/messages`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/chats/${id}/messages?after=${maxSequence}&limit=10`,
+          { cache: "no-store" }
+        );
 
         if (!response.ok) {
           return;
         }
 
-        const body = (await response.json()) as { messages: UIMessage[] };
-        setMessages(body.messages ?? []);
+        const body = (await response.json()) as {
+          messages: UIMessage[];
+          sequences?: Array<{ id: string; sequence: number }>;
+        };
+
+        if (!body.messages?.length) {
+          return;
+        }
+
+        for (const entry of body.sequences ?? []) {
+          sequenceByIdRef.current.set(entry.id, entry.sequence);
+        }
+
+        setMessages((current) => {
+          const existingIds = new Set(current.map((message) => message.id));
+          const appended = body.messages.filter(
+            (message) => !existingIds.has(message.id)
+          );
+
+          return appended.length > 0 ? [...current, ...appended] : current;
+        });
       } catch {
         // Ignore transient sync errors; the next poll will retry.
       }
@@ -326,7 +264,7 @@ export function ChatPanel({
       !id &&
       prevStatusRef.current === "streaming" &&
       status === "ready" &&
-      messages.length > 0 &&
+      liveMessages.length > 0 &&
       !navigatedRef.current
     ) {
       navigatedRef.current = true;
@@ -334,7 +272,7 @@ export function ChatPanel({
       router.refresh();
     }
     prevStatusRef.current = status;
-  }, [id, status, messages.length, chatId, router]);
+  }, [id, status, liveMessages.length, chatId, router]);
 
   const adjustTextarea = React.useCallback(() => {
     const el = textareaRef.current;
@@ -342,13 +280,6 @@ export function ChatPanel({
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 192)}px`;
   }, []);
-
-  React.useEffect(() => {
-    const el = scrollRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [messages, status]);
 
   function send(text: string) {
     const trimmed = text.trim();
@@ -407,56 +338,18 @@ export function ChatPanel({
         </Button>
       </header>
 
-      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {hasMessages ? (
-          <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
-            {messages.map((message, index) => {
-              const isUser = message.role === "user";
-              const isLast = index === messages.length - 1;
-              const showInlineTyping =
-                !isUser &&
-                isLast &&
-                status === "streaming" &&
-                !lastAssistantHasText;
-
-              return (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex gap-3",
-                    isUser ? "flex-row-reverse" : "flex-row"
-                  )}
-                >
-                  {isUser ? <UserAvatar /> : <AssistantAvatar />}
-
-                  <div
-                    className={cn(
-                      "flex max-w-[85%] flex-col gap-2",
-                      isUser ? "items-end" : "items-start"
-                    )}
-                  >
-                    <MessageContent message={message} isUser={isUser} />
-
-                    {showInlineTyping ? (
-                      <div className="bg-muted rounded-2xl rounded-tl-sm px-4 shadow-xs">
-                        <TypingDots />
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
-
-            {status === "submitted" ? (
-              <div className="flex flex-row gap-3">
-                <AssistantAvatar />
-                <div className="bg-muted rounded-2xl rounded-tl-sm px-4 shadow-xs">
-                  <TypingDots />
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : (
+      {hasMessages ? (
+        <ChatMessageList
+          chatId={id}
+          messages={displayMessages}
+          status={status}
+          hasMore={hasMore}
+          oldestSequence={oldestSequence}
+          onLoadOlder={loadOlderMessages}
+          isLoadingOlder={isLoadingOlder}
+        />
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
             <div className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-2xl shadow-sm">
               <Sparkles className="size-7" />
@@ -483,8 +376,8 @@ export function ChatPanel({
               ))}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="bg-background shrink-0 border-t">
         <div className="mx-auto w-full max-w-3xl px-4 py-3">

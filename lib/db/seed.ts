@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { hashPassword } from "@/lib/auth/password";
 import { db, sql } from "@/lib/db";
+import { ensureMainChannelForUser } from "@/lib/db/repositories/channel-repository";
 import { users } from "@/lib/db/schema";
 
 const SEED_USERS = [
@@ -36,14 +37,25 @@ async function seed() {
 
     const passwordHash = await hashPassword(seedUser.password);
 
-    await db.insert(users).values({
-      email: seedUser.email,
-      passwordHash,
-      displayName: seedUser.displayName,
-      role: seedUser.role,
-    });
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: seedUser.email,
+        passwordHash,
+        displayName: seedUser.displayName,
+        role: seedUser.role,
+      })
+      .returning({ id: users.id });
+
+    await ensureMainChannelForUser(user.id);
 
     console.log(`Created user: ${seedUser.email}`);
+  }
+
+  const allUsers = await db.select({ id: users.id }).from(users);
+
+  for (const user of allUsers) {
+    await ensureMainChannelForUser(user.id);
   }
 }
 

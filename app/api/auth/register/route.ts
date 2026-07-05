@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { registerSchema } from "@/lib/auth/schemas";
 import { createSession } from "@/lib/auth/session";
+import { getOrCreateMainChannel } from "@/lib/db/repositories/channel-repository";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
@@ -52,6 +53,7 @@ export async function POST(req: Request) {
     })
     .returning({ id: users.id });
 
+  await getOrCreateMainChannel(user.id);
   await createSession(user.id);
 
   return NextResponse.json({ message: "Registered successfully." });

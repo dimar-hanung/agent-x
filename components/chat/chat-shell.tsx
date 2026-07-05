@@ -9,6 +9,7 @@ import { useScheduleRunListener } from "@/hooks/use-schedule-run-listener";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 interface ChatShellProps {
+  mainChannel: { id: string; title: string; updatedAt: string } | null;
   chats: Array<{ id: string; title: string; updatedAt: string }>;
   schedules: ScheduleListItem[];
   children: React.ReactNode;
@@ -33,7 +34,7 @@ export function useChatSidebar() {
   return context;
 }
 
-export function ChatShell({ chats, schedules, children }: ChatShellProps) {
+export function ChatShell({ mainChannel, chats, schedules, children }: ChatShellProps) {
   const pathname = usePathname();
   const activeChatId = pathname.startsWith("/chat/")
     ? pathname.split("/")[2]
@@ -52,6 +53,7 @@ export function ChatShell({ chats, schedules, children }: ChatShellProps) {
       <div className="flex h-svh w-full overflow-hidden">
         <div className="hidden h-full md:flex">
           <ChatSidebar
+            mainChannel={mainChannel}
             chats={chats}
             schedules={schedules}
             activeChatId={activeChatId}
@@ -62,6 +64,7 @@ export function ChatShell({ chats, schedules, children }: ChatShellProps) {
           <SheetContent side="left" showCloseButton={false} className="w-72 p-0">
             <SheetTitle className="sr-only">Chat history</SheetTitle>
             <ChatSidebar
+              mainChannel={mainChannel}
               chats={chats}
               schedules={schedules}
               activeChatId={activeChatId}

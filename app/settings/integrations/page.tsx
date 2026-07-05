@@ -9,8 +9,10 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { GmailIntegrationCard } from "@/components/settings/gmail-integration-card";
+import { WhatsAppPairingCard } from "@/components/settings/whatsapp-pairing-card";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 import { getGmailIntegrationStatus } from "@/lib/integrations/gmail-repository";
+import { getUserPairingStatus } from "@/lib/integrations/whatsapp-channel-repository";
 
 export default async function IntegrationsPage() {
   const user = await getSessionUser();
@@ -19,7 +21,10 @@ export default async function IntegrationsPage() {
     return null;
   }
 
-  const gmailStatus = await getGmailIntegrationStatus(user.userId);
+  const [gmailStatus, whatsappStatus] = await Promise.all([
+    getGmailIntegrationStatus(user.userId),
+    getUserPairingStatus(user.userId),
+  ]);
 
   return (
     <>
@@ -52,8 +57,9 @@ export default async function IntegrationsPage() {
             Connect external services for use in chat tools.
           </p>
         </div>
-        <div className="max-w-xl">
+        <div className="flex max-w-xl flex-col gap-6">
           <GmailIntegrationCard initialStatus={gmailStatus} />
+          <WhatsAppPairingCard initialStatus={whatsappStatus} />
         </div>
       </div>
     </>

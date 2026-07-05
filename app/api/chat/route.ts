@@ -7,17 +7,20 @@ import {
 import { NextResponse } from "next/server";
 
 import { createChatAgentForRun } from "@/lib/ai/agents/chat-agent";
+import { prepareModelContext } from "@/lib/ai/context/prepare-model-context";
 import { maxDuration } from "@/lib/ai/chat-config";
 import { chatRequestSchema } from "@/lib/ai/chat-schema";
 import { isOpenRouterConfigured } from "@/lib/ai/openrouter";
 import { UnauthorizedError, resolveUser } from "@/lib/ai/roles/resolve-user";
 import { createAllToolsForUser } from "@/lib/ai/tools/resolve-tools";
+import { isMainChannel } from "@/lib/db/repositories/channel-repository";
 import {
   createChatWithId,
   getChatOwner,
-  loadChatMessages,
+  loadStoredChatMessages,
   saveChat,
 } from "@/lib/db/repositories/chat-repository";
+import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
 
 export { maxDuration };
 
@@ -61,26 +64,50 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Chat not found." }, { status: 404 });
     }
 
-    const previousMessages = await loadChatMessages(chatId, user.userId);
-    const messages = [...previousMessages, message as UIMessage];
+    const storedMessages = await loadStoredChatMessages(chatId, user.userId);
+    const fullMessages: UIMessage[] = [
+      ...storedMessages.map(({ sequence: _sequence, ...msg }) => msg),
+      message as UIMessage,
+    ];
+
+    const storedWithNew = [
+      ...storedMessages,
+      {
+        ...(message as UIMessage),
+        sequence: storedMessages.length,
+      },
+    ];
+
+    const { systemPrompt, modelMessages } = await prepareModelContext({
+      chatId,
+      user,
+      allMessages: storedWithNew,
+    });
 
     const runtimeContext = { userId: user.userId, chatId };
 
     const tools = await createAllToolsForUser(user, { runtimeContext });
-    const validatedMessages = await validateUIMessages({
-      messages,
+
+    const validatedModelMessages = await validateUIMessages({
+      messages: modelMessages,
+      tools: tools as Record<string, never>,
+    });
+
+    const validatedFullMessages = await validateUIMessages({
+      messages: fullMessages,
       tools: tools as Record<string, never>,
     });
 
     const { agent } = await createChatAgentForRun({
       user,
       chatId,
+      instructions: systemPrompt,
     });
 
     return createAgentUIStreamResponse({
       agent,
-      uiMessages: validatedMessages as never,
-      originalMessages: validatedMessages as never,
+      uiMessages: validatedModelMessages as never,
+      originalMessages: validatedFullMessages as never,
       generateMessageId: createIdGenerator({
         prefix: "msg",
         size: 16,
@@ -91,6 +118,25 @@ export async function POST(req: Request) {
           userId: user.userId,
           allMessages: allMessages as UIMessage[],
         });
+
+        if (await isMainChannel(chatId)) {
+          const lastAssistant = [...(allMessages as UIMessage[])]
+            .reverse()
+            .find((msg) => msg.role === "assistant");
+
+          const textPart = lastAssistant?.parts.find(
+            (part): part is { type: "text"; text: string } =>
+              part.type === "text" && typeof part.text === "string"
+          );
+
+          if (textPart?.text) {
+            void sendWhatsAppToUser(user.userId, textPart.text).catch(
+              (error) => {
+                console.error("Mirror WhatsApp gagal:", error);
+              }
+            );
+          }
+        }
       },
     });
   } catch (error) {

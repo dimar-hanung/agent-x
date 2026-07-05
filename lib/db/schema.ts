@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -10,19 +11,36 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  displayName: varchar("display_name", { length: 255 }).notNull(),
-  role: varchar("role", { length: 32 }).notNull().default("student"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const CHAT_KINDS = ["channel", "conversation"] as const;
+export type ChatKind = (typeof CHAT_KINDS)[number];
+
+export const WHATSAPP_CHANNEL_STATUSES = [
+  "disconnected",
+  "pairing",
+  "connected",
+] as const;
+export type WhatsAppChannelStatus = (typeof WHATSAPP_CHANNEL_STATUSES)[number];
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    displayName: varchar("display_name", { length: 255 }).notNull(),
+    role: varchar("role", { length: 32 }).notNull().default("student"),
+    whatsappPhoneE164: varchar("whatsapp_phone_e164", { length: 20 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("users_whatsapp_phone_e164_idx").on(table.whatsappPhoneE164),
+  ]
+);
 
 export const sessions = pgTable(
   "sessions",
@@ -47,7 +65,13 @@ export const chats = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 16 }).notNull().default("conversation"),
     title: varchar("title", { length: 255 }).notNull().default("New chat"),
+    contextSummary: text("context_summary"),
+    summarizedUpToSequence: integer("summarized_up_to_sequence")
+      .notNull()
+      .default(0),
+    summaryUpdatedAt: timestamp("summary_updated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -57,8 +81,27 @@ export const chats = pgTable(
   },
   (table) => [
     index("chats_user_id_updated_at_idx").on(table.userId, table.updatedAt),
+    uniqueIndex("chats_user_channel_idx")
+      .on(table.userId)
+      .where(sql`${table.kind} = 'channel'`),
   ]
 );
+
+export const whatsappChannelConfig = pgTable("whatsapp_channel_config", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  channelPhoneE164: varchar("channel_phone_e164", { length: 20 }),
+  status: varchar("status", { length: 32 })
+    .notNull()
+    .default("disconnected"),
+  instanceName: varchar("instance_name", { length: 128 }).notNull(),
+  connectedAt: timestamp("connected_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const messages = pgTable(
   "messages",
@@ -145,3 +188,4 @@ export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type ScheduledJob = typeof scheduledJobs.$inferSelect;
 export type UserIntegration = typeof userIntegrations.$inferSelect;
+export type WhatsAppChannelConfig = typeof whatsappChannelConfig.$inferSelect;
