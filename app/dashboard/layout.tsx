@@ -1,13 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 
-export default async function SettingsLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -15,12 +12,13 @@ export default async function SettingsLayout({
   const user = await getSessionUser();
 
   if (!user) {
-    redirect("/login?next=/settings/integrations");
+    redirect("/login?next=/dashboard");
   }
 
   return (
     <SidebarProvider>
       <AppSidebar
+        role={user.role}
         user={{
           name: user.displayName,
           email: user.email,

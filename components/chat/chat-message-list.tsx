@@ -4,11 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type { UIMessage } from "ai";
 import * as React from "react";
 
-import {
-  AssistantAvatar,
-  MessageRow,
-  TypingDots,
-} from "@/components/chat/message-row";
+import { MessageRow, TypingDots } from "@/components/chat/message-row";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -168,11 +164,8 @@ export function ChatMessageList({
           </div>
 
           {status === "submitted" ? (
-            <div className="flex flex-row gap-3 px-4 py-3">
-              <AssistantAvatar />
-              <div className="bg-muted rounded-2xl rounded-tl-sm px-4 shadow-xs">
-                <TypingDots />
-              </div>
+            <div className="px-4 py-4">
+              <TypingDots />
             </div>
           ) : null}
         </div>

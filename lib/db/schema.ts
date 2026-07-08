@@ -21,6 +21,9 @@ export const WHATSAPP_CHANNEL_STATUSES = [
 ] as const;
 export type WhatsAppChannelStatus = (typeof WHATSAPP_CHANNEL_STATUSES)[number];
 
+export const USER_GENDERS = ["laki_laki", "perempuan"] as const;
+export type UserGender = (typeof USER_GENDERS)[number];
+
 export const users = pgTable(
   "users",
   {
@@ -28,8 +31,9 @@ export const users = pgTable(
     email: varchar("email", { length: 255 }).notNull().unique(),
     passwordHash: text("password_hash").notNull(),
     displayName: varchar("display_name", { length: 255 }).notNull(),
-    role: varchar("role", { length: 32 }).notNull().default("student"),
+    role: varchar("role", { length: 32 }).notNull().default("client"),
     whatsappPhoneE164: varchar("whatsapp_phone_e164", { length: 20 }),
+    gender: varchar("gender", { length: 16 }).notNull().default("laki_laki"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -70,7 +74,7 @@ export const chats = pgTable(
     contextSummary: text("context_summary"),
     summarizedUpToSequence: integer("summarized_up_to_sequence")
       .notNull()
-      .default(0),
+      .default(-1),
     summaryUpdatedAt: timestamp("summary_updated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

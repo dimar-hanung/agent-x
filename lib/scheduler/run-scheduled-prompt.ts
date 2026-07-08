@@ -8,7 +8,8 @@ import {
   updateScheduledJobChatId,
 } from "@/lib/db/repositories/schedule-repository";
 
-const SCHEDULED_RUN_PREFIX = "Ini eksekusi terjadwal:\n\n";
+const SCHEDULED_RUN_PREFIX =
+  "Ini eksekusi terjadwal. Gunakan format WhatsApp, bukan Markdown. Jangan pakai link Markdown [teks](url), tulis URL langsung.\n\n";
 
 export async function runScheduledPrompt(jobId: string): Promise<void> {
   const job = await getScheduledJobById(jobId);

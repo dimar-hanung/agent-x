@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       email: email.toLowerCase(),
       passwordHash,
       displayName,
-      role: "student",
+      role: "client",
     })
     .returning({ id: users.id });
 

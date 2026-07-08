@@ -5,7 +5,7 @@ import { isExaConfigured } from "@/lib/ai/exa/env";
 import { userHasExaTools } from "@/lib/ai/roles/tools-by-role";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 import { loadChatMessagesPage } from "@/lib/db/repositories/chat-repository";
-import { siteConfig } from "@/lib/site-config";
+import { siteConfig, appRoutes } from "@/lib/site-config";
 
 export const metadata = {
   title: `Chat | ${siteConfig.name}`,
@@ -20,7 +20,7 @@ export default async function ChatPage({
   const user = await getSessionUser();
 
   if (!user) {
-    redirect("/login?next=/chat");
+    redirect(`/login?next=${appRoutes.chat}`);
   }
 
   const { id } = await params;

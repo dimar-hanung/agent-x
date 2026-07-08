@@ -5,7 +5,6 @@ import {
   Bot,
   CheckCircle2,
   Loader2,
-  User,
   Wrench,
 } from "lucide-react";
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
@@ -23,14 +22,6 @@ function AssistantAvatar() {
   return (
     <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
       <Bot className="size-4" />
-    </div>
-  );
-}
-
-function UserAvatar() {
-  return (
-    <div className="border-muted-foreground/20 bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-full border">
-      <User className="size-4" />
     </div>
   );
 }
@@ -121,19 +112,23 @@ function MessageContent({
 
   const flushTextRun = () => {
     if (!textRun) return;
-    nodes.push(
-      <div
-        key={`${message.id}-text-${textRunStart}`}
-        className={cn(
-          "rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-xs",
-          isUser
-            ? "bg-primary text-primary-foreground whitespace-pre-wrap rounded-tr-sm"
-            : "bg-muted rounded-tl-sm"
-        )}
-      >
-        {isUser ? textRun : <MessageMarkdown content={textRun} />}
-      </div>
-    );
+    if (isUser) {
+      nodes.push(
+        <div
+          key={`${message.id}-text-${textRunStart}`}
+          className="bg-muted text-foreground rounded-3xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap"
+        >
+          {textRun}
+        </div>
+      );
+    } else {
+      nodes.push(
+        <MessageMarkdown
+          key={`${message.id}-text-${textRunStart}`}
+          content={textRun}
+        />
+      );
+    }
     textRun = "";
   };
 
@@ -206,26 +201,23 @@ export function MessageRow({
 }: MessageRowProps) {
   const isUser = message.role === "user";
 
-  return (
-    <div
-      className={cn("flex gap-3 px-4 py-3", isUser ? "flex-row-reverse" : "flex-row")}
-    >
-      {isUser ? <UserAvatar /> : <AssistantAvatar />}
+  if (isUser) {
+    return (
+      <div className="flex justify-end px-4 py-4">
+        <div className="flex max-w-[85%] flex-col items-end gap-1">
+          <MessageSourceBadge message={message} />
+          <MessageContent message={message} isUser={isUser} />
+        </div>
+      </div>
+    );
+  }
 
-      <div
-        className={cn(
-          "flex max-w-[85%] flex-col gap-2",
-          isUser ? "items-end" : "items-start"
-        )}
-      >
+  return (
+    <div className="px-4 py-4">
+      <div className="flex w-full flex-col gap-2">
         <MessageSourceBadge message={message} />
         <MessageContent message={message} isUser={isUser} />
-
-        {showInlineTyping ? (
-          <div className="bg-muted rounded-2xl rounded-tl-sm px-4 shadow-xs">
-            <TypingDots />
-          </div>
-        ) : null}
+        {showInlineTyping ? <TypingDots /> : null}
       </div>
     </div>
   );

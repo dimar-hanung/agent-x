@@ -1,3 +1,5 @@
+import { appRoutes } from "@/lib/site-config";
+
 export async function requestScheduleNotificationPermission(): Promise<NotificationPermission | null> {
   if (typeof window === "undefined" || !("Notification" in window)) {
     return null;
@@ -47,7 +49,7 @@ export function showScheduleCompleteNotification({
   if (chatId) {
     notification.onclick = () => {
       window.focus();
-      window.location.assign(`/chat/${chatId}`);
+      window.location.assign(`${appRoutes.chat}/${chatId}`);
       notification.close();
     };
   }

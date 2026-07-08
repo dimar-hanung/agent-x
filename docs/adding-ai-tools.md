@@ -1,6 +1,6 @@
 # Adding AI Tools
 
-This guide explains how to add a new **native** (in-process) tool to AgentX. Each tool is one file; wiring it in takes four touch points.
+This guide explains how to add a new **native** (in-process) tool to AgentX. Each tool is a 4-file folder; wiring it in takes four touch points beyond the folder.
 
 For external MCP servers, see [Adding MCP Tools](./adding-mcp-tools.md).
 
@@ -18,10 +18,14 @@ Both sources share `lib/ai/roles/tools-by-role.ts` as the single role allowlist.
 ```
 lib/ai/tools/
 ├── tool-keys.ts           # NativeToolKey + McpToolKey union
-├── ai-tools.types.ts      # Result types
+├── ai-tools.types.ts      # ToolResult base + barrel re-exports
 ├── index.ts               # Native tool registry
 ├── resolve-tools.ts       # Merges native + MCP for chat agent
 ├── get-time/              # Example: public tool
+│   ├── get-time.tool.ts
+│   ├── schema.ts
+│   ├── execute.ts
+│   └── types.ts
 ├── echo/                  # Example: user-scoped tool
 ├── role-info/             # Example: role-aware tool
 ├── exa-web-search/        # Example: external REST API tool
@@ -36,57 +40,116 @@ When a chat request arrives, `chat-agent.ts` calls `createAllToolsForUser()`, wh
 
 ```mermaid
 flowchart LR
-  NewToolFile["tools/name/name.tool.ts"]
-  Types["ai-tools.types.ts"]
+  Factory["tools/name/name.tool.ts"]
+  Schema["schema.ts"]
+  Execute["execute.ts"]
+  Types["types.ts"]
+  Barrel["ai-tools.types.ts"]
   Registry["tools/index.ts"]
   RoleMap["tools-by-role.ts"]
   ChatAgent["chat-agent.ts auto"]
 
-  NewToolFile --> Types
-  Types --> Registry
+  Factory --> Schema
+  Factory --> Execute
+  Execute --> Types
+  Types --> Barrel
+  Factory --> Registry
   Registry --> RoleMap
   RoleMap --> ChatAgent
 ```
 
 ## Quick checklist
 
-1. Create `lib/ai/tools/<tool-name>/<tool-name>.tool.ts`
-2. Add a result interface to `lib/ai/tools/ai-tools.types.ts`
-3. Add the key to `NativeToolKey` in `lib/ai/tools/tool-keys.ts`
-4. Register the tool in `lib/ai/tools/index.ts`
+1. Create `lib/ai/tools/<tool-name>/` with all four files (see folder contract below)
+2. Add the key to `NativeToolKey` in `lib/ai/tools/tool-keys.ts`
+3. Register the tool in `lib/ai/tools/index.ts`
+4. Add a barrel re-export in `lib/ai/tools/ai-tools.types.ts`
 5. Allowlist the key in `lib/ai/roles/tools-by-role.ts` for each role that should see it
 6. Test in chat at `/chat` with a prompt that should trigger the tool
 
-## Step 1: Create the tool file
+## Folder contract
 
-Export a factory function `createXxxTool`. Use `user` in the closure only when the tool needs identity or role.
+Every native tool folder contains four files:
 
-**Public tool (no user)** — see [`get-time/get-time.tool.ts`](../lib/ai/tools/get-time/get-time.tool.ts):
-
-- Factory takes no arguments
-- Uses `tool({ description, inputSchema, execute })` from `ai`
-- Input validated with Zod
-
-**User-scoped tool** — see [`echo/echo.tool.ts`](../lib/ai/tools/echo/echo.tool.ts):
-
-- Factory takes `user: UserContext`
-- Reads `user.displayName`, `user.role`, etc. from the closure
-- Never import `HARDCODED_USER` inside the tool file
-
-## Step 2: Add types
-
-In `lib/ai/tools/tool-keys.ts`:
-
-```ts
-export type NativeToolKey = "get_time" | "echo" | "role_info" | "my_new_tool";
+```
+lib/ai/tools/<tool-name>/
+├── <tool-name>.tool.ts   # createXxxTool() — wires tool() only
+├── schema.ts             # Zod inputSchema + exported input type
+├── execute.ts            # executeXxx(input, ctx) — business logic
+└── types.ts              # XxxToolResult extends ToolResult
 ```
 
-In `lib/ai/tools/ai-tools.types.ts`:
+### Thin factory (`<tool-name>.tool.ts`)
+
+Export `createXxxTool`. Use `user` in the closure only when the tool needs identity or role.
+
+**Public tool (no user)** — see [`get-time/`](../lib/ai/tools/get-time/):
 
 ```ts
-export interface MyNewToolResult extends ToolResult {
+export function createGetTimeTool() {
+  return tool({
+    description: "...",
+    inputSchema: getTimeInputSchema,
+    execute: executeGetTime,
+  });
+}
+```
+
+**User-scoped tool** — see [`echo/`](../lib/ai/tools/echo/):
+
+```ts
+export function createEchoTool(user: UserContext) {
+  return tool({
+    description: "...",
+    inputSchema: echoInputSchema,
+    execute: (input) => executeEcho(input, { user }),
+  });
+}
+```
+
+**Runtime-aware tool** — see [`create-schedule/`](../lib/ai/tools/create-schedule/):
+
+```ts
+export function createCreateScheduleTool(user, runtimeContext?) {
+  return tool({
+    description: "...",
+    inputSchema: createScheduleInputSchema,
+    execute: (input) => executeCreateSchedule(input, { user, runtimeContext }),
+  });
+}
+```
+
+### Schema (`schema.ts`)
+
+```ts
+export const myToolInputSchema = z.object({ /* fields */ });
+export type MyToolInput = z.infer<typeof myToolInputSchema>;
+```
+
+### Execute (`execute.ts`)
+
+| Tool category | Signature |
+|---------------|-----------|
+| Public (no user) | `executeXxx(input): Promise<XxxToolResult>` |
+| User-scoped | `executeXxx(input, ctx: { user: UserContext })` |
+| Runtime-aware | `executeXxx(input, ctx: { user; runtimeContext? })` |
+
+Never import `HARDCODED_USER` inside execute — receive `user` via context.
+
+### Types (`types.ts`)
+
+```ts
+import type { ToolResult } from "../ai-tools.types";
+
+export interface MyToolResult extends ToolResult {
   data?: { /* fields */ };
 }
+```
+
+Then add to `ai-tools.types.ts`:
+
+```ts
+export type { MyToolResult } from "./my-tool/types";
 ```
 
 Keep `NativeToolKey` values in sync with the registry object keys in `index.ts`.
@@ -168,7 +231,7 @@ Watch the chat UI for tool badges (`Tool: get_time (running)` → `done`). Exa t
 
 ## External API tools (Exa example)
 
-For tools that call an external HTTP API, extract the client into a shared module and keep the tool thin:
+For tools that call an external HTTP API, extract the client into a shared module. Keep `execute.ts` thin — it calls the client, not raw `fetch`:
 
 ```
 lib/ai/exa/
@@ -176,14 +239,17 @@ lib/ai/exa/
 ├── types.ts     # API response types
 └── client.ts    # searchExa(), fetchExaContents()
 
-lib/ai/tools/exa-web-search/exa-web-search.tool.ts
-lib/ai/tools/exa-web-fetch/exa-web-fetch.tool.ts
+lib/ai/tools/exa-web-search/
+├── exa-web-search.tool.ts
+├── schema.ts
+├── execute.ts      # calls lib/ai/exa/client.ts
+└── types.ts
 ```
 
 Pattern:
 
 1. `lib/ai/exa/client.ts` — `fetch` to `https://api.exa.ai/search` and `/contents` with `x-api-key` header
-2. Tool `execute` calls the client, returns `{ success, data }` or `{ success: false, code, message }`
+2. `execute.ts` calls the client, returns `{ success, data }` or `{ success: false, code, message }`
 3. On missing `EXA_API_KEY`, return `code: "EXA_NOT_CONFIGURED"` so the model can relay a user-facing message
 4. Add `EXA_API_KEY` to `.env.example`
 
@@ -198,7 +264,4 @@ Exa web search is a **native** tool, not MCP. See [Adding MCP Tools](./adding-mc
 | `ToolKey` / registry key mismatch | TypeScript error or silent omission |
 | Importing `HARDCODED_USER` in tool | Breaks when auth is added later |
 | Inconsistent result shape | Model gives vague or wrong summaries |
-
-## Optional: large input schemas
-
-If a tool's Zod schema is long, split it into `lib/ai/tools/<name>/schema.ts` and import it in the tool file. Most tools can keep the schema inline.
+| Putting business logic in `.tool.ts` | Hard to test; file grows unbounded |

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import type { ScheduleListItem } from "@/components/chat/schedule-list";
 import { useScheduleRunListener } from "@/hooks/use-schedule-run-listener";
+import { appRoutes } from "@/lib/site-config";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 interface ChatShellProps {
@@ -36,7 +37,7 @@ export function useChatSidebar() {
 
 export function ChatShell({ mainChannel, chats, schedules, children }: ChatShellProps) {
   const pathname = usePathname();
-  const activeChatId = pathname.startsWith("/chat/")
+  const activeChatId = pathname.startsWith(`${appRoutes.chat}/`)
     ? pathname.split("/")[2]
     : undefined;
 

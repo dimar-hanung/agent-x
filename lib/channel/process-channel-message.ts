@@ -72,6 +72,7 @@ export async function processChannelMessage(
     chatId,
     user,
     allMessages: storedWithNew,
+    whatsappOutput: true,
   });
 
   const agent = await createChatAgent(user, { userId: user.userId, chatId }, tools, {

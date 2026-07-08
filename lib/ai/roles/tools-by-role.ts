@@ -11,7 +11,7 @@ import type { AppRole } from "./types";
 
 const TOOLS_BY_ROLE: Record<AppRole, ToolKey[]> = {
   guest: ["get_time"],
-  student: [
+  client: [
     "get_time",
     "echo",
     "role_info",

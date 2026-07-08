@@ -8,7 +8,7 @@ import {
   getMainChannelId,
   getOrCreateMainChannel,
 } from "@/lib/db/repositories/channel-repository";
-import { siteConfig } from "@/lib/site-config";
+import { siteConfig, appRoutes } from "@/lib/site-config";
 
 export const metadata = {
   title: `Chat | ${siteConfig.name}`,
@@ -23,7 +23,7 @@ export default async function ChatIndexPage({
   const user = await getSessionUser();
 
   if (!user) {
-    redirect("/login?next=/chat");
+    redirect(`/login?next=${appRoutes.chat}`);
   }
 
   const { new: draftKey } = await searchParams;
@@ -32,7 +32,7 @@ export default async function ChatIndexPage({
     const mainChannelId =
       (await getMainChannelId(user.userId)) ??
       (await getOrCreateMainChannel(user.userId));
-    redirect(`/chat/${mainChannelId}`);
+    redirect(`${appRoutes.chat}/${mainChannelId}`);
   }
 
   return (

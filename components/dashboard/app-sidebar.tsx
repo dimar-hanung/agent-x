@@ -7,14 +7,15 @@ import {
   Radio,
   Send,
   Settings2,
-  Sparkles,
   SquareTerminal,
+  Users,
 } from "lucide-react";
 
+import { IndonesianFlagIcon } from "@/components/icons/indonesian-flag-icon";
 import { NavMain } from "./nav-main";
 import { NavSecondary } from "./nav-secondary";
 import { NavUser } from "./nav-user";
-import { siteConfig } from "@/lib/site-config";
+import { siteConfig, appRoutes } from "@/lib/site-config";
 import {
   Sidebar,
   SidebarContent,
@@ -39,15 +40,14 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
     role === "admin"
       ? [
           {
+            title: "Kelola User",
+            url: appRoutes.users,
+            icon: Users,
+          },
+          {
             title: "Channel WhatsApp",
             url: "/dashboard/whatsapp-channel",
             icon: Radio,
-            items: [
-              {
-                title: "Kelola channel",
-                url: "/dashboard/whatsapp-channel",
-              },
-            ],
           },
         ]
       : [];
@@ -60,35 +60,17 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         url: "/dashboard",
         icon: SquareTerminal,
         isActive: true,
-        items: [
-          {
-            title: "Overview",
-            url: "/dashboard",
-          },
-        ],
       },
       {
         title: "Chat",
-        url: "/chat",
+        url: appRoutes.chat,
         icon: MessageSquare,
-        items: [
-          {
-            title: "Assistant",
-            url: "/chat",
-          },
-        ],
       },
       ...adminNav,
       {
-        title: "Settings",
-        url: "/settings/integrations",
+        title: "Integrations",
+        url: appRoutes.settings,
         icon: Settings2,
-        items: [
-          {
-            title: "Integrations",
-            url: "/settings/integrations",
-          },
-        ],
       },
     ],
     navSecondary: [
@@ -112,8 +94,8 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="/dashboard">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Sparkles className="size-4" />
+                <div className="flex aspect-square size-10 shrink-0 items-center justify-center">
+                  <IndonesianFlagIcon className="size-10" />
                 </div>
                 <div className="flex flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{siteConfig.name}</span>

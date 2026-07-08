@@ -7,11 +7,11 @@ export const DEV_USERS: Record<AppRole, UserContext> = {
     role: "guest",
     displayName: "Dev Guest",
   },
-  student: {
+  client: {
     userId: "dev-001",
     email: "student@example.com",
-    role: "student",
-    displayName: "Dev Student",
+    role: "client",
+    displayName: "Dev Client",
   },
   admin: {
     userId: "dev-admin",
@@ -22,4 +22,4 @@ export const DEV_USERS: Record<AppRole, UserContext> = {
 };
 
 /** Edit this constant to switch the active dev user/role. */
-export const HARDCODED_USER: UserContext = DEV_USERS.student;
+export const HARDCODED_USER: UserContext = DEV_USERS.client;

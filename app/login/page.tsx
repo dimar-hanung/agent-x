@@ -1,7 +1,7 @@
-import { Sparkles } from "lucide-react";
 import { Suspense } from "react";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { IndonesianFlagIcon } from "@/components/icons/indonesian-flag-icon";
 import { siteConfig } from "@/lib/site-config";
 
 export default function LoginPage() {
@@ -12,9 +12,7 @@ export default function LoginPage() {
           href="/"
           className="flex items-center gap-2 self-center font-medium"
         >
-          <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-            <Sparkles className="size-4" />
-          </div>
+          <IndonesianFlagIcon className="size-6" />
           {siteConfig.name}
         </a>
         <Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>

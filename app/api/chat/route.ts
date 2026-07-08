@@ -78,10 +78,13 @@ export async function POST(req: Request) {
       },
     ];
 
+    const whatsappOutput = await isMainChannel(chatId);
+
     const { systemPrompt, modelMessages } = await prepareModelContext({
       chatId,
       user,
       allMessages: storedWithNew,
+      whatsappOutput,
     });
 
     const runtimeContext = { userId: user.userId, chatId };
