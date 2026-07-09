@@ -1,0 +1,12 @@
+---
+description: Saat menulis diagram, wajib ikuti skill Mermaid Diagram Specialist
+alwaysApply: true
+---
+
+# Mermaid Diagrams
+
+Saat membuat, merevisi, atau menyarankan diagram (flowchart, sequence, ERD, arsitektur, state, C4, dll.):
+
+1. **Baca dan ikuti** skill `mermaid-diagram-specialist` di `~/.agents/skills/mermaid-diagram-specialist/SKILL.md` sebelum menulis diagram.
+2. Gunakan **Mermaid** di markdown — jangan ASCII art, PlantUML, atau format diagram lain kecuali user meminta eksplisit.
+3. Pilih tipe diagram sesuai skill (flowchart, sequence, ERD, state, C4, dll.), lalu terapkan konvensi naming, layout, dan syntax dari skill tersebut.

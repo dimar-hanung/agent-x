@@ -80,7 +80,8 @@ AgentX uses [Vercel AI SDK v7](https://sdk.vercel.ai) with `ToolLoopAgent`, role
 
 - **Chat**: [http://localhost:3000/chat](http://localhost:3000/chat) (authenticated)
 - **Add a native tool**: [docs/adding-ai-tools.md](docs/adding-ai-tools.md)
-- **Add an MCP tool**: [docs/adding-mcp-tools.md](docs/adding-mcp-tools.md)
+- **Add an MCP tool** (consume external MCP): [docs/adding-mcp-tools.md](docs/adding-mcp-tools.md)
+- **Todos MCP server** (host CRUD for clients): [docs/mcp-todos.md](docs/mcp-todos.md)
 - **Scheduled jobs**: [docs/adding-scheduled-jobs.md](docs/adding-scheduled-jobs.md)
 - **User roles**: stored in PostgreSQL (`admin`, `student`, `guest`); tool access is configured in `lib/ai/roles/tools-by-role.ts`
 
@@ -124,6 +125,10 @@ npm run evolution:up
 ```
 
 AgentX env: see `.env.example` (`EVOLUTION_*`, `WHATSAPP_WEBHOOK_SECRET`, `AGENTX_PUBLIC_URL`).
+
+### Todos MCP server
+
+Create a personal API key under [Settings → Integrations](http://localhost:8701/dashboard/settings), then connect Cursor/Claude to `{ORIGIN}/api/mcp/mcp` with `Authorization: Bearer <key>`. See [docs/mcp-todos.md](docs/mcp-todos.md) for tools and client config.
 
 ### Web search (Exa)
 

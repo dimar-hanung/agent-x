@@ -8,4 +8,5 @@ export const appRoutes = {
   chat: "/chat",
   settings: "/dashboard/settings",
   users: "/dashboard/users",
+  todos: "/dashboard/todos",
 } as const;

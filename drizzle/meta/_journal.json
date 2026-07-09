@@ -43,6 +43,34 @@
       "when": 1783600000000,
       "tag": "0005_google_oauth",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783617000348,
+      "tag": "0006_silky_master_mold",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783617252316,
+      "tag": "0007_needy_doctor_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783617386550,
+      "tag": "0008_conscious_vertigo",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783617630347,
+      "tag": "0009_dashing_talisman",
+      "breakpoints": true
     }
   ]
 }

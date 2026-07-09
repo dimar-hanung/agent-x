@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  CheckSquare,
   LifeBuoy,
   MessageSquare,
   Radio,
@@ -65,6 +66,11 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         title: "Chat",
         url: appRoutes.chat,
         icon: MessageSquare,
+      },
+      {
+        title: "Todo",
+        url: appRoutes.todos,
+        icon: CheckSquare,
       },
       ...adminNav,
       {
