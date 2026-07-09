@@ -26,6 +26,11 @@ const CLIENT_ADMIN_TOOLS: ToolKey[] = [
   "search_drive",
   "read_drive_file",
   "upload_drive_file",
+  "list_todos",
+  "get_todo",
+  "create_todo",
+  "update_todo",
+  "delete_todo",
 ];
 
 const TOOLS_BY_ROLE: Record<AppRole, ToolKey[]> = {

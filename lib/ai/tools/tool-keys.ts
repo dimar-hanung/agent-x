@@ -14,7 +14,12 @@ export type NativeToolKey =
   | "create_calendar_event"
   | "search_drive"
   | "read_drive_file"
-  | "upload_drive_file";
+  | "upload_drive_file"
+  | "list_todos"
+  | "get_todo"
+  | "create_todo"
+  | "update_todo"
+  | "delete_todo";
 
 const MCP_TOOL_KEYS = [] as const satisfies readonly string[];
 

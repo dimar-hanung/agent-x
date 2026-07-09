@@ -9,18 +9,23 @@ import type { NativeToolKey } from "./tool-keys";
 import { createCancelScheduleTool } from "./cancel-schedule/cancel-schedule.tool";
 import { createCreateCalendarEventTool } from "./create-calendar-event/create-calendar-event.tool";
 import { createCreateScheduleTool } from "./create-schedule/create-schedule.tool";
+import { createCreateTodoTool } from "./create-todo/create-todo.tool";
+import { createDeleteTodoTool } from "./delete-todo/delete-todo.tool";
 import { createEchoTool } from "./echo/echo.tool";
 import { createExaWebFetchTool } from "./exa-web-fetch/exa-web-fetch.tool";
 import { createExaWebSearchTool } from "./exa-web-search/exa-web-search.tool";
 import { createGetTimeTool } from "./get-time/get-time.tool";
+import { createGetTodoTool } from "./get-todo/get-todo.tool";
 import { createListCalendarEventsTool } from "./list-calendar-events/list-calendar-events.tool";
 import { createListSchedulesTool } from "./list-schedules/list-schedules.tool";
+import { createListTodosTool } from "./list-todos/list-todos.tool";
 import { createReadDriveFileTool } from "./read-drive-file/read-drive-file.tool";
 import { createReadEmailTool } from "./read-email/read-email.tool";
 import { createRoleInfoTool } from "./role-info/role-info.tool";
 import { createSearchDriveTool } from "./search-drive/search-drive.tool";
 import { createSearchInboxTool } from "./search-inbox/search-inbox.tool";
 import { createSendEmailTool } from "./send-email/send-email.tool";
+import { createUpdateTodoTool } from "./update-todo/update-todo.tool";
 import { createUploadDriveFileTool } from "./upload-drive-file/upload-drive-file.tool";
 
 function createToolRegistry(
@@ -44,6 +49,11 @@ function createToolRegistry(
     search_drive: createSearchDriveTool(user),
     read_drive_file: createReadDriveFileTool(user),
     upload_drive_file: createUploadDriveFileTool(user),
+    list_todos: createListTodosTool(user),
+    get_todo: createGetTodoTool(user),
+    create_todo: createCreateTodoTool(user),
+    update_todo: createUpdateTodoTool(user),
+    delete_todo: createDeleteTodoTool(user),
   };
 }
 

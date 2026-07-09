@@ -18,6 +18,18 @@ const PROMPT_SCHEDULING = `Scheduling:
 {schedulingConfirm}
 - Use list_schedules to show existing schedules and cancel_schedule to cancel by job_id.`;
 
+const PROMPT_TODOS = `Todos:
+- When the user asks to list, check, create, update, complete, or delete todos/tasks, use the todo tools.
+- Use list_todos to show todos (optional status or project filter). Use get_todo for one item by id or code (e.g. TODO-1).
+- Use create_todo to add a todo (title required). Use update_todo to change fields or status (todo, in_progress, waiting, done). Use delete_todo to remove permanently.
+- Prefer referring to todos by code (TODO-N) when talking to the user.
+- When creating or rewriting a todo, write it well (do not dump a vague one-liner):
+  - Title: imperative verb + specific object + short context (~8–12 words). Pattern: [Verb] [specific thing] [for/in context]. Good: "Tambah validasi email di form Settings". Bad: "Fix bug", "Update API".
+  - Description: enough for someone else to start without asking. Prefer markdown sections with emoji on headings only: Summary (what+why), Context, Acceptance Criteria (3–6 pass/fail checkboxes; if more than ~8, split into multiple todos), Out of Scope, optional Notes. Tiny todos may use only Summary + Acceptance Criteria.
+  - Be outcome-focused; do not over-prescribe the solution unless a technical constraint is required.
+  - Tags: short lowercase (bug, docs, mcp, auth, ui). Prefer Bahasa Indonesia for title/description unless the user writes in English.
+{todoConfirm}`;
+
 const PROMPT_GOOGLE = `Google integrations (require Settings > Integrations > Connect Google):
 - Calendar: use list_calendar_events and create_calendar_event for agenda and meetings. Default timezone Asia/Jakarta.
 - When the user asks to check the calendar without a range, call list_calendar_events without time_min/time_max (defaults to today → next 7 days). For "hari ini", set time_min/time_max to that local day.
@@ -46,6 +58,11 @@ ${PROMPT_SCHEDULING.replace(
   "- After create_schedule succeeds, confirm the next run time to the user in Indonesian."
 )}
 
+${PROMPT_TODOS.replace(
+  "{todoConfirm}",
+  "- After a todo tool succeeds, summarize the result in Indonesian and mention the todo code (TODO-N)."
+)}
+
 ${PROMPT_GOOGLE}`;
 
 export const maxDuration = 30;
@@ -67,11 +84,17 @@ export function buildSystemPrompt(
     ? "- After create_schedule succeeds, confirm the next run time to the user in Indonesian using WhatsApp formatting."
     : "- After create_schedule succeeds, confirm the next run time to the user in Indonesian.";
 
+  const todoConfirm = options?.whatsappOutput
+    ? "- After a todo tool succeeds, summarize the result in Indonesian using WhatsApp formatting and mention the todo code (TODO-N)."
+    : "- After a todo tool succeeds, summarize the result in Indonesian and mention the todo code (TODO-N).";
+
   let prompt = `${PROMPT_INTRO}
 
 ${PROMPT_EXA.replace("{exaCitation}", exaCitation)}
 
 ${PROMPT_SCHEDULING.replace("{schedulingConfirm}", schedulingConfirm)}
+
+${PROMPT_TODOS.replace("{todoConfirm}", todoConfirm)}
 
 ${PROMPT_GOOGLE}`;
 

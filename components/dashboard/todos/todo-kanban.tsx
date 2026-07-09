@@ -16,6 +16,7 @@ import { useState } from "react";
 
 import { TodoKanbanColumn } from "./todo-kanban-column";
 import { Badge } from "@/components/ui/badge";
+import { useKanbanCollapsedStatuses } from "@/hooks/use-kanban-collapsed-statuses";
 import { TODO_STATUSES, type TodoStatus } from "@/lib/db/schema";
 import { TODO_STATUS_ORDER } from "@/lib/todos/labels";
 import type { TodoListItem } from "@/lib/todos/schemas";
@@ -68,6 +69,7 @@ export function TodoKanban({
 }: TodoKanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<TodoListItem[] | null>(null);
+  const { isCollapsed, toggle } = useKanbanCollapsedStatuses();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -211,6 +213,8 @@ export function TodoKanban({
             key={status}
             status={status}
             todos={todos.filter((todo) => todo.status === status)}
+            collapsed={isCollapsed(status)}
+            onToggleCollapsed={() => toggle(status)}
             onOpen={onOpen}
           />
         ))}
