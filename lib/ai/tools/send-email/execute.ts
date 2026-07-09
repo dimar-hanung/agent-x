@@ -1,8 +1,7 @@
 import type { UserContext } from "@/lib/ai/roles/types";
-import { sendGmailMessage } from "@/lib/gmail/smtp";
-import { getGmailCredentials } from "@/lib/integrations/gmail-repository";
+import { sendGmailApiMessage } from "@/lib/google/gmail/client";
 
-import { GMAIL_NOT_CONNECTED_MESSAGE } from "../gmail/constants";
+import { GOOGLE_NOT_CONNECTED_MESSAGE } from "../google/constants";
 import type { SendEmailInput } from "./schema";
 import type { SendEmailToolResult } from "./types";
 
@@ -10,14 +9,8 @@ export async function executeSendEmail(
   input: SendEmailInput,
   ctx: { user: UserContext }
 ): Promise<SendEmailToolResult> {
-  const credentials = await getGmailCredentials(ctx.user.userId);
-
-  if (!credentials) {
-    return { success: false, message: GMAIL_NOT_CONNECTED_MESSAGE };
-  }
-
   try {
-    const result = await sendGmailMessage(credentials, {
+    const result = await sendGmailApiMessage(ctx.user.userId, {
       to: input.to,
       subject: input.subject,
       body: input.body,
@@ -26,10 +19,14 @@ export async function executeSendEmail(
       isHtml: input.isHtml,
     });
 
+    if (result === null) {
+      return { success: false, message: GOOGLE_NOT_CONNECTED_MESSAGE };
+    }
+
     return {
       success: true,
       data: {
-        messageId: result.messageId,
+        messageId: result.id,
         to: input.to,
         sentBy: ctx.user.displayName,
       },

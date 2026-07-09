@@ -26,7 +26,7 @@ export function getEvolutionConfig() {
   const webhookUrl =
     explicitWebhookUrl ||
     (evolutionOnSameHost
-      ? "http://host.docker.internal:3000/api/integrations/whatsapp/webhook"
+      ? "http://host.docker.internal:8701/api/integrations/whatsapp/webhook"
       : agentxPublicUrl
         ? `${agentxPublicUrl}/api/integrations/whatsapp/webhook`
         : undefined);

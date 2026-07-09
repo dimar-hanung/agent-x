@@ -18,6 +18,14 @@ const PROMPT_SCHEDULING = `Scheduling:
 {schedulingConfirm}
 - Use list_schedules to show existing schedules and cancel_schedule to cancel by job_id.`;
 
+const PROMPT_GOOGLE = `Google integrations (require Settings > Integrations > Connect Google):
+- Calendar: use list_calendar_events and create_calendar_event for agenda and meetings. Default timezone Asia/Jakarta.
+- When the user asks to check the calendar without a range, call list_calendar_events without time_min/time_max (defaults to today → next 7 days). For "hari ini", set time_min/time_max to that local day.
+- If the tool returns an empty events array, say clearly in Indonesian that there are no events in that range (do not invent events).
+- Gmail: use search_inbox, read_email (by message_id), and send_email for the connected Google account.
+- Drive: use search_drive, read_drive_file, and upload_drive_file. Prefer text content for notes; set convert_to_google_doc when the user wants a Google Doc. Max upload 5 MB.
+- If a Google tool says the account is not connected, tell the user in Indonesian to connect Google in Settings.`;
+
 export const WHATSAPP_OUTPUT_BLOCK = `Output formatting (WhatsApp delivery):
 - Use WhatsApp text formatting, NOT standard Markdown.
 - Allowed: *bold* (single asterisk), _italic_, ~strikethrough~, \`inline code\`, bulleted lists (- item), numbered lists (1. item), block quotes (> text).
@@ -36,7 +44,9 @@ ${PROMPT_EXA.replace(
 ${PROMPT_SCHEDULING.replace(
   "{schedulingConfirm}",
   "- After create_schedule succeeds, confirm the next run time to the user in Indonesian."
-)}`;
+)}
+
+${PROMPT_GOOGLE}`;
 
 export const maxDuration = 30;
 export const MAX_AGENT_STEPS = 10;
@@ -61,7 +71,9 @@ export function buildSystemPrompt(
 
 ${PROMPT_EXA.replace("{exaCitation}", exaCitation)}
 
-${PROMPT_SCHEDULING.replace("{schedulingConfirm}", schedulingConfirm)}`;
+${PROMPT_SCHEDULING.replace("{schedulingConfirm}", schedulingConfirm)}
+
+${PROMPT_GOOGLE}`;
 
   if (options?.whatsappOutput) {
     prompt += `\n\n${WHATSAPP_OUTPUT_BLOCK}`;

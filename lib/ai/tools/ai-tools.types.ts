@@ -15,13 +15,18 @@ export interface ToolResult {
 }
 
 export type { CancelScheduleToolResult } from "./cancel-schedule/types";
+export type { CreateCalendarEventToolResult } from "./create-calendar-event/types";
 export type { CreateScheduleToolResult } from "./create-schedule/types";
 export type { EchoToolResult } from "./echo/types";
 export type { ExaWebFetchToolResult } from "./exa-web-fetch/types";
 export type { ExaWebSearchToolResult } from "./exa-web-search/types";
 export type { GetTimeToolResult } from "./get-time/types";
+export type { ListCalendarEventsToolResult } from "./list-calendar-events/types";
 export type { ListSchedulesToolResult } from "./list-schedules/types";
+export type { ReadDriveFileToolResult } from "./read-drive-file/types";
 export type { ReadEmailToolResult } from "./read-email/types";
 export type { RoleInfoToolResult } from "./role-info/types";
+export type { SearchDriveToolResult } from "./search-drive/types";
 export type { SearchInboxToolResult } from "./search-inbox/types";
 export type { SendEmailToolResult } from "./send-email/types";
+export type { UploadDriveFileToolResult } from "./upload-drive-file/types";

@@ -9,7 +9,12 @@ export type NativeToolKey =
   | "cancel_schedule"
   | "send_email"
   | "search_inbox"
-  | "read_email";
+  | "read_email"
+  | "list_calendar_events"
+  | "create_calendar_event"
+  | "search_drive"
+  | "read_drive_file"
+  | "upload_drive_file";
 
 const MCP_TOOL_KEYS = [] as const satisfies readonly string[];
 

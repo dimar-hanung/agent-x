@@ -139,6 +139,8 @@ export const userIntegrations = pgTable(
     credentialsEncrypted: text("credentials_encrypted").notNull(),
     status: varchar("status", { length: 32 }).notNull().default("connected"),
     lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true }),
+    scopes: text("scopes"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

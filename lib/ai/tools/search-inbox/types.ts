@@ -3,7 +3,8 @@ import type { ToolResult } from "../ai-tools.types";
 export interface SearchInboxToolResult extends ToolResult {
   data?: {
     messages: Array<{
-      uid: number;
+      id: string;
+      threadId: string;
       from: string;
       subject: string;
       date: string;

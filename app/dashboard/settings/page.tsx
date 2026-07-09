@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,10 +10,10 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { GmailIntegrationCard } from "@/components/settings/gmail-integration-card";
+import { GoogleIntegrationCard } from "@/components/settings/google-integration-card";
 import { WhatsAppPairingCard } from "@/components/settings/whatsapp-pairing-card";
 import { getSessionUser } from "@/lib/auth/get-session-user";
-import { getGmailIntegrationStatus } from "@/lib/integrations/gmail-repository";
+import { getGoogleIntegrationStatus } from "@/lib/integrations/google-repository";
 import { getUserPairingStatus } from "@/lib/integrations/whatsapp-channel-repository";
 
 export default async function SettingsPage() {
@@ -21,8 +23,8 @@ export default async function SettingsPage() {
     return null;
   }
 
-  const [gmailStatus, whatsappStatus] = await Promise.all([
-    getGmailIntegrationStatus(user.userId),
+  const [googleStatus, whatsappStatus] = await Promise.all([
+    getGoogleIntegrationStatus(user.userId),
     getUserPairingStatus(user.userId),
   ]);
 
@@ -56,7 +58,9 @@ export default async function SettingsPage() {
           </p>
         </div>
         <div className="grid max-w-3xl gap-4 md:grid-cols-2">
-          <GmailIntegrationCard initialStatus={gmailStatus} />
+          <Suspense fallback={null}>
+            <GoogleIntegrationCard initialStatus={googleStatus} />
+          </Suspense>
           <WhatsAppPairingCard initialStatus={whatsappStatus} />
         </div>
       </div>

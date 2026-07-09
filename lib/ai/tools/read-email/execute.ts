@@ -1,8 +1,8 @@
 import type { UserContext } from "@/lib/ai/roles/types";
-import { readInboxMessage } from "@/lib/gmail/imap";
-import { getGmailCredentials } from "@/lib/integrations/gmail-repository";
+import { readGmailMessage } from "@/lib/google/gmail/client";
+import { getGoogleCredentials } from "@/lib/integrations/google-repository";
 
-import { GMAIL_NOT_CONNECTED_MESSAGE } from "../gmail/constants";
+import { GOOGLE_NOT_CONNECTED_MESSAGE } from "../google/constants";
 import type { ReadEmailInput } from "./schema";
 import type { ReadEmailToolResult } from "./types";
 
@@ -10,19 +10,19 @@ export async function executeReadEmail(
   input: ReadEmailInput,
   ctx: { user: UserContext }
 ): Promise<ReadEmailToolResult> {
-  const credentials = await getGmailCredentials(ctx.user.userId);
+  const credentials = await getGoogleCredentials(ctx.user.userId);
 
   if (!credentials) {
-    return { success: false, message: GMAIL_NOT_CONNECTED_MESSAGE };
+    return { success: false, message: GOOGLE_NOT_CONNECTED_MESSAGE };
   }
 
   try {
-    const message = await readInboxMessage(credentials, { uid: input.uid });
+    const message = await readGmailMessage(ctx.user.userId, input.message_id);
 
     if (!message) {
       return {
         success: false,
-        message: `No message found with UID ${input.uid}.`,
+        message: `No message found with id ${input.message_id}.`,
       };
     }
 
