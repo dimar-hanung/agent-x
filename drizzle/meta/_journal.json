@@ -8,6 +8,27 @@
       "when": 1783179581267,
       "tag": "0000_lazy_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783179581268,
+      "tag": "0001_summarized_sequence_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783179581269,
+      "tag": "0002_rename_student_to_pejabat",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783179581270,
+      "tag": "0003_rename_pejabat_to_client",
+      "breakpoints": true
     }
   ]
 }

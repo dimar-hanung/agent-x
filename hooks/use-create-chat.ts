@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
+import { appRoutes } from "@/lib/site-config";
+
 export function useCreateChat() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
@@ -20,7 +22,7 @@ export function useCreateChat() {
 
         const data = (await response.json()) as { id: string };
         onCreated?.();
-        router.push(`/chat/${data.id}`);
+        router.push(`${appRoutes.chat}/${data.id}`);
         router.refresh();
       } catch (error) {
         console.error(error);

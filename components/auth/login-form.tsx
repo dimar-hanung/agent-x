@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import { appRoutes } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,7 +62,7 @@ export function LoginForm({
         return;
       }
 
-      const next = searchParams.get("next") || "/chat";
+      const next = searchParams.get("next") || appRoutes.chat;
       router.push(next);
       router.refresh();
     } catch {

@@ -1,4 +1,4 @@
-export type AppRole = "admin" | "student" | "guest";
+export type AppRole = "admin" | "client" | "guest";
 
 export interface UserContext {
   userId: string;

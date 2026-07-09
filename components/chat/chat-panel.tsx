@@ -5,7 +5,6 @@ import {
   ArrowUp,
   Loader2,
   Menu,
-  Sparkles,
   SquarePen,
 } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
@@ -21,8 +20,9 @@ import { useRouter } from "next/navigation";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
 import { ExaUnavailableBanner } from "@/components/chat/exa-unavailable-banner";
 import { useChatSidebar } from "@/components/chat/chat-shell";
+import { IndonesianFlagIcon } from "@/components/icons/indonesian-flag-icon";
 import { Button } from "@/components/ui/button";
-import { siteConfig } from "@/lib/site-config";
+import { siteConfig, appRoutes } from "@/lib/site-config";
 import {
   SCHEDULE_RUN_COMPLETE_EVENT,
   type ScheduleRunCompleteDetail,
@@ -268,7 +268,7 @@ export function ChatPanel({
       !navigatedRef.current
     ) {
       navigatedRef.current = true;
-      router.replace(`/chat/${chatId}`);
+      router.replace(`${appRoutes.chat}/${chatId}`);
       router.refresh();
     }
     prevStatusRef.current = status;
@@ -331,7 +331,7 @@ export function ChatPanel({
           variant="ghost"
           size="icon"
           className="ml-auto"
-          onClick={() => router.push(`/chat?new=${Date.now()}`)}
+          onClick={() => router.push(`${appRoutes.chat}?new=${Date.now()}`)}
           aria-label="New chat"
         >
           <SquarePen className="size-4" />
@@ -351,9 +351,7 @@ export function ChatPanel({
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-            <div className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-2xl shadow-sm">
-              <Sparkles className="size-7" />
-            </div>
+            <IndonesianFlagIcon className="size-14 shadow-sm" />
             <div className="space-y-1.5">
               <h2 className="text-xl font-semibold tracking-tight">
                 How can I help today?

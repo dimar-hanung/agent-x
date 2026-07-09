@@ -5,6 +5,7 @@ import {
   SYSTEM_PROMPT_OVERHEAD,
 } from "@/lib/ai/context/context-config";
 import { estimateMessagesTokens } from "@/lib/ai/context/estimate-tokens";
+import { effectiveSummarizedUpToSequence } from "@/lib/ai/context/effective-summarized-sequence";
 import { fitContextToBudget } from "@/lib/ai/context/fit-context-to-budget";
 import { summarizeMessages } from "@/lib/ai/context/summarize-messages";
 import type { StoredChatMessage } from "@/lib/ai/context/types";
@@ -20,6 +21,7 @@ export interface PrepareModelContextInput {
   chatId: string;
   user: UserContext;
   allMessages: StoredChatMessage[];
+  whatsappOutput?: boolean;
 }
 
 export interface PrepareModelContextResult {
@@ -44,6 +46,7 @@ export async function prepareModelContext({
   chatId,
   user,
   allMessages,
+  whatsappOutput,
 }: PrepareModelContextInput): Promise<PrepareModelContextResult> {
   let contextMeta = await getChatContextMeta(chatId);
 
@@ -51,8 +54,13 @@ export async function prepareModelContext({
     throw new Error("Chat not found.");
   }
 
+  const summarizedUpTo = effectiveSummarizedUpToSequence(
+    contextMeta.summarizedUpToSequence,
+    contextMeta.contextSummary
+  );
+
   const unsummarized = allMessages.filter(
-    (message) => message.sequence > contextMeta!.summarizedUpToSequence
+    (message) => message.sequence > summarizedUpTo
   );
 
   if (shouldSummarize(unsummarized)) {
@@ -91,12 +99,12 @@ export async function prepareModelContext({
     }
   }
 
-  const baseSystemPrompt = buildSystemPrompt(user);
+  const baseSystemPrompt = buildSystemPrompt(user, { whatsappOutput });
 
   return fitContextToBudget({
     systemPrompt: baseSystemPrompt,
     contextSummary: contextMeta.contextSummary,
     allMessages,
-    summarizedUpToSequence: contextMeta.summarizedUpToSequence,
+    summarizedUpToSequence: summarizedUpTo,
   });
 }

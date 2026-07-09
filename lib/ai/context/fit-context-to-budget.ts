@@ -71,6 +71,13 @@ export function fitContextToBudget({
     ({ sequence: _sequence, ...message }) => message
   );
 
+  if (modelMessages.length === 0 && allMessages.length > 0) {
+    const last = allMessages[allMessages.length - 1];
+    const { sequence: _sequence, ...message } = last;
+    modelMessages.push(message);
+    used = estimateMessageTokens(last);
+  }
+
   return {
     systemPrompt: fullSystemPrompt,
     modelMessages,

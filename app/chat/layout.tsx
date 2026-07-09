@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth/get-session-user";
 import { getMainChannelSummary } from "@/lib/db/repositories/channel-repository";
 import { listChatsForUser } from "@/lib/db/repositories/chat-repository";
 import { listActiveSchedulesForUser } from "@/lib/db/repositories/schedule-repository";
+import { appRoutes } from "@/lib/site-config";
 
 export default async function ChatLayout({
   children,
@@ -14,7 +15,7 @@ export default async function ChatLayout({
   const user = await getSessionUser();
 
   if (!user) {
-    redirect("/login?next=/chat");
+    redirect(`/login?next=${appRoutes.chat}`);
   }
 
   const [chats, schedules, mainChannel] = await Promise.all([

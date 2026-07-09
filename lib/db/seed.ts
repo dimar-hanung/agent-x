@@ -18,7 +18,7 @@ const SEED_USERS = [
     email: "student@agentx.local",
     password: "student12345",
     displayName: "Student User",
-    role: "student",
+    role: "client",
   },
 ] as const;
 

@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "workspace": "fullstack-agent",
+  "last_run": 1783531700.0,
+  "transcripts": {
+    "e8614181-c232-4ea9-9b82-96fdbf245e4f/e8614181-c232-4ea9-9b82-96fdbf245e4f.jsonl": {
+      "mtime": 1783137723.5598672,
+      "processed_at": 1783531700.0
+    },
+    "38d7a989-24d8-4bf5-ae43-85a15a602692/subagents/ecfba848-e533-4a57-bb2f-060a9f6c3fb9.jsonl": {
+      "mtime": 1783138871.7250898,
+      "processed_at": 1783531700.0
+    },
+    "38d7a989-24d8-4bf5-ae43-85a15a602692/subagents/9a4d45ea-017e-4757-a53f-cf94476d4ba3.jsonl": {
+      "mtime": 1783138880.133243,
+      "processed_at": 1783531700.0
+    },
+    "38d7a989-24d8-4bf5-ae43-85a15a602692/subagents/ff09b3d0-2f33-46c9-8342-19f1aa60fd53.jsonl": {
+      "mtime": 1783156571.3880987,
+      "processed_at": 1783531700.0
+    },
+    "38d7a989-24d8-4bf5-ae43-85a15a602692/subagents/8d34c3e1-e0c1-463f-8cb4-074f23977961.jsonl": {
+      "mtime": 1783156594.0035654,
+      "processed_at": 1783531700.0
+    },
+    "38d7a989-24d8-4bf5-ae43-85a15a602692/38d7a989-24d8-4bf5-ae43-85a15a602692.jsonl": {
+      "mtime": 1783169972.7624992,
+      "processed_at": 1783531700.0
+    },
+    "153868e0-78d4-46e6-8dfc-afe2b99d43b3/153868e0-78d4-46e6-8dfc-afe2b99d43b3.jsonl": {
+      "mtime": 1783179823.3515391,
+      "processed_at": 1783531700.0
+    },
+    "0b68051e-b64c-49f6-ae5c-5865605b3cf8/0b68051e-b64c-49f6-ae5c-5865605b3cf8.jsonl": {
+      "mtime": 1783529781.2124612,
+      "processed_at": 1783531700.0
+    },
+    "a54f60f8-ea4c-4415-868d-122bf2c48d96/a54f60f8-ea4c-4415-868d-122bf2c48d96.jsonl": {
+      "mtime": 1783530251.6745836,
+      "processed_at": 1783531700.0
+    },
+    "5a84909b-7729-4147-88af-e841cc57f963/5a84909b-7729-4147-88af-e841cc57f963.jsonl": {
+      "mtime": 1783530610.6977996,
+      "processed_at": 1783531700.0
+    },
+    "e05dff9b-075b-4620-a096-7379cd5e8705/e05dff9b-075b-4620-a096-7379cd5e8705.jsonl": {
+      "mtime": 1783531637.2306622,
+      "processed_at": 1783531700.0
+    },
+    "e05dff9b-075b-4620-a096-7379cd5e8705/subagents/87ecf171-3863-4b1f-b5ae-0ef356e4d7bc.jsonl": {
+      "mtime": 1783531641.4257584,
+      "processed_at": 1783531700.0
+    },
+    "a315217f-5e78-4aff-a862-d2dcfbefa622/a315217f-5e78-4aff-a862-d2dcfbefa622.jsonl": {
+      "mtime": 1783531650.8739753,
+      "processed_at": 1783531700.0
+    }
+  }
+}

@@ -249,3 +249,18 @@ export async function sendWhatsAppToUser(
   const provider = getWhatsAppProvider();
   await provider.sendText(config.instanceName, phone, text);
 }
+
+export async function sendWhatsAppToPhone(
+  phoneE164: string,
+  text: string
+): Promise<void> {
+  const connected = await isChannelConnected();
+
+  if (!connected) {
+    throw new Error("Channel WhatsApp belum aktif.");
+  }
+
+  const config = await getOrCreateConfigRow();
+  const provider = getWhatsAppProvider();
+  await provider.sendText(config.instanceName, phoneE164, text);
+}
