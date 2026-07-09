@@ -42,6 +42,7 @@ export const WHATSAPP_OUTPUT_BLOCK = `Output formatting (WhatsApp delivery):
 - Use WhatsApp text formatting, NOT standard Markdown.
 - Allowed: *bold* (single asterisk), _italic_, ~strikethrough~, \`inline code\`, bulleted lists (- item), numbered lists (1. item), block quotes (> text).
 - Forbidden: **double-asterisk bold**, # headings, markdown tables, --- rules, fenced code with language tags.
+- Never use tables (pipe | rows or Markdown tables). WhatsApp cannot render them. For any structured or tabular data (schedules, todos, events, search results, comparisons), use bulleted or numbered lists instead.
 - WhatsApp does NOT support Markdown links. Never use [label](url) or [url](url). Always paste the full URL as plain text (e.g. https://example.com).
 - End citations with "Sumber:" followed by plain URLs on separate lines (no markdown headers or link syntax).
 - After using any tool, summarize the result in natural Indonesian using WhatsApp formatting.`;

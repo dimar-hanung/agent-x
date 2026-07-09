@@ -90,6 +90,13 @@ Pola: `[Verb] [hal spesifik] [untuk/di konteks]`
 
 Gunakan emoji **secukupnya** (heading saja), bukan di setiap baris.
 
+**PENTING — emoji respons MCP ≠ emoji di DB:**
+
+- Respons tool (`create_todo` / `get_todo` / dll.) selalu dihias oleh `lib/mcp/todos/format.ts` (✨, 📋 status, 📝, 📁, 🏷️). Emoji itu **hanya di teks balasan**, tidak ditulis ke kolom `description`.
+- Yang tersimpan ke DB / tampil di dashboard = isi field `title` + `description` yang dikirim di argumen tool.
+- Pipeline (Zod → repository → PostgreSQL) **tidak** strip emoji. Kalau description di DB tanpa emoji, artinya argumen `description` memang dikirim tanpa emoji (mis. `## Summary` plain).
+- **MUST**: tulis emoji di string `description` (template di bawah). Jangan mengandalkan emoji di konfirmasi MCP sebagai bukti data tersimpan.
+
 ```markdown
 ## 📋 Summary
 [1–2 kalimat: apa yang dikirim + kenapa penting]
@@ -173,9 +180,10 @@ Setelah operasi MCP, balas ringkas dalam Bahasa Indonesia:
 
 - **MUST**: Pakai MCP `user-agentx-todos` untuk CRUD todo AgentX (jangan inventori todo hanya di chat jika user minta track di AgentX).
 - **MUST**: Set `project: "agent-x"` untuk kerja di repo ini, kecuali user minta project lain.
-- **MUST**: Tulis `title` imperatif + spesifik; `description` markdown dengan **📋 Summary** dan kriteria selesai.
+- **MUST**: Tulis `title` imperatif + spesifik; `description` markdown dengan heading ber-emoji (**📋 Summary**, **🎯 Context**, **✅ Acceptance Criteria**, **🚫 Out of Scope**) — emoji harus ada di argumen `description`, bukan hanya di respons formatter.
 - **MUST**: Emoji secukupnya di heading deskripsi; jangan spam emoji di judul.
 - **MUST**: Resolve `TODO-N` → UUID sebelum `update_todo` / `delete_todo`.
+- **NEVER**: Anggap emoji di teks konfirmasi MCP sudah tersimpan di DB — cek field `description` yang dikirim.
 - **NEVER**: Hapus todo tanpa konfirmasi eksplisit user.
 - **NEVER**: Buat todo duplikat — `list_todos` dulu jika ragu.
 - **NEVER**: Commit API key MCP atau tempel key di chat/skill.
@@ -184,4 +192,5 @@ Setelah operasi MCP, balas ringkas dalam Bahasa Indonesia:
 
 - Docs setup MCP: `docs/mcp-todos.md`
 - Tool registration: `lib/mcp/todos/tools.ts`
+- Response formatting (emoji UI): `lib/mcp/todos/format.ts`
 - Schema: `lib/todos/schemas.ts`
