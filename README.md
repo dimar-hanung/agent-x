@@ -31,6 +31,7 @@ cp .env.example .env.local
 | `SESSION_SECRET` | Random string (32+ chars) for session cookies |
 | `INTEGRATIONS_ENCRYPTION_KEY` | 32-byte key (hex or base64) for encrypting Gmail app passwords at rest. Generate with `openssl rand -hex 32` |
 | `EXA_API_KEY` | Exa API key for web search tools (`student`/`admin` roles). Get one at [dashboard.exa.ai/api-keys](https://dashboard.exa.ai/api-keys) |
+| `APIFY_API_TOKEN` | Apify API token for async social media snapshot tools |
 
 ## Database setup
 
@@ -93,9 +94,12 @@ Run the app and scheduler worker in **separate terminals**:
 ```bash
 npm run dev
 npm run scheduler:worker
+npm run apify:worker
 ```
 
 Optional env: `SCHEDULER_POLL_INTERVAL_MS` (default `15000`) — how often the worker syncs jobs from PostgreSQL.
+
+For Apify social media jobs, keep `npm run apify:worker` running too. Optional env: `APIFY_WORKER_POLL_INTERVAL_MS` (default `15000`).
 
 Chat examples (sign in at [http://localhost:3000/chat](http://localhost:3000/chat)):
 

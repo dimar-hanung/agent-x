@@ -5,6 +5,7 @@ import {
   Bot,
   CheckCircle2,
   Loader2,
+  MessageCircle,
   Wrench,
 } from "lucide-react";
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
@@ -70,6 +71,152 @@ function ToolChip({ part }: { part: UIMessage["parts"][number] }) {
   );
 }
 
+interface ToolOutput {
+  success?: boolean;
+  message?: string;
+}
+
+function getToolInput(
+  part: UIMessage["parts"][number]
+): Record<string, unknown> | null {
+  if (!isToolUIPart(part) || !("input" in part)) {
+    return null;
+  }
+
+  const input = part.input;
+
+  return input && typeof input === "object"
+    ? (input as Record<string, unknown>)
+    : null;
+}
+
+function getToolOutput(
+  part: UIMessage["parts"][number]
+): ToolOutput | null {
+  if (
+    !isToolUIPart(part) ||
+    part.state !== "output-available" ||
+    !("output" in part)
+  ) {
+    return null;
+  }
+
+  const output = part.output;
+
+  return output && typeof output === "object" ? (output as ToolOutput) : null;
+}
+
+function isSocialMediaToolPart(part: UIMessage["parts"][number]): boolean {
+  if (!isToolUIPart(part)) {
+    return false;
+  }
+
+  const name = getToolName(part);
+  return (
+    name === "fetch_threads_data" ||
+    name === "fetch_twitter_data" ||
+    name === "fetch_tiktok_data"
+  );
+}
+
+function readFirstStringArray(
+  input: Record<string, unknown> | null,
+  keys: string[]
+): string[] {
+  if (!input) {
+    return [];
+  }
+
+  for (const key of keys) {
+    const value = input[key];
+
+    if (Array.isArray(value)) {
+      return value
+        .filter(
+          (item): item is string =>
+            typeof item === "string" && Boolean(item.trim())
+        )
+        .map((item) => item.trim());
+    }
+
+    if (typeof value === "string" && value.trim()) {
+      return [value.trim()];
+    }
+  }
+
+  return [];
+}
+
+function SocialMediaToolChip({ part }: { part: UIMessage["parts"][number] }) {
+  if (!isToolUIPart(part)) {
+    return null;
+  }
+
+  const toolName = getToolName(part);
+  const input = getToolInput(part);
+  const output = getToolOutput(part);
+  const state = part.state;
+  const isRunning = state !== "output-available" && state !== "output-error";
+  const hasFailed =
+    state === "output-error" ||
+    (output?.success === false && output.message !== undefined);
+
+  const platform =
+    toolName === "fetch_threads_data"
+      ? "Threads"
+      : toolName === "fetch_twitter_data"
+        ? "Twitter/X"
+        : "TikTok";
+
+  const topics = readFirstStringArray(input, [
+    "search_queries",
+    "search_query",
+    "search_terms",
+    "hashtags",
+    "profiles",
+    "twitter_handles",
+  ]);
+  const detail = topics.length > 0 ? topics.slice(0, 3).join(", ") : platform;
+
+  const StatusIcon = hasFailed
+    ? AlertCircle
+    : isRunning
+      ? Loader2
+      : CheckCircle2;
+  const statusLabel = hasFailed
+    ? "Gagal"
+    : isRunning
+      ? "Mengambil data"
+      : "Selesai";
+  const errorMessage =
+    output?.message ??
+    (state === "output-error" ? "Pengambilan data gagal dijalankan." : null);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs",
+          hasFailed
+            ? "border-destructive/30 bg-destructive/5 text-destructive"
+            : "text-muted-foreground bg-background/60"
+        )}
+      >
+        <MessageCircle className="size-3" />
+        <span className="font-medium">Media sosial</span>
+        <span className="max-w-[12rem] truncate opacity-70">{detail}</span>
+        <span className="inline-flex items-center gap-1 opacity-70">
+          <StatusIcon className={cn("size-3", isRunning && "animate-spin")} />
+          {statusLabel}
+        </span>
+      </span>
+      {hasFailed && errorMessage ? (
+        <p className="text-destructive max-w-md text-xs">{errorMessage}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function MessageSourceBadge({ message }: { message: UIMessage }) {
   const source =
     message.metadata &&
@@ -88,6 +235,8 @@ function MessageSourceBadge({ message }: { message: UIMessage }) {
       ? "WhatsApp"
       : source === "scheduler"
         ? "Terjadwal"
+        : source === "apify"
+          ? "Media sosial"
         : source;
 
   return (
@@ -152,6 +301,11 @@ function MessageContent({
           );
         }
 
+        continue;
+      }
+
+      if (isSocialMediaToolPart(part)) {
+        toolNodes.push(<SocialMediaToolChip key={key} part={part} />);
         continue;
       }
 
