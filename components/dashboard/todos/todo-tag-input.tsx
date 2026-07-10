@@ -64,9 +64,9 @@ export function TodoTagInput({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {value.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {value.map((tag) => (
             <Badge key={tag} variant="secondary" className="gap-1 pr-1">
               {tag}

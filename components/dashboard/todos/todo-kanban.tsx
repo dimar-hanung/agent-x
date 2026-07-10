@@ -5,8 +5,11 @@ import {
   DragOverlay,
   PointerSensor,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -14,8 +17,8 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import { useState } from "react";
 
+import { TodoCardFace } from "./todo-card";
 import { TodoKanbanColumn } from "./todo-kanban-column";
-import { Badge } from "@/components/ui/badge";
 import { useKanbanCollapsedStatuses } from "@/hooks/use-kanban-collapsed-statuses";
 import { TODO_STATUSES, type TodoStatus } from "@/lib/db/schema";
 import { TODO_STATUS_ORDER } from "@/lib/todos/labels";
@@ -61,6 +64,31 @@ function reindexColumn(
   ];
 }
 
+const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  const collisions =
+    pointerCollisions.length > 0
+      ? pointerCollisions
+      : (() => {
+          const rectCollisions = rectIntersection(args);
+          return rectCollisions.length > 0
+            ? rectCollisions
+            : closestCorners(args);
+        })();
+
+  if (collisions.length === 0) {
+    return [];
+  }
+
+  // Prefer a card over its parent column when both intersect
+  const overCard = collisions.find((collision) => !isStatus(collision.id));
+  if (overCard) {
+    return [overCard];
+  }
+
+  return collisions;
+};
+
 export function TodoKanban({
   todos,
   onTodosChange,
@@ -68,6 +96,7 @@ export function TodoKanban({
   onPersistMove,
 }: TodoKanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeWidth, setActiveWidth] = useState<number | null>(null);
   const [snapshot, setSnapshot] = useState<TodoListItem[] | null>(null);
   const { isCollapsed, toggle } = useKanbanCollapsedStatuses();
 
@@ -83,7 +112,14 @@ export function TodoKanban({
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(String(event.active.id));
+    setActiveWidth(event.active.rect.current.initial?.width ?? null);
     setSnapshot(todos);
+  }
+
+  function clearDragState() {
+    setActiveId(null);
+    setActiveWidth(null);
+    setSnapshot(null);
   }
 
   function handleDragOver(event: DragOverEvent) {
@@ -138,14 +174,34 @@ export function TodoKanban({
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    setActiveId(null);
     const dragSnapshot = snapshot;
-    setSnapshot(null);
+    clearDragState();
 
-    if (!over) {
-      if (dragSnapshot) {
-        onTodosChange(dragSnapshot);
+    const persistCurrent = async () => {
+      const movedTodo = todos.find((todo) => todo.id === active.id);
+      if (!movedTodo) return;
+
+      const original = dragSnapshot?.find((todo) => todo.id === active.id);
+      if (
+        original &&
+        original.status === movedTodo.status &&
+        original.position === movedTodo.position
+      ) {
+        return;
       }
+
+      try {
+        await onPersistMove(movedTodo.id, movedTodo.status, movedTodo.position);
+      } catch {
+        if (dragSnapshot) {
+          onTodosChange(dragSnapshot);
+        }
+      }
+    };
+
+    // Drop outside a target: keep optimistic dragOver result if any
+    if (!over) {
+      await persistCurrent();
       return;
     }
 
@@ -156,6 +212,7 @@ export function TodoKanban({
     const currentStatus = getStatusOf(todos, active.id);
 
     if (!originalStatus || !overStatus || !currentStatus) {
+      await persistCurrent();
       return;
     }
 
@@ -182,6 +239,30 @@ export function TodoKanban({
         ];
         onTodosChange(nextTodos);
       }
+    } else if (isStatus(over.id) && currentStatus !== overStatus) {
+      // Dropped on empty (or column body) — move to end of that column
+      const activeTodoItem = todos.find((todo) => todo.id === active.id);
+      if (activeTodoItem) {
+        const withoutActive = todos.filter((todo) => todo.id !== active.id);
+        const targetColumn = withoutActive
+          .filter((todo) => todo.status === overStatus)
+          .sort((a, b) => a.position - b.position);
+
+        targetColumn.push({
+          ...activeTodoItem,
+          status: overStatus,
+          position: targetColumn.length,
+        });
+
+        nextTodos = reindexColumn(
+          [
+            ...withoutActive.filter((todo) => todo.status !== overStatus),
+            ...targetColumn,
+          ],
+          currentStatus
+        );
+        onTodosChange(nextTodos);
+      }
     }
 
     const movedTodo = nextTodos.find((todo) => todo.id === active.id);
@@ -202,12 +283,12 @@ export function TodoKanban({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={kanbanCollisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="flex min-h-[320px] gap-3 overflow-x-auto p-0.5">
         {TODO_STATUS_ORDER.map((status) => (
           <TodoKanbanColumn
             key={status}
@@ -221,26 +302,11 @@ export function TodoKanban({
       </div>
       <DragOverlay>
         {activeTodo ? (
-          <div className="bg-card w-[260px] rounded-md border p-3 shadow-md">
-            <p className="text-muted-foreground font-mono text-[11px] tracking-wide">
-              {activeTodo.code}
-            </p>
-            <p className="text-sm font-medium">{activeTodo.title}</p>
-            {activeTodo.project ? (
-              <p className="text-muted-foreground mt-0.5 text-[11px]">
-                {activeTodo.project}
-              </p>
-            ) : null}
-            {activeTodo.tags.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {activeTodo.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-[10px]">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <TodoCardFace
+            todo={activeTodo}
+            className="ring-ring cursor-grabbing shadow-lg ring-2"
+            style={activeWidth ? { width: activeWidth } : undefined}
+          />
         ) : null}
       </DragOverlay>
     </DndContext>

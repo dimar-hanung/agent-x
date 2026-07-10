@@ -15,6 +15,8 @@ interface TodoDescriptionEditorProps {
   onChange: (value: string) => void;
   rows?: number;
   placeholder?: string;
+  /** Detail page: no border around the editor surface. */
+  borderless?: boolean;
 }
 
 export function TodoDescriptionEditor({
@@ -24,12 +26,18 @@ export function TodoDescriptionEditor({
   onChange,
   rows = 10,
   placeholder = "Tulis deskripsi dalam Markdown…",
+  borderless = false,
 }: TodoDescriptionEditorProps) {
   const [mode, setMode] = useState<DescriptionMode>("preview");
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1 rounded-md border p-1 w-fit">
+    <div className="space-y-1.5">
+      <div
+        className={cn(
+          "flex w-fit items-center gap-0.5 rounded-md p-0.5",
+          borderless ? "bg-muted/50" : "border p-1"
+        )}
+      >
         <Button
           type="button"
           size="sm"
@@ -59,13 +67,19 @@ export function TodoDescriptionEditor({
           placeholder={placeholder}
           rows={rows}
           className={cn(
-            "border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex w-full rounded-md border px-3 py-2 font-mono text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+            "placeholder:text-muted-foreground flex w-full font-mono text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50",
+            borderless
+              ? "bg-transparent px-0 py-1 focus-visible:ring-0"
+              : "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 rounded-md border px-3 py-2 shadow-xs focus-visible:ring-[3px]"
           )}
         />
       ) : (
         <div
           className={cn(
-            "border-input bg-background min-h-40 rounded-md border px-3 py-2 shadow-xs",
+            "min-h-40",
+            borderless
+              ? "bg-transparent px-0 py-1"
+              : "border-input bg-background rounded-md border px-3 py-2 shadow-xs",
             !value.trim() && "flex items-center"
           )}
         >

@@ -72,12 +72,6 @@ export default async function TodoDetailPage({ params }: TodoDetailPageProps) {
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{todo.title}</h1>
-          <p className="text-muted-foreground text-sm">
-            Detail dan ubah todo. Deskripsi mendukung Markdown.
-          </p>
-        </div>
         <TodoDetail todo={todo} projectSuggestions={projectSuggestions} />
       </div>
     </>

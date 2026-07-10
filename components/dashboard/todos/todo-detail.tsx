@@ -18,7 +18,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -146,17 +151,13 @@ export function TodoDetail({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="font-mono">
-              {todo.code}
-            </Badge>
-            <Badge variant="secondary">
-              {TODO_STATUS_LABELS[todo.status]}
-            </Badge>
-          </div>
+    <div className="mx-auto w-full max-w-2xl space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline" className="font-mono">
+            {todo.code}
+          </Badge>
+          <Badge variant="secondary">{TODO_STATUS_LABELS[todo.status]}</Badge>
           <p className="text-muted-foreground text-xs">
             Dibuat {formatTodoDate(todo.createdAt)} · Diperbarui{" "}
             {formatTodoDate(todo.updatedAt)}
@@ -166,6 +167,7 @@ export function TodoDetail({
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={() => router.push(appRoutes.todos)}
           >
             <ArrowLeftIcon />
@@ -174,6 +176,7 @@ export function TodoDetail({
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={() => {
               setDeleteError(null);
               setDeleteOpen(true);
@@ -185,78 +188,125 @@ export function TodoDetail({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="todo-detail-title">Judul</FieldLabel>
-            <Input
-              id="todo-detail-title"
-              value={values.title}
-              disabled={isSubmitting}
-              onChange={(event) => updateField("title", event.target.value)}
-              placeholder="Judul todo"
-              required
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="todo-detail-project">Project</FieldLabel>
-            <Input
-              id="todo-detail-project"
-              value={values.project}
-              disabled={isSubmitting}
-              onChange={(event) => updateField("project", event.target.value)}
-              placeholder="Opsional, mis. AgentX"
-              list="todo-detail-project-suggestions"
-            />
-            {projectSuggestions.length > 0 ? (
-              <datalist id="todo-detail-project-suggestions">
-                {projectSuggestions.map((project) => (
-                  <option key={project} value={project} />
-                ))}
-              </datalist>
-            ) : null}
-          </Field>
-
-          <Field>
-            <FieldLabel>Status</FieldLabel>
-            <Select
-              value={values.status}
-              disabled={isSubmitting}
-              onValueChange={(value) =>
-                updateField("status", value as TodoStatus)
-              }
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <FieldGroup className="gap-0">
+          <Field
+            orientation="horizontal"
+            className="items-center gap-3 py-2.5"
+          >
+            <FieldLabel
+              htmlFor="todo-detail-title"
+              className="text-muted-foreground w-20 shrink-0 !flex-none"
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih status" />
-              </SelectTrigger>
-              <SelectContent>
-                {TODO_STATUS_ORDER.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {TODO_STATUS_LABELS[status]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              Judul
+            </FieldLabel>
+            <div className="min-w-0 flex-1">
+              <Input
+                id="todo-detail-title"
+                value={values.title}
+                disabled={isSubmitting}
+                onChange={(event) => updateField("title", event.target.value)}
+                placeholder="Judul todo"
+                required
+              />
+            </div>
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="todo-detail-tags">Tag</FieldLabel>
-            <TodoTagInput
-              id="todo-detail-tags"
-              value={values.tags}
-              disabled={isSubmitting}
-              onChange={(tags) => updateField("tags", tags)}
-            />
+          <FieldSeparator />
+
+          <Field
+            orientation="horizontal"
+            className="items-center gap-3 py-2.5"
+          >
+            <FieldLabel
+              htmlFor="todo-detail-project"
+              className="text-muted-foreground w-20 shrink-0 !flex-none"
+            >
+              Project
+            </FieldLabel>
+            <div className="min-w-0 flex-1">
+              <Input
+                id="todo-detail-project"
+                value={values.project}
+                disabled={isSubmitting}
+                onChange={(event) => updateField("project", event.target.value)}
+                placeholder="Opsional, mis. AgentX"
+                list="todo-detail-project-suggestions"
+              />
+              {projectSuggestions.length > 0 ? (
+                <datalist id="todo-detail-project-suggestions">
+                  {projectSuggestions.map((project) => (
+                    <option key={project} value={project} />
+                  ))}
+                </datalist>
+              ) : null}
+            </div>
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="todo-detail-description">Deskripsi</FieldLabel>
+          <FieldSeparator />
+
+          <Field
+            orientation="horizontal"
+            className="items-center gap-3 py-2.5"
+          >
+            <FieldLabel className="text-muted-foreground w-20 shrink-0 !flex-none">
+              Status
+            </FieldLabel>
+            <div className="min-w-0 flex-1">
+              <Select
+                value={values.status}
+                disabled={isSubmitting}
+                onValueChange={(value) =>
+                  updateField("status", value as TodoStatus)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pilih status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TODO_STATUS_ORDER.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {TODO_STATUS_LABELS[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </Field>
+
+          <FieldSeparator />
+
+          <Field
+            orientation="horizontal"
+            className="items-start gap-3 py-2.5"
+          >
+            <FieldLabel
+              htmlFor="todo-detail-tags"
+              className="text-muted-foreground w-20 shrink-0 !flex-none pt-2"
+            >
+              Tag
+            </FieldLabel>
+            <div className="min-w-0 flex-1">
+              <TodoTagInput
+                id="todo-detail-tags"
+                value={values.tags}
+                disabled={isSubmitting}
+                onChange={(tags) => updateField("tags", tags)}
+              />
+            </div>
+          </Field>
+
+          <FieldSeparator />
+
+          <Field className="gap-1.5 py-2.5">
             <TodoDescriptionEditor
               id="todo-detail-description"
               value={values.description}
               disabled={isSubmitting}
-              onChange={(description) => updateField("description", description)}
+              borderless
+              onChange={(description) =>
+                updateField("description", description)
+              }
             />
           </Field>
         </FieldGroup>

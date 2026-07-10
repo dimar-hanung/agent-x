@@ -14,6 +14,14 @@ export const TODO_STATUS_ORDER: TodoStatus[] = [
   "done",
 ];
 
+/** Tailwind classes for kanban status dots. */
+export const TODO_STATUS_COLORS: Record<TodoStatus, { dot: string }> = {
+  todo: { dot: "bg-slate-400" },
+  in_progress: { dot: "bg-sky-500" },
+  waiting: { dot: "bg-amber-500" },
+  done: { dot: "bg-emerald-500" },
+};
+
 export function formatTodoStatus(status: TodoStatus): string {
   return TODO_STATUS_LABELS[status] ?? status;
 }
