@@ -11,7 +11,7 @@ import { upsertGoogleIntegration } from "@/lib/integrations/google-repository";
 function settingsRedirect(query?: Record<string, string>) {
   const url = new URL(
     "/dashboard/settings",
-    process.env.AGENTX_PUBLIC_URL ?? "http://localhost:8701"
+    process.env.AGENTX_PUBLIC_URL ?? "http://localhost:3000"
   );
 
   if (query) {

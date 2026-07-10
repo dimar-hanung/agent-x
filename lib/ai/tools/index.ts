@@ -11,7 +11,6 @@ import { createCreateCalendarEventTool } from "./create-calendar-event/create-ca
 import { createCreateScheduleTool } from "./create-schedule/create-schedule.tool";
 import { createCreateTodoTool } from "./create-todo/create-todo.tool";
 import { createDeleteTodoTool } from "./delete-todo/delete-todo.tool";
-import { createEchoTool } from "./echo/echo.tool";
 import { createExaWebFetchTool } from "./exa-web-fetch/exa-web-fetch.tool";
 import { createExaWebSearchTool } from "./exa-web-search/exa-web-search.tool";
 import { createForgetMemoryTool } from "./forget-memory/forget-memory.tool";
@@ -24,7 +23,6 @@ import { createListTodosTool } from "./list-todos/list-todos.tool";
 import { createReadDriveFileTool } from "./read-drive-file/read-drive-file.tool";
 import { createReadEmailTool } from "./read-email/read-email.tool";
 import { createRememberMemoryTool } from "./remember-memory/remember-memory.tool";
-import { createRoleInfoTool } from "./role-info/role-info.tool";
 import { createSearchDriveTool } from "./search-drive/search-drive.tool";
 import { createSearchInboxTool } from "./search-inbox/search-inbox.tool";
 import { createSendEmailTool } from "./send-email/send-email.tool";
@@ -37,8 +35,6 @@ function createToolRegistry(
 ): Record<NativeToolKey, Tool> {
   return {
     get_time: createGetTimeTool(),
-    echo: createEchoTool(user),
-    role_info: createRoleInfoTool(user),
     exa_web_search: createExaWebSearchTool(),
     exa_web_fetch: createExaWebFetchTool(),
     create_schedule: createCreateScheduleTool(user, runtimeContext),

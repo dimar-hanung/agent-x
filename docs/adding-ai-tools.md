@@ -26,13 +26,12 @@ lib/ai/tools/
 │   ├── schema.ts
 │   ├── execute.ts
 │   └── types.ts
-├── echo/                  # Example: user-scoped tool
-├── role-info/             # Example: role-aware tool
+├── list-todos/            # Example: user-scoped tool
+├── create-schedule/       # Example: runtime-aware tool
 ├── exa-web-search/        # Example: external REST API tool
 └── exa-web-fetch/
 
 lib/ai/roles/
-├── hardcoded-user.ts      # Active dev user constant
 └── tools-by-role.ts       # Which roles can use which tools
 ```
 
@@ -95,14 +94,14 @@ export function createGetTimeTool() {
 }
 ```
 
-**User-scoped tool** — see [`echo/`](../lib/ai/tools/echo/):
+**User-scoped tool** — see [`list-todos/`](../lib/ai/tools/list-todos/):
 
 ```ts
-export function createEchoTool(user: UserContext) {
+export function createListTodosTool(user: UserContext) {
   return tool({
     description: "...",
-    inputSchema: echoInputSchema,
-    execute: (input) => executeEcho(input, { user }),
+    inputSchema: listTodosInputSchema,
+    execute: (input) => executeListTodos(input, { user }),
   });
 }
 ```
@@ -134,7 +133,7 @@ export type MyToolInput = z.infer<typeof myToolInputSchema>;
 | User-scoped | `executeXxx(input, ctx: { user: UserContext })` |
 | Runtime-aware | `executeXxx(input, ctx: { user; runtimeContext? })` |
 
-Never import `HARDCODED_USER` inside execute — receive `user` via context.
+Never read session or env for identity inside execute — receive `user` via context.
 
 ### Types (`types.ts`)
 
@@ -172,7 +171,7 @@ The registry key must match the `ToolKey` union entry.
 In `lib/ai/roles/tools-by-role.ts`, add `"my_new_tool"` to the arrays for roles that should use it:
 
 ```ts
-student: ["get_time", "echo", "role_info", "my_new_tool"],
+client: ["get_time", "list_todos", "my_new_tool"],
 ```
 
 Roles not listed will not expose the tool to the model, even if it is registered.
@@ -193,37 +192,24 @@ See `ToolResult` in `ai-tools.types.ts`.
 | Pattern | Pass `user`? | Example |
 |---------|--------------|---------|
 | Public utility (time, search) | No | `get_time` |
-| Personalized / identity | Yes | `echo`, `role_info` |
-| External API with user token | Yes (future) | — |
+| User-owned data | Yes | `list_todos`, `remember_memory` |
+| External API with user token | Yes | Gmail / Drive tools |
 
 `resolveUser()` in the API route provides the user. Tools receive it via factory closure, not by reading constants or env.
-
-## Switching dev user / role
-
-Edit `lib/ai/roles/hardcoded-user.ts`:
-
-```ts
-export const HARDCODED_USER: UserContext = DEV_USERS.admin;
-// or change DEV_USERS.student.role, etc.
-```
-
-Restart is not required beyond the dev server picking up the file change.
 
 ## Adding a new role
 
 1. Add the role to `AppRole` in `lib/ai/roles/types.ts`
-2. Add an entry in `DEV_USERS` in `hardcoded-user.ts`
-3. Add a key in `TOOLS_BY_ROLE` in `tools-by-role.ts`
+2. Add a key in `TOOLS_BY_ROLE` in `tools-by-role.ts`
 
 ## Testing
 
-Example prompts for stub tools:
+Example prompts:
 
 | Tool | Example prompt |
 |------|----------------|
 | `get_time` | "What time is it in Asia/Jakarta?" |
-| `echo` | "Echo back: hello world" |
-| `role_info` | "What tools do I have access to?" |
+| `list_todos` | "Tampilkan todo saya" |
 | `exa_web_search` | "Cari berita AI terbaru" |
 | `exa_web_fetch` | "Baca https://example.com dan ringkas" |
 
@@ -262,6 +248,6 @@ Exa web search is a **native** tool, not MCP. See [Adding MCP Tools](./adding-mc
 | Forgot registry entry in `index.ts` | Tool never called |
 | Forgot role allowlist | Tool missing for some users |
 | `ToolKey` / registry key mismatch | TypeScript error or silent omission |
-| Importing `HARDCODED_USER` in tool | Breaks when auth is added later |
+| Reading session inside execute | Breaks reuse from scheduler / MCP |
 | Inconsistent result shape | Model gives vague or wrong summaries |
 | Putting business logic in `.tool.ts` | Hard to test; file grows unbounded |

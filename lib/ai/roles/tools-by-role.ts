@@ -11,8 +11,6 @@ import type { AppRole } from "./types";
 
 const CLIENT_ADMIN_TOOLS: ToolKey[] = [
   "get_time",
-  "echo",
-  "role_info",
   "exa_web_search",
   "exa_web_fetch",
   "create_schedule",

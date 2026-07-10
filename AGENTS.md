@@ -49,7 +49,7 @@ types.ts    # *ToolResult extends ToolResult
 
 ## Workspace facts
 
-- 24 native tool seragam pakai kontrak 4 file (termasuk stub); memory: `remember_memory` / `forget_memory` / `list_memories`
+- 22 native tool seragam pakai kontrak 4 file; memory: `remember_memory` / `forget_memory` / `list_memories`
 - Chat UI tool registry belum ada — `message-row.tsx` masih conditional per tool
 - `summarizedUpToSequence` default `-1`; `0` tanpa summary = belum di-summarize
 - Main channel per user; WhatsApp channel global (admin scan QR, user pair nomor di Settings)

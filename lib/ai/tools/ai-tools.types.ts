@@ -19,7 +19,6 @@ export type { CreateCalendarEventToolResult } from "./create-calendar-event/type
 export type { CreateScheduleToolResult } from "./create-schedule/types";
 export type { CreateTodoToolResult } from "./create-todo/types";
 export type { DeleteTodoToolResult } from "./delete-todo/types";
-export type { EchoToolResult } from "./echo/types";
 export type { ExaWebFetchToolResult } from "./exa-web-fetch/types";
 export type { ExaWebSearchToolResult } from "./exa-web-search/types";
 export type { ForgetMemoryToolResult } from "./forget-memory/types";
@@ -32,7 +31,6 @@ export type { ListTodosToolResult } from "./list-todos/types";
 export type { ReadDriveFileToolResult } from "./read-drive-file/types";
 export type { ReadEmailToolResult } from "./read-email/types";
 export type { RememberMemoryToolResult } from "./remember-memory/types";
-export type { RoleInfoToolResult } from "./role-info/types";
 export type { SearchDriveToolResult } from "./search-drive/types";
 export type { SearchInboxToolResult } from "./search-inbox/types";
 export type { SendEmailToolResult } from "./send-email/types";

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -112,7 +111,7 @@ export function LoginForm({
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="student@agentx.local"
+                  placeholder="anda@contoh.com"
                   required
                 />
               </Field>
@@ -171,14 +170,6 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
-
-      <FieldDescription className="px-6 text-center">
-        Demo accounts after seed:{" "}
-        <Link href="#" className="underline underline-offset-4">
-          admin@agentx.local
-        </Link>{" "}
-        / student@agentx.local
-      </FieldDescription>
     </div>
   );
 }

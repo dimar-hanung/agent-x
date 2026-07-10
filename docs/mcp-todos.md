@@ -14,7 +14,7 @@ AgentX hosts a remote MCP server for todo CRUD. External clients (Cursor, Claude
 {ORIGIN}/api/mcp/mcp
 ```
 
-Example local: `http://localhost:8701/api/mcp/mcp`
+Example local: `http://localhost:3000/api/mcp/mcp`
 
 Auth header:
 
@@ -30,7 +30,7 @@ Authorization: Bearer ax_<your_key>
 {
   "mcpServers": {
     "agentx-todos": {
-      "url": "http://localhost:8701/api/mcp/mcp",
+      "url": "http://localhost:3000/api/mcp/mcp",
       "headers": {
         "Authorization": "Bearer ax_YOUR_KEY"
       }
@@ -49,7 +49,7 @@ Authorization: Bearer ax_<your_key>
       "args": [
         "-y",
         "mcp-remote",
-        "http://localhost:8701/api/mcp/mcp",
+        "http://localhost:3000/api/mcp/mcp",
         "--header",
         "Authorization: Bearer ax_YOUR_KEY"
       ]

@@ -5,10 +5,8 @@ import { usePathname } from "next/navigation";
 import {
   Brain,
   CheckSquare,
-  LifeBuoy,
   MessageSquare,
   Radio,
-  Send,
   Settings2,
   SquareTerminal,
   Users,
@@ -16,7 +14,6 @@ import {
 
 import { IndonesianFlagIcon } from "@/components/icons/indonesian-flag-icon";
 import { NavMain } from "./nav-main";
-import { NavSecondary } from "./nav-secondary";
 import { NavUser } from "./nav-user";
 import { siteConfig, appRoutes } from "@/lib/site-config";
 import {
@@ -97,18 +94,6 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
       ...item,
       isActive: isNavActive(pathname, item.url),
     })),
-    navSecondary: [
-      {
-        title: "Support",
-        url: "#",
-        icon: LifeBuoy,
-      },
-      {
-        title: "Feedback",
-        url: "#",
-        icon: Send,
-      },
-    ],
   };
 
   return (
@@ -131,7 +116,6 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

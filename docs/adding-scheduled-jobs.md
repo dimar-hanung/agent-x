@@ -6,7 +6,7 @@ AgentX supports dynamic schedules: users create jobs via chat, a background work
 
 - PostgreSQL schema pushed (`npm run db:push`)
 - `.env.local` with `DATABASE_URL`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`
-- Chat user role `student` or `admin` (not `guest`)
+- Chat user role `client` or `admin` (not `guest`)
 
 ## Run the worker
 
