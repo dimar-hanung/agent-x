@@ -55,7 +55,7 @@ export const createTodoSchema = z.object({
   project: projectSchema.optional().nullable().transform(normalizeProject),
   status: z
     .enum(TODO_STATUSES, {
-      invalid_type_error: "Status tidak valid.",
+      error: "Status tidak valid.",
     })
     .optional()
     .default("todo"),
@@ -79,7 +79,7 @@ export const updateTodoSchema = z
     project: projectSchema.nullable().optional().transform(normalizeProject),
     status: z
       .enum(TODO_STATUSES, {
-        invalid_type_error: "Status tidak valid.",
+        error: "Status tidak valid.",
       })
       .optional(),
     tags: z
