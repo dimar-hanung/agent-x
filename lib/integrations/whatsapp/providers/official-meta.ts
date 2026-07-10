@@ -2,7 +2,9 @@ import type { WhatsAppProvider } from "../provider";
 import type {
   WhatsAppConnectionStatus,
   WhatsAppInboundMessage,
+  WhatsAppPresence,
   WhatsAppQrCode,
+  WhatsAppReadMessage,
   WhatsAppSendResult,
   WhatsAppWebhookPayload,
 } from "../types";
@@ -18,6 +20,14 @@ export class OfficialMetaWhatsAppProvider implements WhatsAppProvider {
     notImplemented();
   }
 
+  async createNamedInstance(): Promise<void> {
+    notImplemented();
+  }
+
+  async discardInstance(): Promise<void> {
+    notImplemented();
+  }
+
   async getConnectionStatus(): Promise<WhatsAppConnectionStatus> {
     notImplemented();
   }
@@ -27,6 +37,22 @@ export class OfficialMetaWhatsAppProvider implements WhatsAppProvider {
   }
 
   async sendText(): Promise<WhatsAppSendResult> {
+    notImplemented();
+  }
+
+  async markAsRead(
+    _instanceName: string,
+    _messages: WhatsAppReadMessage[]
+  ): Promise<void> {
+    notImplemented();
+  }
+
+  async sendPresence(
+    _instanceName: string,
+    _toPhoneE164: string,
+    _presence: WhatsAppPresence,
+    _delayMs?: number
+  ): Promise<void> {
     notImplemented();
   }
 

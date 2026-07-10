@@ -79,14 +79,44 @@ export async function processChannelMessage(
     instructions: systemPrompt,
   });
 
+  const replyViaWhatsApp =
+    input.source === "whatsapp" && Boolean(input.replyViaWhatsApp);
+  const mirrorViaWhatsApp = input.source !== "whatsapp";
+
   const result = await agent.generate({
     messages: await convertToModelMessages(modelMessages),
+    onStepEnd: async ({ text }) => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      if (replyViaWhatsApp) {
+        await sendWhatsAppToUser(user.userId, trimmed);
+        return;
+      }
+
+      if (mirrorViaWhatsApp) {
+        try {
+          await sendWhatsAppToUser(user.userId, trimmed);
+        } catch (error) {
+          console.error("Mirror WhatsApp gagal:", error);
+        }
+      }
+    },
   });
+
+  const assistantTextParts = result.steps
+    .map((step) => step.text.trim())
+    .filter((text) => text.length > 0);
 
   const assistantMessage: UIMessage = {
     id: generateId(),
     role: "assistant",
-    parts: [{ type: "text", text: result.text }],
+    parts:
+      assistantTextParts.length > 0
+        ? assistantTextParts.map((text) => ({ type: "text" as const, text }))
+        : [{ type: "text", text: result.text }],
     metadata: {
       source: input.source,
       ...input.metadata,
@@ -104,16 +134,11 @@ export async function processChannelMessage(
     allMessages: [...allInputMessages, assistantMessage],
   });
 
-  if (input.source === "whatsapp" && input.replyViaWhatsApp) {
-    await sendWhatsAppToUser(user.userId, result.text);
-  } else if (input.source !== "whatsapp") {
-    void sendWhatsAppToUser(user.userId, result.text).catch((error) => {
-      console.error("Mirror WhatsApp gagal:", error);
-    });
-  }
-
   return {
-    assistantText: result.text,
+    assistantText:
+      assistantTextParts.length > 0
+        ? assistantTextParts.join("\n\n")
+        : result.text,
     chatId,
   };
 }

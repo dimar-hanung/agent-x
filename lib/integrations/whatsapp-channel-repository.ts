@@ -74,17 +74,28 @@ export async function isChannelConnected(): Promise<boolean> {
 export async function startChannelPairing(): Promise<WhatsAppChannelConfigView> {
   const row = await getOrCreateConfigRow();
   const provider = getWhatsAppProvider();
+  const oldInstanceName = row.instanceName;
+  // New name every pairing — restart keeps the same QR/session; delete of the
+  // same name often 400s on Evolution v2.3.7 zombie Baileys sessions.
+  const newInstanceName = `agentx-${Date.now().toString(36)}`;
 
-  await provider.ensureInstance(row.instanceName);
+  await provider.createNamedInstance(newInstanceName);
 
   const [updated] = await db
     .update(whatsappChannelConfig)
     .set({
+      instanceName: newInstanceName,
       status: "pairing",
+      channelPhoneE164: null,
+      connectedAt: null,
       updatedAt: new Date(),
     })
     .where(eq(whatsappChannelConfig.id, row.id))
     .returning();
+
+  if (oldInstanceName !== newInstanceName) {
+    void provider.discardInstance(oldInstanceName);
+  }
 
   return toConfigView(updated);
 }

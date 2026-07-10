@@ -77,6 +77,7 @@ export function WhatsAppChannelCard({
   async function handleConnect() {
     setError(null);
     setIsSubmitting(true);
+    setQrBase64(null);
 
     try {
       const response = await fetch("/api/admin/whatsapp-channel", {

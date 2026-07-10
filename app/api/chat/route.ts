@@ -115,31 +115,28 @@ export async function POST(req: Request) {
         prefix: "msg",
         size: 16,
       }),
+      onStepEnd: async ({ text }) => {
+        if (!whatsappOutput) {
+          return;
+        }
+
+        const trimmed = text.trim();
+        if (!trimmed) {
+          return;
+        }
+
+        try {
+          await sendWhatsAppToUser(user.userId, trimmed);
+        } catch (error) {
+          console.error("Mirror WhatsApp gagal:", error);
+        }
+      },
       onEnd: async ({ messages: allMessages }) => {
         await saveChat({
           chatId,
           userId: user.userId,
           allMessages: allMessages as UIMessage[],
         });
-
-        if (await isMainChannel(chatId)) {
-          const lastAssistant = [...(allMessages as UIMessage[])]
-            .reverse()
-            .find((msg) => msg.role === "assistant");
-
-          const textPart = lastAssistant?.parts.find(
-            (part): part is { type: "text"; text: string } =>
-              part.type === "text" && typeof part.text === "string"
-          );
-
-          if (textPart?.text) {
-            void sendWhatsAppToUser(user.userId, textPart.text).catch(
-              (error) => {
-                console.error("Mirror WhatsApp gagal:", error);
-              }
-            );
-          }
-        }
       },
     });
   } catch (error) {
