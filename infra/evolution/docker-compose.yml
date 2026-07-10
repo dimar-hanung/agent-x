@@ -1,7 +1,10 @@
 services:
   evolution-api:
     container_name: agentx_evolution_api
-    image: evoapicloud/evolution-api:v2.3.7
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agentx/evolution-api-antiban:v2.3.7
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"

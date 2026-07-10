@@ -29,8 +29,11 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
-echo "==> Pulling images..."
-docker compose pull
+echo "==> Pulling database/cache images..."
+docker compose pull evolution-postgres evolution-redis
+
+echo "==> Building Evolution API image..."
+docker compose build evolution-api
 
 echo "==> Starting Evolution API stack..."
 docker compose up -d
