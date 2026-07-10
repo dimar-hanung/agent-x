@@ -217,6 +217,37 @@ export const apiKeys = pgTable(
   ]
 );
 
+export const MEMORY_SOURCES = ["tool", "summary"] as const;
+export type MemorySource = (typeof MEMORY_SOURCES)[number];
+
+export const MEMORY_SOFT_CAP = 200;
+export const MEMORY_PROMPT_LIMIT = 40;
+export const MEMORY_CONTENT_MAX_LENGTH = 280;
+
+export const userMemories = pgTable(
+  "user_memories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    source: varchar("source", { length: 16 }).notNull().default("tool"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("user_memories_user_id_created_at_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+  ]
+);
+
 export const TODO_CODE_PREFIX = "TODO" as const;
 
 export const todos = pgTable(
@@ -260,3 +291,4 @@ export type UserIntegration = typeof userIntegrations.$inferSelect;
 export type WhatsAppChannelConfig = typeof whatsappChannelConfig.$inferSelect;
 export type Todo = typeof todos.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
+export type UserMemory = typeof userMemories.$inferSelect;

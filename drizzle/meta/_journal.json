@@ -71,6 +71,13 @@
       "when": 1783617630347,
       "tag": "0009_dashing_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783707148592,
+      "tag": "0010_left_kitty_pryde",
+      "breakpoints": true
     }
   ]
 }

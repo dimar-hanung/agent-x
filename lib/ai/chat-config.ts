@@ -38,6 +38,14 @@ const PROMPT_GOOGLE = `Google integrations (require Settings > Integrations > Co
 - Drive: use search_drive, read_drive_file, and upload_drive_file. Prefer text content for notes; set convert_to_google_doc when the user wants a Google Doc. Max upload 5 MB.
 - If a Google tool says the account is not connected, tell the user in Indonesian to connect Google in Settings.`;
 
+const PROMPT_MEMORY = `User memory (durable preferences across all chats):
+- When the user asks you to remember a lasting preference (language, tone, timezone, name spelling, recurring constraints), call remember_memory with a short factual content string.
+- When the user asks to forget or remove a preference, call list_memories if needed, then forget_memory by id.
+- Use list_memories to show what is stored.
+- Only store durable preferences — not one-off tasks, todos, schedules, or transient conversation details.
+- After remember_memory or forget_memory succeeds, confirm briefly in Indonesian.
+{memoryConfirm}`;
+
 export const WHATSAPP_OUTPUT_BLOCK = `Output formatting (WhatsApp delivery):
 - Use WhatsApp text formatting, NOT standard Markdown.
 - Allowed: *bold* (single asterisk), _italic_, ~strikethrough~, \`inline code\`, bulleted lists (- item), numbered lists (1. item), block quotes (> text).
@@ -65,6 +73,11 @@ ${PROMPT_TODOS.replace(
   "- After a todo tool succeeds, summarize the result in Indonesian and mention the todo code (TODO-N)."
 )}
 
+${PROMPT_MEMORY.replace(
+  "{memoryConfirm}",
+  "- After a memory tool succeeds, confirm the change briefly in Indonesian."
+)}
+
 ${PROMPT_GOOGLE}`;
 
 export const maxDuration = 30;
@@ -90,6 +103,10 @@ export function buildSystemPrompt(
     ? "- After a todo tool succeeds, summarize the result in Indonesian using WhatsApp formatting and mention the todo code (TODO-N)."
     : "- After a todo tool succeeds, summarize the result in Indonesian and mention the todo code (TODO-N).";
 
+  const memoryConfirm = options?.whatsappOutput
+    ? "- After a memory tool succeeds, confirm the change briefly in Indonesian using WhatsApp formatting."
+    : "- After a memory tool succeeds, confirm the change briefly in Indonesian.";
+
   let prompt = `${PROMPT_INTRO}
 
 ${PROMPT_EXA.replace("{exaCitation}", exaCitation)}
@@ -97,6 +114,8 @@ ${PROMPT_EXA.replace("{exaCitation}", exaCitation)}
 ${PROMPT_SCHEDULING.replace("{schedulingConfirm}", schedulingConfirm)}
 
 ${PROMPT_TODOS.replace("{todoConfirm}", todoConfirm)}
+
+${PROMPT_MEMORY.replace("{memoryConfirm}", memoryConfirm)}
 
 ${PROMPT_GOOGLE}`;
 
@@ -108,4 +127,15 @@ ${PROMPT_GOOGLE}`;
 
 Current user: ${user.displayName} (${user.email})
 Role: ${user.role}`;
+}
+
+export function formatUserMemoryBlock(
+  memories: Array<{ content: string }>
+): string {
+  if (memories.length === 0) {
+    return "";
+  }
+
+  const lines = memories.map((memory) => `- ${memory.content}`).join("\n");
+  return `\n\n[User memory]\n${lines}`;
 }

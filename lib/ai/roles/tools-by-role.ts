@@ -31,6 +31,9 @@ const CLIENT_ADMIN_TOOLS: ToolKey[] = [
   "create_todo",
   "update_todo",
   "delete_todo",
+  "remember_memory",
+  "forget_memory",
+  "list_memories",
 ];
 
 const TOOLS_BY_ROLE: Record<AppRole, ToolKey[]> = {

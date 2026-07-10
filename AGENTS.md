@@ -49,7 +49,7 @@ types.ts    # *ToolResult extends ToolResult
 
 ## Workspace facts
 
-- 11 native tool seragam pakai kontrak 4 file (termasuk stub)
+- 24 native tool seragam pakai kontrak 4 file (termasuk stub); memory: `remember_memory` / `forget_memory` / `list_memories`
 - Chat UI tool registry belum ada — `message-row.tsx` masih conditional per tool
 - `summarizedUpToSequence` default `-1`; `0` tanpa summary = belum di-summarize
 - Main channel per user; WhatsApp channel global (admin scan QR, user pair nomor di Settings)
@@ -65,3 +65,22 @@ types.ts    # *ToolResult extends ToolResult
 - Jangan over-engineer
 - Jangan edit file plan terlampir saat implementasi
 - Jangan commit kecuali diminta user
+
+## Skills (`.agents/skills`)
+
+Every development cycle must create or update skills inside `.agents/skills`.
+
+Format:
+
+```
+.agents/skills/develop-feature-[module-name]/SKILL.md
+.agents/skills/develop-module-[feature-name]/SKILL.md
+```
+
+Scope: hanya major features atau modules.
+
+Guidelines:
+
+- Buat skill di level tinggi — fokus lokasi file relevan, bukan detail implementasi spesifik
+- Tambahkan hal berguna yang perlu diketahui agent
+- Tujuan: agent tidak perlu gather/explore terlalu banyak konteks di awal

@@ -19,7 +19,10 @@ export type NativeToolKey =
   | "get_todo"
   | "create_todo"
   | "update_todo"
-  | "delete_todo";
+  | "delete_todo"
+  | "remember_memory"
+  | "forget_memory"
+  | "list_memories";
 
 const MCP_TOOL_KEYS = [] as const satisfies readonly string[];
 

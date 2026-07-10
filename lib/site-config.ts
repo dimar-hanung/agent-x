@@ -9,4 +9,5 @@ export const appRoutes = {
   settings: "/dashboard/settings",
   users: "/dashboard/users",
   todos: "/dashboard/todos",
+  memories: "/dashboard/memories",
 } as const;

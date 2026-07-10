@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import {
+  Brain,
   CheckSquare,
   LifeBuoy,
   MessageSquare,
@@ -36,7 +38,16 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   };
 }
 
+function isNavActive(pathname: string, url: string) {
+  if (url === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+  return pathname === url || pathname.startsWith(`${url}/`);
+}
+
 export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
+  const pathname = usePathname();
+
   const adminNav =
     role === "admin"
       ? [
@@ -60,7 +71,6 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         title: "Dashboard",
         url: "/dashboard",
         icon: SquareTerminal,
-        isActive: true,
       },
       {
         title: "Chat",
@@ -72,13 +82,21 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         url: appRoutes.todos,
         icon: CheckSquare,
       },
+      {
+        title: "Memory",
+        url: appRoutes.memories,
+        icon: Brain,
+      },
       ...adminNav,
       {
         title: "Integrations",
         url: appRoutes.settings,
         icon: Settings2,
       },
-    ],
+    ].map((item) => ({
+      ...item,
+      isActive: isNavActive(pathname, item.url),
+    })),
     navSecondary: [
       {
         title: "Support",

@@ -14,13 +14,16 @@ import { createDeleteTodoTool } from "./delete-todo/delete-todo.tool";
 import { createEchoTool } from "./echo/echo.tool";
 import { createExaWebFetchTool } from "./exa-web-fetch/exa-web-fetch.tool";
 import { createExaWebSearchTool } from "./exa-web-search/exa-web-search.tool";
+import { createForgetMemoryTool } from "./forget-memory/forget-memory.tool";
 import { createGetTimeTool } from "./get-time/get-time.tool";
 import { createGetTodoTool } from "./get-todo/get-todo.tool";
 import { createListCalendarEventsTool } from "./list-calendar-events/list-calendar-events.tool";
+import { createListMemoriesTool } from "./list-memories/list-memories.tool";
 import { createListSchedulesTool } from "./list-schedules/list-schedules.tool";
 import { createListTodosTool } from "./list-todos/list-todos.tool";
 import { createReadDriveFileTool } from "./read-drive-file/read-drive-file.tool";
 import { createReadEmailTool } from "./read-email/read-email.tool";
+import { createRememberMemoryTool } from "./remember-memory/remember-memory.tool";
 import { createRoleInfoTool } from "./role-info/role-info.tool";
 import { createSearchDriveTool } from "./search-drive/search-drive.tool";
 import { createSearchInboxTool } from "./search-inbox/search-inbox.tool";
@@ -54,6 +57,9 @@ function createToolRegistry(
     create_todo: createCreateTodoTool(user),
     update_todo: createUpdateTodoTool(user),
     delete_todo: createDeleteTodoTool(user),
+    remember_memory: createRememberMemoryTool(user),
+    forget_memory: createForgetMemoryTool(user),
+    list_memories: createListMemoriesTool(user),
   };
 }
 
