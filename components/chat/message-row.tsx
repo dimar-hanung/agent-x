@@ -16,6 +16,7 @@ import {
   ExaToolChip,
   isExaToolPart,
 } from "@/components/chat/exa-tool-chip";
+import { toFriendlyToolError } from "@/lib/ai/tools/friendly-tool-error";
 import { cn } from "@/lib/utils";
 
 function AssistantAvatar() {
@@ -40,6 +41,39 @@ export function TypingDots() {
   );
 }
 
+function getToolOutputFields(
+  part: UIMessage["parts"][number]
+): { message: string | null; code: string | null } {
+  if (!isToolUIPart(part) || part.state !== "output-available" || !("output" in part)) {
+    return { message: null, code: null };
+  }
+
+  const output = part.output;
+  if (!output || typeof output !== "object") {
+    return { message: null, code: null };
+  }
+
+  const result = output as { message?: unknown; code?: unknown };
+  return {
+    message: typeof result.message === "string" ? result.message : null,
+    code: typeof result.code === "string" ? result.code : null,
+  };
+}
+
+function isSoftToolFailure(part: UIMessage["parts"][number]): boolean {
+  if (!isToolUIPart(part) || part.state !== "output-available" || !("output" in part)) {
+    return false;
+  }
+
+  const output = part.output;
+  return (
+    output !== null &&
+    typeof output === "object" &&
+    "success" in output &&
+    (output as { success?: boolean }).success === false
+  );
+}
+
 function ToolChip({ part }: { part: UIMessage["parts"][number] }) {
   if (!isToolUIPart(part)) {
     return null;
@@ -48,25 +82,41 @@ function ToolChip({ part }: { part: UIMessage["parts"][number] }) {
   const toolName = getToolName(part);
   const state = part.state;
   const isRunning = state !== "output-available" && state !== "output-error";
+  const softFailed = isSoftToolFailure(part);
+  const hasFailed = state === "output-error" || softFailed;
+  const { message, code } = getToolOutputFields(part);
+  const errorMessage = hasFailed
+    ? toFriendlyToolError({
+        toolName,
+        message,
+        code,
+      })
+    : null;
 
-  const Icon =
-    state === "output-error"
-      ? AlertCircle
-      : isRunning
-        ? Loader2
-        : CheckCircle2;
-  const label =
-    state === "output-error" ? "error" : isRunning ? "running" : "done";
+  const Icon = hasFailed ? AlertCircle : isRunning ? Loader2 : CheckCircle2;
+  const label = hasFailed ? "Gagal" : isRunning ? "Berjalan…" : "Selesai";
 
   return (
-    <span className="text-muted-foreground inline-flex items-center gap-1.5 rounded-md border bg-background/60 px-2 py-1 text-xs">
-      <Wrench className="size-3" />
-      <span className="font-medium">{toolName}</span>
-      <span className="inline-flex items-center gap-1 opacity-70">
-        <Icon className={cn("size-3", isRunning && "animate-spin")} />
-        {label}
+    <div className="flex flex-col gap-1">
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs",
+          hasFailed
+            ? "border-destructive/30 bg-destructive/5 text-destructive"
+            : "text-muted-foreground bg-background/60"
+        )}
+      >
+        <Wrench className="size-3" />
+        <span className="font-medium">{toolName}</span>
+        <span className="inline-flex items-center gap-1 opacity-70">
+          <Icon className={cn("size-3", isRunning && "animate-spin")} />
+          {label}
+        </span>
       </span>
-    </span>
+      {hasFailed && errorMessage ? (
+        <p className="text-destructive max-w-md text-xs">{errorMessage}</p>
+      ) : null}
+    </div>
   );
 }
 

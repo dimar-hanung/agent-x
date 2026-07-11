@@ -21,6 +21,7 @@ import {
   saveChat,
 } from "@/lib/db/repositories/chat-repository";
 import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
+import { notifyWhatsAppToolError, notifyWhatsAppToolStart } from "@/lib/integrations/whatsapp/notify-tool-progress";
 
 export { maxDuration };
 
@@ -105,6 +106,20 @@ export async function POST(req: Request) {
       user,
       chatId,
       instructions: systemPrompt,
+      onToolExecutionStart: whatsappOutput
+        ? async ({ toolCall }) => {
+            await notifyWhatsAppToolStart(user.userId, toolCall.toolName);
+          }
+        : undefined,
+      onToolExecutionEnd: whatsappOutput
+        ? async ({ toolCall, toolOutput }) => {
+            await notifyWhatsAppToolError(
+              user.userId,
+              toolCall.toolName,
+              toolOutput
+            );
+          }
+        : undefined,
     });
 
     return createAgentUIStreamResponse({

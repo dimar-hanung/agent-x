@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
 
+import { toFriendlyToolError } from "@/lib/ai/tools/friendly-tool-error";
 import { cn } from "@/lib/utils";
 
 interface ExaToolChipProps {
@@ -97,9 +98,13 @@ export function ExaToolChip({ part }: ExaToolChipProps) {
     detail = `${count} URL`;
   }
 
-  const errorMessage =
-    output?.message ??
-    (state === "output-error" ? "Tool gagal dijalankan." : null);
+  const errorMessage = hasFailed
+    ? toFriendlyToolError({
+        toolName,
+        message: output?.message ?? null,
+        code: output?.code ?? null,
+      })
+    : null;
 
   return (
     <div className="flex flex-col gap-1">

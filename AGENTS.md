@@ -50,9 +50,11 @@ types.ts    # *ToolResult extends ToolResult
 ## Workspace facts
 
 - 22 native tool seragam pakai kontrak 4 file; memory: `remember_memory` / `forget_memory` / `list_memories`
-- Chat UI tool registry belum ada — `message-row.tsx` masih conditional per tool
+- Chat UI tool registry belum ada — `message-row.tsx` masih conditional per tool; soft-fail (`success: false`) ditampilkan sebagai **Gagal** + `message` di `ToolChip` / Exa chip
+- System prompt (`chat-config.ts`) mewajibkan balasan Bahasa Indonesia setelah tool gagal — jangan silent turn
 - `summarizedUpToSequence` default `-1`; `0` tanpa summary = belum di-summarize
 - Main channel per user; WhatsApp channel global (admin scan QR, user pair nomor di Settings)
+- Saat tool jalan di path WhatsApp (main-channel mirror / channel reply), kirim status singkat ke WA via `onToolExecutionStart` (`tool-progress-labels.ts`); kirim error tool via `onToolExecutionEnd` (`notifyWhatsAppToolError`)
 - Konteks chat di-ringkas ~5k token; riwayat lama via infinite scroll
 
 ## Environment

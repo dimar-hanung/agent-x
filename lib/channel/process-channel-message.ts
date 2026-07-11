@@ -13,6 +13,7 @@ import {
   saveChat,
 } from "@/lib/db/repositories/chat-repository";
 import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
+import { notifyWhatsAppToolError, notifyWhatsAppToolStart } from "@/lib/integrations/whatsapp/notify-tool-progress";
 import { createAllToolsForUser } from "@/lib/ai/tools/resolve-tools";
 import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
 
@@ -75,13 +76,28 @@ export async function processChannelMessage(
     whatsappOutput: true,
   });
 
-  const agent = await createChatAgent(user, { userId: user.userId, chatId }, tools, {
-    instructions: systemPrompt,
-  });
-
   const replyViaWhatsApp =
     input.source === "whatsapp" && Boolean(input.replyViaWhatsApp);
   const mirrorViaWhatsApp = input.source !== "whatsapp";
+  const notifyToolProgress = replyViaWhatsApp || mirrorViaWhatsApp;
+
+  const agent = await createChatAgent(user, { userId: user.userId, chatId }, tools, {
+    instructions: systemPrompt,
+    onToolExecutionStart: notifyToolProgress
+      ? async ({ toolCall }) => {
+          await notifyWhatsAppToolStart(user.userId, toolCall.toolName);
+        }
+      : undefined,
+    onToolExecutionEnd: notifyToolProgress
+      ? async ({ toolCall, toolOutput }) => {
+          await notifyWhatsAppToolError(
+            user.userId,
+            toolCall.toolName,
+            toolOutput
+          );
+        }
+      : undefined,
+  });
 
   const result = await agent.generate({
     messages: await convertToModelMessages(modelMessages),
