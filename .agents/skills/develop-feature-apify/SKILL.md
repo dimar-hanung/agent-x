@@ -42,7 +42,10 @@ Apify tools scrape social platforms asynchronously. On cache hit they return a p
 - Wire new tools through `tool-keys.ts` → `index.ts` → `tools-by-role.ts` → `chat-config.ts` like other native tools (4-file folder under `lib/ai/tools/`).
 - Do not expose Apify internals (token, actor IDs, run/snapshot IDs, queue jargon) in user-facing Indonesian replies.
 - Soft-fail with `APIFY_NOT_CONFIGURED` when token missing; map it in `friendly-tool-error.ts`.
+- `.env` token must be a bare Apify token (`apify_api_…`). A duplicated `APIFY_API_TOKEN=APIFY_API_TOKEN=…` value yields Apify HTTP 401 and failed snapshots.
 - Add WA progress labels in `tool-progress-labels.ts` for each new fetch tool.
 - Keep Exa secondary for social listening — Exa tool descriptions and `PROMPT_EXA` already defer to Apify.
 - Migration numbering on this branch: Apify table is `0011_hard_wasp` (after `0010_left_kitty_pryde` memories). Do not reintroduce the noop `0010_apify_social_snapshots`.
+- After merging Apify, apply `drizzle/0011_hard_wasp.sql` (or `npm run db:migrate` / push). Without `apify_social_snapshots`, tools throw and `agentx-apify` crash-loops with `relation does not exist`. This DB may have been provisioned via push (empty `drizzle.__drizzle_migrations`) — prefer applying the Apify SQL if migrate would replay older files.
 - Worker env file matches scheduler on this branch: `tsx --env-file=.env` (not `.env.local`).
+- PM2 process: `agentx-apify` (`npm run apify:worker`).
