@@ -28,10 +28,8 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,24 +38,17 @@ export function LoginForm({
     setError(null);
     setIsSubmitting(true);
 
-    const endpoint =
-      mode === "login" ? "/api/auth/login" : "/api/auth/register";
-    const body =
-      mode === "login"
-        ? { email, password }
-        : { email, password, displayName };
-
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = (await response.json()) as { message?: string };
 
       if (!response.ok) {
-        setError(data.message ?? "Request failed.");
+        setError(data.message ?? "Gagal masuk.");
         return;
       }
 
@@ -65,7 +56,7 @@ export function LoginForm({
       router.push(next);
       router.refresh();
     } catch {
-      setError("Network error. Please try again.");
+      setError("Kesalahan jaringan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -75,34 +66,17 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">
-            {mode === "login" ? "Welcome back" : "Create an account"}
-          </CardTitle>
+          <CardTitle className="text-xl">Selamat datang</CardTitle>
           <CardDescription>
-            {mode === "login"
-              ? "Sign in with your email and password."
-              : "Register to start chatting with AgentX."}
+            Masuk dengan email dan password Anda.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-                Email sign in
+                Masuk dengan email
               </FieldSeparator>
-
-              {mode === "register" ? (
-                <Field>
-                  <FieldLabel htmlFor="displayName">Display name</FieldLabel>
-                  <Input
-                    id="displayName"
-                    value={displayName}
-                    onChange={(event) => setDisplayName(event.target.value)}
-                    placeholder="Your name"
-                    required
-                  />
-                </Field>
-              ) : null}
 
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -123,7 +97,8 @@ export function LoginForm({
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  minLength={mode === "register" ? 8 : 1}
+                  placeholder="Password"
+                  minLength={1}
                   required
                 />
               </Field>
@@ -134,36 +109,10 @@ export function LoginForm({
 
               <Field>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting
-                    ? "Please wait..."
-                    : mode === "login"
-                      ? "Login"
-                      : "Register"}
+                  {isSubmitting ? "Mohon tunggu..." : "Masuk"}
                 </Button>
                 <FieldDescription className="text-center">
-                  {mode === "login" ? (
-                    <>
-                      Don&apos;t have an account?{" "}
-                      <button
-                        type="button"
-                        className="underline underline-offset-4"
-                        onClick={() => setMode("register")}
-                      >
-                        Sign up
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      Already have an account?{" "}
-                      <button
-                        type="button"
-                        className="underline underline-offset-4"
-                        onClick={() => setMode("login")}
-                      >
-                        Sign in
-                      </button>
-                    </>
-                  )}
+                  Akun baru hanya dibuat oleh admin.
                 </FieldDescription>
               </Field>
             </FieldGroup>
