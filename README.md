@@ -26,8 +26,9 @@ cp .env.example .env.local
 | `SESSION_SECRET` | Random string (32+ chars) for session cookies |
 | `INTEGRATIONS_ENCRYPTION_KEY` | 32-byte key (hex or base64) for encrypting integration secrets at rest. Generate with `openssl rand -hex 32` |
 | `EXA_API_KEY` | Exa API key for web search tools (`client`/`admin` roles). Get one at [dashboard.exa.ai/api-keys](https://dashboard.exa.ai/api-keys) |
+| `APIFY_API_TOKEN` | Apify API token for async social media snapshot tools |
 
-See `.env.example` for WhatsApp / Evolution and scheduler variables.
+See `.env.example` for WhatsApp / Evolution, scheduler, and Apify worker variables.
 
 ## Database setup
 
@@ -67,6 +68,7 @@ Open [http://localhost:3000](http://localhost:3000). Chat is at [http://localhos
 - **Todos** — dashboard kanban + MCP server for external clients
 - **Memory** — persistent user memories via chat tools
 - **Scheduled jobs** — recurring / one-time AI jobs via `node-schedule` worker
+- **Social media (Apify)** — async TikTok / Twitter/X / Threads snapshots via worker
 - **WhatsApp** — global channel via Evolution API (admin QR, user phone pairing)
 - **Integrations** — Google (Gmail / Calendar / Drive), personal API keys for MCP
 
@@ -89,9 +91,12 @@ Run the app and scheduler worker in **separate terminals**:
 ```bash
 npm run dev
 npm run scheduler:worker
+npm run apify:worker
 ```
 
 Optional env: `SCHEDULER_POLL_INTERVAL_MS` (default `15000`) — how often the worker syncs jobs from PostgreSQL.
+
+For Apify social media jobs, keep `npm run apify:worker` running too. Optional env: `APIFY_WORKER_POLL_INTERVAL_MS` (default `15000`).
 
 Chat examples:
 

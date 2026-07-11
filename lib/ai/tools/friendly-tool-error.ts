@@ -5,6 +5,9 @@ const TOOL_FRIENDLY_NOUNS = {
   get_time: "waktu",
   exa_web_search: "pencarian web",
   exa_web_fetch: "pembacaan halaman",
+  fetch_tiktok_data: "data TikTok",
+  fetch_twitter_data: "data Twitter/X",
+  fetch_threads_data: "data Threads",
   create_schedule: "otomatisasi",
   list_schedules: "otomatisasi",
   cancel_schedule: "otomatisasi",
@@ -39,7 +42,7 @@ function getToolFailureFallback(toolName: string): string {
 
 function looksTechnical(message: string): boolean {
   return (
-    /\b(EXA_API_KEY|API[_ ]?KEY|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|stack|traceback)\b/i.test(
+    /\b(EXA_API_KEY|APIFY_API_TOKEN|API[_ ]?KEY|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|stack|traceback)\b/i.test(
       message
     ) ||
     /\b(Failed to|Error:|Exception|TypeError|Cannot read|undefined is not)\b/i.test(
@@ -69,6 +72,13 @@ export function toFriendlyToolError(options: {
     /EXA_NOT_CONFIGURED|EXA_API_KEY/i.test(raw)
   ) {
     return "Pencarian web belum tersedia. Hubungi admin untuk mengaktifkannya.";
+  }
+
+  if (
+    code === "APIFY_NOT_CONFIGURED" ||
+    /APIFY_NOT_CONFIGURED|APIFY_API_TOKEN/i.test(raw)
+  ) {
+    return "Pengambilan data sosial media belum tersedia. Hubungi admin untuk mengaktifkannya.";
   }
 
   if (

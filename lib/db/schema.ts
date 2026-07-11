@@ -32,6 +32,22 @@ export const TODO_STATUSES = [
 ] as const;
 export type TodoStatus = (typeof TODO_STATUSES)[number];
 
+export const APIFY_SOCIAL_PLATFORMS = [
+  "tiktok",
+  "twitter",
+  "threads",
+] as const;
+export type ApifySocialPlatform = (typeof APIFY_SOCIAL_PLATFORMS)[number];
+
+export const APIFY_SOCIAL_SNAPSHOT_STATUSES = [
+  "queued",
+  "running",
+  "completed",
+  "failed",
+] as const;
+export type ApifySocialSnapshotStatus =
+  (typeof APIFY_SOCIAL_SNAPSHOT_STATUSES)[number];
+
 export const users = pgTable(
   "users",
   {
@@ -196,6 +212,51 @@ export const scheduledJobs = pgTable(
   ]
 );
 
+export const apifySocialSnapshots = pgTable(
+  "apify_social_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    chatId: uuid("chat_id").references(() => chats.id, { onDelete: "set null" }),
+    platform: varchar("platform", { length: 32 }).notNull(),
+    actorId: varchar("actor_id", { length: 128 }).notNull(),
+    queryHash: varchar("query_hash", { length: 64 }).notNull(),
+    normalizedInput: jsonb("normalized_input").notNull(),
+    actorInput: jsonb("actor_input").notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("queued"),
+    apifyRunId: varchar("apify_run_id", { length: 128 }),
+    apifyDatasetId: varchar("apify_dataset_id", { length: 128 }),
+    items: jsonb("items"),
+    itemCount: integer("item_count").notNull().default(0),
+    error: text("error"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("apify_social_snapshots_user_hash_idx").on(
+      table.userId,
+      table.platform,
+      table.queryHash
+    ),
+    index("apify_social_snapshots_status_updated_at_idx").on(
+      table.status,
+      table.updatedAt
+    ),
+    index("apify_social_snapshots_user_status_idx").on(
+      table.userId,
+      table.status
+    ),
+  ]
+);
+
 export const apiKeys = pgTable(
   "api_keys",
   {
@@ -299,3 +360,4 @@ export type WhatsAppChannelConfig = typeof whatsappChannelConfig.$inferSelect;
 export type Todo = typeof todos.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type UserMemory = typeof userMemories.$inferSelect;
+export type ApifySocialSnapshot = typeof apifySocialSnapshots.$inferSelect;

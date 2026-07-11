@@ -78,6 +78,13 @@
       "when": 1783707148592,
       "tag": "0010_left_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783750000000,
+      "tag": "0011_hard_wasp",
+      "breakpoints": true
     }
   ]
 }

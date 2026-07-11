@@ -27,6 +27,7 @@ Native tools return `ToolResult` (`success`, optional `message`). Soft failures 
 |------|------|
 | System prompt | `lib/ai/chat-config.ts` — `PROMPT_INTRO` failure rule |
 | Generic tool chip | `components/chat/message-row.tsx` — `ToolChip` |
+| Social media chip | `components/chat/message-row.tsx` — `SocialMediaToolChip` (`fetch_*_data`) |
 | Exa tool chip | `components/chat/exa-tool-chip.tsx` |
 | Result contract | `lib/ai/tools/ai-tools.types.ts` — `ToolResult` |
 | WA progress labels | `lib/ai/tools/tool-progress-labels.ts` |
@@ -41,7 +42,8 @@ Native tools return `ToolResult` (`success`, optional `message`). Soft failures 
 - Hard fail: `state === "output-error"` → show **Gagal** + fallback “Tool gagal dijalankan.”
 - Prompt requires a non-silent Indonesian reply after any failed tool.
 - Exa chips already handled soft fails; generic `ToolChip` must match that pattern.
-- Chat tool registry is still per-tool conditionals in `message-row.tsx` (no shared registry yet).
+- Chat tool registry is still per-tool conditionals in `message-row.tsx` (no shared registry yet): Exa → `ExaToolChip`, Apify social → `SocialMediaToolChip`, else `ToolChip`.
+- Message source badge: `scheduler` → **Otomatisasi**, `apify` → **Media sosial**, `whatsapp` → **WhatsApp**.
 - WhatsApp tool progress: wire `onToolExecutionStart` on the agent (not only `onStepEnd`). Labels live in `tool-progress-labels.ts`; unknown tools fall back to `Menjalankan {name}…`.
 - WhatsApp tool errors: wire `onToolExecutionEnd` → `notifyWhatsAppToolError`. Soft + hard fails mapped via `toFriendlyToolError` / `formatWhatsAppToolError` (no snake_case tool keys, no API/HTTP jargon). Format: `❌ {friendly Indonesian message}`.
 - Progress/error notifies are for main-channel web mirror and WhatsApp/scheduler channel replies; send failures are swallowed so the agent continues.

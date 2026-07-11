@@ -49,9 +49,10 @@ types.ts    # *ToolResult extends ToolResult
 
 ## Workspace facts
 
-- 22 native tool seragam pakai kontrak 4 file; memory: `remember_memory` / `forget_memory` / `list_memories`
-- Chat UI tool registry belum ada — `message-row.tsx` masih conditional per tool; soft-fail (`success: false`) ditampilkan sebagai **Gagal** + `message` di `ToolChip` / Exa chip
-- System prompt (`chat-config.ts`) mewajibkan balasan Bahasa Indonesia setelah tool gagal — jangan silent turn
+- Native tools (Exa, Google, todos, memory, Apify social, schedules, …) seragam pakai kontrak 4 file; memory: `remember_memory` / `forget_memory` / `list_memories`
+- Apify social: `fetch_tiktok_data` / `fetch_twitter_data` / `fetch_threads_data` — async on cache miss; worker `npm run apify:worker` menulis hasil ke Kanal utama (`source: "apify"`)
+- Chat UI tool registry belum ada — `message-row.tsx` masih conditional per tool (Exa chip, SocialMediaToolChip, generic ToolChip); soft-fail (`success: false`) ditampilkan sebagai **Gagal** + `message` di chips
+- System prompt (`chat-config.ts`) mewajibkan balasan Bahasa Indonesia setelah tool gagal — jangan silent turn; Apify: jangan sebut job/snapshot/actor IDs ke user
 - `summarizedUpToSequence` default `-1`; `0` tanpa summary = belum di-summarize
 - Main channel per user; WhatsApp channel global (admin scan QR, user pair nomor di Settings)
 - Saat tool jalan di path WhatsApp (main-channel mirror / channel reply), kirim status singkat ke WA via `onToolExecutionStart` (`tool-progress-labels.ts`); kirim error tool via `onToolExecutionEnd` (`notifyWhatsAppToolError`)
@@ -59,7 +60,7 @@ types.ts    # *ToolResult extends ToolResult
 
 ## Environment
 
-`.env.example` → `.env.local`. Wajib: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `DATABASE_URL`, `SESSION_SECRET`.
+`.env.example` → `.env.local`. Wajib: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `DATABASE_URL`, `SESSION_SECRET`. Opsional sosial: `APIFY_API_TOKEN`.
 
 ## Prinsip implementasi
 

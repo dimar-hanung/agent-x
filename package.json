@@ -16,6 +16,7 @@
     "db:seed": "tsx --env-file=.env.local lib/db/seed.ts",
     "db:provision": "bash scripts/provision-agentx-db.sh",
     "scheduler:worker": "tsx --env-file=.env lib/scheduler/worker.ts",
+    "apify:worker": "tsx --env-file=.env lib/ai/apify/worker.ts",
     "evolution:up": "bash scripts/setup-evolution.sh",
     "evolution:down": "docker compose -f infra/evolution/docker-compose.yml down",
     "evolution:logs": "docker compose -f infra/evolution/docker-compose.yml logs -f evolution-api"
