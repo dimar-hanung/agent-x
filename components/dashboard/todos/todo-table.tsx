@@ -15,6 +15,7 @@ import {
 import {
   formatTodoDate,
   formatTodoStatus,
+  formatTodoTimeWindow,
   TODO_STATUS_COLORS,
 } from "@/lib/todos/labels";
 import type { TodoListItem } from "@/lib/todos/schemas";
@@ -51,8 +52,8 @@ export function TodoTable({ todos, onOpen, onDelete }: TodoTableProps) {
             <TableHead>Judul</TableHead>
             <TableHead>Project</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Waktu</TableHead>
             <TableHead>Tag</TableHead>
-            <TableHead>Dibuat</TableHead>
             <TableHead className="w-[100px] text-right">Aksi</TableHead>
           </TableRow>
         </TableHeader>
@@ -84,6 +85,11 @@ export function TodoTable({ todos, onOpen, onDelete }: TodoTableProps) {
                   {formatTodoStatus(todo.status)}
                 </Badge>
               </TableCell>
+              <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                {formatTodoTimeWindow(todo.startsAt, todo.endsAt) ?? (
+                  <span className="text-xs">—</span>
+                )}
+              </TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
                   {todo.tags.length === 0 ? (
@@ -96,9 +102,6 @@ export function TodoTable({ todos, onOpen, onDelete }: TodoTableProps) {
                     ))
                   )}
                 </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                {formatTodoDate(todo.createdAt)}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">

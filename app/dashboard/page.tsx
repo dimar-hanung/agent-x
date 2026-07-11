@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Brain, CheckSquare, MessageSquare } from "lucide-react";
+import { Brain, CalendarClock, CheckSquare, MessageSquare } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -25,6 +25,12 @@ const quickLinks = [
     description: "Kelola daftar tugas",
     href: appRoutes.todos,
     icon: CheckSquare,
+  },
+  {
+    title: "Otomatisasi",
+    description: "Kelola otomatisasi berulang",
+    href: appRoutes.schedules,
+    icon: CalendarClock,
   },
   {
     title: "Memory",

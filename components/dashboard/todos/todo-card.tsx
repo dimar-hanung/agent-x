@@ -7,6 +7,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatTodoTimeWindow } from "@/lib/todos/labels";
 import type { TodoListItem } from "@/lib/todos/schemas";
 
 interface TodoCardProps {
@@ -43,6 +44,11 @@ export function TodoCardFace({
           <p className="text-sm font-medium leading-snug">{todo.title}</p>
           {todo.project ? (
             <p className="text-muted-foreground text-[11px]">{todo.project}</p>
+          ) : null}
+          {formatTodoTimeWindow(todo.startsAt, todo.endsAt) ? (
+            <p className="text-muted-foreground text-[11px]">
+              {formatTodoTimeWindow(todo.startsAt, todo.endsAt)}
+            </p>
           ) : null}
         </div>
         {showChevron ? (
@@ -100,8 +106,6 @@ export function TodoCard({ todo, onOpen }: TodoCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      role="button"
-      tabIndex={0}
       aria-label={`Buka detail ${todo.code}`}
       className={cn(
         "group cursor-pointer touch-none rounded-md transition-[box-shadow]",
@@ -110,6 +114,8 @@ export function TodoCard({ todo, onOpen }: TodoCardProps) {
       )}
       {...attributes}
       {...listeners}
+      role="button"
+      tabIndex={0}
       onClick={() => {
         if (suppressClickRef.current) {
           suppressClickRef.current = false;

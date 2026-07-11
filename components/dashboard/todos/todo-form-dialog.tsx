@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 
 import { TodoDescriptionEditor } from "./todo-description-editor";
 import { TodoTagInput } from "./todo-tag-input";
+import {
+  buildTodoTimePayload,
+  EMPTY_TODO_TIME,
+  TodoTimeFields,
+  type TodoTimeFormValues,
+} from "./todo-time-fields";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -42,6 +48,7 @@ interface TodoFormValues {
   project: string;
   status: TodoStatus;
   tags: string[];
+  time: TodoTimeFormValues;
 }
 
 const EMPTY_FORM: TodoFormValues = {
@@ -50,6 +57,7 @@ const EMPTY_FORM: TodoFormValues = {
   project: "",
   status: "todo",
   tags: [],
+  time: EMPTY_TODO_TIME,
 };
 
 export function TodoFormDialog({
@@ -83,12 +91,14 @@ export function TodoFormDialog({
     setError(null);
     setIsSubmitting(true);
 
+    const timePayload = buildTodoTimePayload(values.time);
     const payload = {
       title: values.title,
       description: values.description || null,
       project: values.project || null,
       status: values.status,
       tags: values.tags,
+      ...timePayload,
     };
 
     try {
@@ -119,7 +129,7 @@ export function TodoFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Tambah todo</DialogTitle>
           <DialogDescription>
@@ -192,6 +202,12 @@ export function TodoFormDialog({
                 onChange={(tags) => updateField("tags", tags)}
               />
             </Field>
+
+            <TodoTimeFields
+              values={values.time}
+              disabled={isSubmitting}
+              onChange={(time) => updateField("time", time)}
+            />
 
             <Field>
               <FieldLabel htmlFor="todo-description">Deskripsi</FieldLabel>

@@ -34,11 +34,11 @@ export function showScheduleCompleteNotification({
   }
 
   const body = success
-    ? "Jadwal selesai dijalankan."
-    : "Jadwal gagal dijalankan. Buka chat untuk detail.";
+    ? "Otomatisasi selesai dijalankan."
+    : "Otomatisasi gagal dijalankan. Buka chat untuk detail.";
 
   const notification = new Notification(
-    success ? `Jadwal selesai: ${title}` : `Jadwal gagal: ${title}`,
+    success ? `Otomatisasi selesai: ${title}` : `Otomatisasi gagal: ${title}`,
     {
       body,
       tag: `schedule-${title}`,

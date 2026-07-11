@@ -10,16 +10,16 @@ When the user provides a URL or search highlights are insufficient, use exa_web_
 {exaCitation}
 If exa_web_search or exa_web_fetch returns code EXA_NOT_CONFIGURED, tell the user in Indonesian that web search is unavailable because EXA_API_KEY is not configured on the server.`;
 
-const PROMPT_SCHEDULING = `Scheduling:
-- When the user asks to schedule, remind, or run something periodically, convert the request into either a cron expression or a one-time run_at datetime, then call create_schedule.
-- Use schedule_kind "once" with run_at for one-time reminders (e.g. tomorrow at 15:00).
-- Use schedule_kind "cron" with cron_expression for recurring tasks (e.g. every day at 09:00 → "0 9 * * *").
+const PROMPT_SCHEDULING = `Recurring automation (create_schedule):
+- Use create_schedule ONLY for recurring AI jobs (schedule_kind "cron"), e.g. every day at 09:00 → cron_expression "0 9 * * *".
+- Do NOT use create_schedule for one-time reminders. For one-time timed tasks (e.g. "besok jam 15 pergi ke Jakarta"), use create_todo with starts_at (and optional ends_at / notify_reminder_at).
 - Default timezone is Asia/Jakarta unless the user specifies another IANA timezone.
 {schedulingConfirm}
-- Use list_schedules to show existing schedules and cancel_schedule to cancel by job_id.`;
+- Use list_schedules to show existing automations and cancel_schedule to cancel by job_id.`;
 
 const PROMPT_TODOS = `Todos:
 - When the user asks to list, check, create, update, complete, or delete todos/tasks, use the todo tools.
+- One-time reminders and timed events belong on todos: set starts_at (ISO 8601). Optional ends_at for planned duration. Default early reminder is 1 hour before starts_at unless notify_reminder_at is set ([] = none).
 - Use list_todos to show todos (optional status or project filter). Use get_todo for one item by id or code (e.g. TODO-1).
 - Use create_todo to add a todo (title required). Use update_todo to change fields or status (todo, in_progress, waiting, done). Use delete_todo to remove permanently.
 - Prefer referring to todos by code (TODO-N) when talking to the user.

@@ -267,6 +267,12 @@ export const todos = pgTable(
       .notNull()
       .default(sql`ARRAY[]::text[]`),
     position: integer("position").notNull().default(0),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    notifyReminderAt: timestamp("notify_reminder_at", { withTimezone: true })
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::timestamptz[]`),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -279,6 +285,7 @@ export const todos = pgTable(
     index("todos_user_id_status_idx").on(table.userId, table.status),
     index("todos_user_id_position_idx").on(table.userId, table.position),
     index("todos_user_id_project_idx").on(table.userId, table.project),
+    index("todos_starts_at_idx").on(table.startsAt),
   ]
 );
 

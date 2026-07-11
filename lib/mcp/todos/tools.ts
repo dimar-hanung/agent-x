@@ -141,6 +141,25 @@ export function registerTodoMcpTools(server: McpServer): void {
           .max(20)
           .optional()
           .describe("Optional tags (max 20)."),
+        starts_at: z
+          .string()
+          .optional()
+          .nullable()
+          .describe(
+            "ISO 8601 start time. Default early reminder is 1 hour before."
+          ),
+        ends_at: z
+          .string()
+          .optional()
+          .nullable()
+          .describe("Optional ISO 8601 planned end."),
+        notify_reminder_at: z
+          .array(z.string())
+          .max(5)
+          .optional()
+          .describe(
+            "ISO 8601 early reminders. Omit for default 1h before; [] for none."
+          ),
       },
     },
     async (args, extra) => {
@@ -178,6 +197,9 @@ export function registerTodoMcpTools(server: McpServer): void {
         status: z.enum(TODO_STATUSES).optional(),
         tags: z.array(z.string().trim().min(1).max(64)).max(20).optional(),
         position: z.number().int().min(0).optional(),
+        starts_at: z.string().optional().nullable(),
+        ends_at: z.string().optional().nullable(),
+        notify_reminder_at: z.array(z.string()).max(5).optional().nullable(),
       },
     },
     async (args, extra) => {

@@ -52,3 +52,53 @@ export function formatTodoDate(iso: string): string {
     timeZone: "Asia/Jakarta",
   }).format(new Date(iso));
 }
+
+export function formatTodoTimeWindow(
+  startsAt: string | null,
+  endsAt: string | null
+): string | null {
+  if (!startsAt) {
+    return null;
+  }
+  if (endsAt) {
+    return `${formatTodoDate(startsAt)} – ${formatTodoDate(endsAt)}`;
+  }
+  return `Mulai ${formatTodoDate(startsAt)}`;
+}
+
+/** Convert ISO to value for datetime-local input (Asia/Jakarta wall clock). */
+export function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) {
+    return "";
+  }
+  const date = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const get = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "00";
+
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+/** Parse datetime-local value as Asia/Jakarta wall time → ISO UTC. */
+export function fromDatetimeLocalValue(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  // Treat as Asia/Jakarta offset (+07:00)
+  const withOffset = `${trimmed}:00+07:00`;
+  const date = new Date(withOffset);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toISOString();
+}

@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import {
   Brain,
+  CalendarClock,
   CheckSquare,
   MessageSquare,
   Radio,
@@ -78,6 +79,11 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         title: "Todo",
         url: appRoutes.todos,
         icon: CheckSquare,
+      },
+      {
+        title: "Otomatisasi",
+        url: appRoutes.schedules,
+        icon: CalendarClock,
       },
       {
         title: "Memory",

@@ -7,7 +7,7 @@ import { listSchedulesInputSchema } from "./schema";
 
 export function createListSchedulesTool(user: UserContext) {
   return tool({
-    description: "List scheduled jobs for the current user.",
+    description: "List recurring automations for the current user.",
     inputSchema: listSchedulesInputSchema,
     execute: (input) => executeListSchedules(input, { user }),
   });

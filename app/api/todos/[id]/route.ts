@@ -45,6 +45,14 @@ export async function PATCH(req: Request, context: RouteContext) {
         return NextResponse.json({ message }, { status: 404 });
       }
 
+      if (
+        message.includes("Waktu") ||
+        message.includes("Pengingat") ||
+        message.includes("harus")
+      ) {
+        return NextResponse.json({ message }, { status: 400 });
+      }
+
       return NextResponse.json({ message }, { status: 500 });
     }
   } catch (error) {

@@ -5,6 +5,7 @@ import { cancelJob, gracefulShutdown, scheduleJob, type Job } from "node-schedul
 import { listActiveJobsForWorker } from "@/lib/db/repositories/schedule-repository";
 import type { ScheduledJob } from "@/lib/db/schema";
 import { buildNodeScheduleSpec } from "@/lib/scheduler/parse-schedule";
+import { processDueTodoNotifications } from "@/lib/scheduler/process-todo-notifications";
 import { runScheduledPrompt } from "@/lib/scheduler/run-scheduled-prompt";
 
 const POLL_INTERVAL_MS = Number(process.env.SCHEDULER_POLL_INTERVAL_MS ?? 15_000);
@@ -95,6 +96,8 @@ async function syncSchedules(): Promise<void> {
   for (const job of activeJobs) {
     registerJob(job);
   }
+
+  await processDueTodoNotifications();
 }
 
 async function main(): Promise<void> {

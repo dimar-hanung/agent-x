@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, max, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { TODO_CODE_PREFIX, todos, type TodoStatus } from "@/lib/db/schema";
@@ -8,6 +8,10 @@ import type {
   TodoListItem,
   UpdateTodoInput,
 } from "./schemas";
+import {
+  resolveCreateTimeFields,
+  resolveUpdateTimeFields,
+} from "./time-fields";
 
 function toListItem(row: {
   id: string;
@@ -18,6 +22,9 @@ function toListItem(row: {
   status: string;
   tags: string[] | null;
   position: number;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  notifyReminderAt: Date[] | null;
   createdAt: Date;
   updatedAt: Date;
 }): TodoListItem {
@@ -30,6 +37,9 @@ function toListItem(row: {
     status: row.status as TodoStatus,
     tags: row.tags ?? [],
     position: row.position,
+    startsAt: row.startsAt?.toISOString() ?? null,
+    endsAt: row.endsAt?.toISOString() ?? null,
+    notifyReminderAt: (row.notifyReminderAt ?? []).map((d) => d.toISOString()),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -44,6 +54,9 @@ const todoSelect = {
   status: todos.status,
   tags: todos.tags,
   position: todos.position,
+  startsAt: todos.startsAt,
+  endsAt: todos.endsAt,
+  notifyReminderAt: todos.notifyReminderAt,
   createdAt: todos.createdAt,
   updatedAt: todos.updatedAt,
 } as const;
@@ -143,6 +156,12 @@ export async function createTodo(
       : input.description;
   const project = input.project ?? null;
 
+  const timeFields = resolveCreateTimeFields({
+    startsAt: input.starts_at,
+    endsAt: input.ends_at,
+    notifyReminderAt: input.notify_reminder_at,
+  });
+
   const maxAttempts = 3;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -160,6 +179,9 @@ export async function createTodo(
           status,
           tags: input.tags ?? [],
           position,
+          startsAt: timeFields.startsAt,
+          endsAt: timeFields.endsAt,
+          notifyReminderAt: timeFields.notifyReminderAt,
           updatedAt: new Date(),
         })
         .returning(todoSelect);
@@ -191,6 +213,9 @@ export async function updateTodo(
       id: todos.id,
       status: todos.status,
       position: todos.position,
+      startsAt: todos.startsAt,
+      endsAt: todos.endsAt,
+      notifyReminderAt: todos.notifyReminderAt,
     })
     .from(todos)
     .where(and(eq(todos.id, todoId), eq(todos.userId, userId)))
@@ -210,6 +235,15 @@ export async function updateTodo(
     nextPosition = await nextPositionForStatus(userId, nextStatus);
   }
 
+  const timeFields = resolveUpdateTimeFields({
+    existingStartsAt: existing.startsAt,
+    existingEndsAt: existing.endsAt,
+    existingReminders: existing.notifyReminderAt ?? [],
+    startsAt: input.starts_at,
+    endsAt: input.ends_at,
+    notifyReminderAt: input.notify_reminder_at,
+  });
+
   const patch: {
     title?: string;
     description?: string | null;
@@ -217,6 +251,9 @@ export async function updateTodo(
     status?: string;
     tags?: string[];
     position?: number;
+    startsAt?: Date | null;
+    endsAt?: Date | null;
+    notifyReminderAt?: Date[];
     updatedAt: Date;
   } = {
     updatedAt: new Date(),
@@ -245,6 +282,12 @@ export async function updateTodo(
 
   if (statusChanged || input.position !== undefined) {
     patch.position = nextPosition;
+  }
+
+  if (timeFields) {
+    patch.startsAt = timeFields.startsAt;
+    patch.endsAt = timeFields.endsAt;
+    patch.notifyReminderAt = timeFields.notifyReminderAt;
   }
 
   const [row] = await db
@@ -301,4 +344,149 @@ export async function reorderTodosInStatus(
   });
 
   return listTodosByUserId(userId);
+}
+
+/** Todos with a due early reminder (any notify_reminder_at <= now). */
+export async function listTodosWithDueReminders(
+  now: Date = new Date()
+): Promise<
+  Array<{
+    id: string;
+    userId: string;
+    code: string;
+    title: string;
+    startsAt: Date | null;
+    notifyReminderAt: Date[];
+  }>
+> {
+  const rows = await db
+    .select({
+      id: todos.id,
+      userId: todos.userId,
+      code: todos.code,
+      title: todos.title,
+      startsAt: todos.startsAt,
+      notifyReminderAt: todos.notifyReminderAt,
+    })
+    .from(todos)
+    .where(
+      and(
+        ne(todos.status, "done"),
+        sql`cardinality(${todos.notifyReminderAt}) > 0`
+      )
+    );
+
+  return rows
+    .map((row) => ({
+      ...row,
+      notifyReminderAt: row.notifyReminderAt ?? [],
+    }))
+    .filter((row) =>
+      row.notifyReminderAt.some((d) => d.getTime() <= now.getTime())
+    );
+}
+
+/** Claim due reminder timestamps: remove those <= now, return removed. */
+export async function claimDueReminders(
+  todoId: string,
+  now: Date = new Date()
+): Promise<{
+  userId: string;
+  code: string;
+  title: string;
+  startsAt: Date | null;
+  claimed: Date[];
+} | null> {
+  const [row] = await db
+    .select({
+      id: todos.id,
+      userId: todos.userId,
+      code: todos.code,
+      title: todos.title,
+      startsAt: todos.startsAt,
+      notifyReminderAt: todos.notifyReminderAt,
+      status: todos.status,
+    })
+    .from(todos)
+    .where(and(eq(todos.id, todoId), ne(todos.status, "done")))
+    .limit(1);
+
+  if (!row) {
+    return null;
+  }
+
+  const reminders = row.notifyReminderAt ?? [];
+  const claimed = reminders.filter((d) => d.getTime() <= now.getTime());
+  if (claimed.length === 0) {
+    return null;
+  }
+
+  const remaining = reminders.filter((d) => d.getTime() > now.getTime());
+
+  const [updated] = await db
+    .update(todos)
+    .set({
+      notifyReminderAt: remaining,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(todos.id, todoId), ne(todos.status, "done")))
+    .returning({ id: todos.id });
+
+  if (!updated) {
+    return null;
+  }
+
+  return {
+    userId: row.userId,
+    code: row.code,
+    title: row.title,
+    startsAt: row.startsAt,
+    claimed,
+  };
+}
+
+export async function listTodosDueToStart(
+  now: Date = new Date()
+): Promise<
+  Array<{
+    id: string;
+    userId: string;
+    code: string;
+    title: string;
+  }>
+> {
+  return db
+    .select({
+      id: todos.id,
+      userId: todos.userId,
+      code: todos.code,
+      title: todos.title,
+    })
+    .from(todos)
+    .where(
+      and(
+        ne(todos.status, "done"),
+        sql`${todos.startsAt} IS NOT NULL`,
+        sql`${todos.startsAt} <= ${now}`
+      )
+    );
+}
+
+/** Mark todo done after successful starts_at notify; clears time fields. */
+export async function completeTodoAfterStartNotify(
+  todoId: string
+): Promise<boolean> {
+  const [row] = await db
+    .update(todos)
+    .set({
+      status: "done",
+      startsAt: null,
+      endsAt: null,
+      notifyReminderAt: [],
+      updatedAt: new Date(),
+    })
+    .where(and(eq(todos.id, todoId), ne(todos.status, "done")))
+    .returning({ id: todos.id });
+
+  return Boolean(row);
 }

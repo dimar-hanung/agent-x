@@ -38,6 +38,27 @@ export const createTodoInputSchema = z.object({
     .describe(
       "Optional short lowercase tags (max 20), e.g. bug, docs, mcp, auth, ui."
     ),
+  starts_at: z
+    .string()
+    .optional()
+    .nullable()
+    .describe(
+      "ISO 8601 start time for timed todos (e.g. pergi jam 9). When set, a WhatsApp notify fires at this time and the todo is marked done. Default early reminder is 1 hour before unless notify_reminder_at is set."
+    ),
+  ends_at: z
+    .string()
+    .optional()
+    .nullable()
+    .describe(
+      "Optional ISO 8601 planned end (e.g. start + 2 hours for a meeting). Display only; no auto action."
+    ),
+  notify_reminder_at: z
+    .array(z.string())
+    .max(5)
+    .optional()
+    .describe(
+      "ISO 8601 early reminder times before starts_at. Omit to use default (1 hour before). Pass [] for no early reminders."
+    ),
 });
 
 export type CreateTodoToolInput = z.infer<typeof createTodoInputSchema>;

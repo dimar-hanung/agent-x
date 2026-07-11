@@ -41,6 +41,20 @@ function formatTodoBlock(todo: TodoListItem): string {
     `🕒 Dibuat: ${formatTodoDate(todo.createdAt)} · Diubah: ${formatTodoDate(todo.updatedAt)}`
   );
 
+  if (todo.startsAt) {
+    const window =
+      todo.endsAt
+        ? `${formatTodoDate(todo.startsAt)} – ${formatTodoDate(todo.endsAt)}`
+        : formatTodoDate(todo.startsAt);
+    lines.push(`⏰ Mulai: ${window}`);
+  }
+
+  if (todo.notifyReminderAt.length > 0) {
+    lines.push(
+      `🔔 Pengingat: ${todo.notifyReminderAt.map((iso) => formatTodoDate(iso)).join(", ")}`
+    );
+  }
+
   return lines.join("\n");
 }
 

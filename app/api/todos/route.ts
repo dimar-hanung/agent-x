@@ -54,6 +54,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
     }
 
+    const message =
+      error instanceof Error ? error.message : "Gagal membuat todo.";
+
+    if (
+      message.includes("Waktu") ||
+      message.includes("Pengingat") ||
+      message.includes("harus")
+    ) {
+      return NextResponse.json({ message }, { status: 400 });
+    }
+
     console.error("POST /api/todos error:", error);
     return NextResponse.json(
       { message: "Gagal membuat todo." },

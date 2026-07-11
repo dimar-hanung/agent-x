@@ -7,6 +7,12 @@ import { ArrowLeftIcon, Trash2Icon } from "lucide-react";
 import { TodoDescriptionEditor } from "./todo-description-editor";
 import { TodoTagInput } from "./todo-tag-input";
 import {
+  buildTodoTimePayload,
+  TodoTimeFields,
+  todoTimeFromItem,
+  type TodoTimeFormValues,
+} from "./todo-time-fields";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -36,6 +42,7 @@ import {
   TODO_STATUS_LABELS,
   TODO_STATUS_ORDER,
   formatTodoDate,
+  formatTodoTimeWindow,
 } from "@/lib/todos/labels";
 import type { TodoListItem } from "@/lib/todos/schemas";
 import type { TodoStatus } from "@/lib/db/schema";
@@ -52,6 +59,7 @@ interface TodoFormValues {
   project: string;
   status: TodoStatus;
   tags: string[];
+  time: TodoTimeFormValues;
 }
 
 function toFormValues(todo: TodoListItem): TodoFormValues {
@@ -61,6 +69,7 @@ function toFormValues(todo: TodoListItem): TodoFormValues {
     project: todo.project ?? "",
     status: todo.status,
     tags: [...todo.tags],
+    time: todoTimeFromItem(todo),
   };
 }
 
@@ -91,12 +100,14 @@ export function TodoDetail({
     setError(null);
     setIsSubmitting(true);
 
+    const timePayload = buildTodoTimePayload(values.time, "update");
     const payload = {
       title: values.title,
       description: values.description || null,
       project: values.project || null,
       status: values.status,
       tags: values.tags,
+      ...timePayload,
     };
 
     try {
@@ -295,6 +306,25 @@ export function TodoDetail({
               />
             </div>
           </Field>
+
+          <FieldSeparator />
+
+          <div className="py-2.5">
+            {formatTodoTimeWindow(todo.startsAt, todo.endsAt) ? (
+              <p className="text-muted-foreground mb-2 text-xs">
+                Saat ini: {formatTodoTimeWindow(todo.startsAt, todo.endsAt)}
+                {todo.notifyReminderAt.length > 0
+                  ? ` · Pengingat ${todo.notifyReminderAt.map((iso) => formatTodoDate(iso)).join(", ")}`
+                  : null}
+              </p>
+            ) : null}
+            <TodoTimeFields
+              idPrefix="todo-detail-time"
+              values={values.time}
+              disabled={isSubmitting}
+              onChange={(time) => updateField("time", time)}
+            />
+          </div>
 
           <FieldSeparator />
 

@@ -13,7 +13,7 @@ export async function executeCancelSchedule(
   if (!cancelled) {
     return {
       success: false,
-      message: "Jadwal tidak ditemukan atau sudah tidak aktif.",
+      message: "Otomatisasi tidak ditemukan atau sudah tidak aktif.",
     };
   }
 

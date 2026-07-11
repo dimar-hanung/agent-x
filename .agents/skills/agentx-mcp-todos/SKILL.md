@@ -62,6 +62,8 @@ Filter daftar: `list_todos` dengan `project: "agent-x"`.
 - `description`: max 5000 (markdown)
 - `project`: max 128
 - `tags`: max 20 item, tiap tag max 64
+- `starts_at` / `ends_at`: ISO 8601 opsional (`ends_at` butuh `starts_at`)
+- `notify_reminder_at`: array ISO sebelum `starts_at`; omit = default 1 jam sebelum; `[]` = tanpa pengingat
 - `update_todo` butuh UUID `id` (bukan code) — resolve dulu via `get_todo` / `list_todos` jika user kasih `TODO-N`
 
 ---

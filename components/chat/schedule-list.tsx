@@ -42,7 +42,7 @@ export function ScheduleList({ schedules }: ScheduleListProps) {
         const body = (await response.json().catch(() => null)) as {
           message?: string;
         } | null;
-        throw new Error(body?.message ?? "Gagal membatalkan jadwal.");
+        throw new Error(body?.message ?? "Gagal membatalkan otomatisasi.");
       }
 
       router.refresh();
@@ -50,7 +50,7 @@ export function ScheduleList({ schedules }: ScheduleListProps) {
       setError(
         cancelError instanceof Error
           ? cancelError.message
-          : "Gagal membatalkan jadwal."
+          : "Gagal membatalkan otomatisasi."
       );
     } finally {
       setCancellingId(null);
@@ -60,7 +60,7 @@ export function ScheduleList({ schedules }: ScheduleListProps) {
   return (
     <div className="flex min-h-0 flex-col border-t px-2 pt-2">
       <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wider uppercase">
-        Jadwal aktif
+        Otomatisasi aktif
       </p>
 
       {error ? (
@@ -69,7 +69,7 @@ export function ScheduleList({ schedules }: ScheduleListProps) {
 
       {schedules.length === 0 ? (
         <p className="text-muted-foreground px-2 py-2 text-sm">
-          Belum ada jadwal aktif
+          Belum ada otomatisasi aktif
         </p>
       ) : (
         <div className="flex max-h-48 flex-col gap-1 overflow-y-auto pb-2">

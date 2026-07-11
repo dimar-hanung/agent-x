@@ -87,7 +87,7 @@ function MessageSourceBadge({ message }: { message: UIMessage }) {
     source === "whatsapp"
       ? "WhatsApp"
       : source === "scheduler"
-        ? "Terjadwal"
+        ? "Otomatisasi"
         : source;
 
   return (
