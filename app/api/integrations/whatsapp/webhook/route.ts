@@ -6,10 +6,47 @@ import {
   resolveUserIdByPhone,
 } from "@/lib/integrations/whatsapp-channel-repository";
 import { getWhatsAppProvider } from "@/lib/integrations/whatsapp/factory";
-import type { WhatsAppWebhookPayload } from "@/lib/integrations/whatsapp/types";
+import type { WhatsAppProvider } from "@/lib/integrations/whatsapp/provider";
+import type {
+  WhatsAppInboundMessage,
+  WhatsAppWebhookPayload,
+} from "@/lib/integrations/whatsapp/types";
 
 const UNREGISTERED_REPLY =
   "Nomor belum terdaftar. Daftarkan nomor HP kamu di AgentX → Settings → Integrations.";
+
+/** Best-effort read receipt + typing while the AI processes the inbound message. */
+async function signalProcessingState(
+  provider: WhatsAppProvider,
+  instanceName: string,
+  inbound: WhatsAppInboundMessage
+): Promise<void> {
+  const tasks: Promise<void>[] = [
+    provider
+      .sendPresence(instanceName, inbound.senderPhoneE164, "composing")
+      .catch((error) => {
+        console.error("WhatsApp typing signal gagal:", error);
+      }),
+  ];
+
+  if (inbound.messageId && inbound.remoteJid) {
+    tasks.push(
+      provider
+        .markAsRead(instanceName, [
+          {
+            remoteJid: inbound.remoteJid,
+            fromMe: false,
+            id: inbound.messageId,
+          },
+        ])
+        .catch((error) => {
+          console.error("WhatsApp read signal gagal:", error);
+        })
+    );
+  }
+
+  await Promise.all(tasks);
+}
 
 export async function POST(req: Request) {
   const provider = getWhatsAppProvider();
@@ -51,6 +88,14 @@ export async function POST(req: Request) {
   }
 
   try {
+    void signalProcessingState(
+      provider,
+      config.instanceName,
+      inbound
+    ).catch((error) => {
+      console.error("WhatsApp read/typing signal gagal:", error);
+    });
+
     await processChannelMessage({
       userId,
       text: inbound.text,

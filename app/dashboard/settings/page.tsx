@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,10 +10,12 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { GmailIntegrationCard } from "@/components/settings/gmail-integration-card";
+import { ApiKeyIntegrationCard } from "@/components/settings/api-key-integration-card";
+import { GoogleIntegrationCard } from "@/components/settings/google-integration-card";
 import { WhatsAppPairingCard } from "@/components/settings/whatsapp-pairing-card";
+import { listApiKeys } from "@/lib/api-keys/repository";
 import { getSessionUser } from "@/lib/auth/get-session-user";
-import { getGmailIntegrationStatus } from "@/lib/integrations/gmail-repository";
+import { getGoogleIntegrationStatus } from "@/lib/integrations/google-repository";
 import { getUserPairingStatus } from "@/lib/integrations/whatsapp-channel-repository";
 
 export default async function SettingsPage() {
@@ -21,9 +25,10 @@ export default async function SettingsPage() {
     return null;
   }
 
-  const [gmailStatus, whatsappStatus] = await Promise.all([
-    getGmailIntegrationStatus(user.userId),
+  const [googleStatus, whatsappStatus, apiKeys] = await Promise.all([
+    getGoogleIntegrationStatus(user.userId),
     getUserPairingStatus(user.userId),
+    listApiKeys(user.userId),
   ]);
 
   return (
@@ -52,12 +57,15 @@ export default async function SettingsPage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Integrations</h1>
           <p className="text-muted-foreground text-sm">
-            Hubungkan layanan eksternal untuk dipakai di tool chat.
+            Hubungkan layanan eksternal untuk dipakai di tool chat dan MCP.
           </p>
         </div>
         <div className="grid max-w-3xl gap-4 md:grid-cols-2">
-          <GmailIntegrationCard initialStatus={gmailStatus} />
+          <Suspense fallback={null}>
+            <GoogleIntegrationCard initialStatus={googleStatus} />
+          </Suspense>
           <WhatsAppPairingCard initialStatus={whatsappStatus} />
+          <ApiKeyIntegrationCard initialKeys={apiKeys} />
         </div>
       </div>
     </>

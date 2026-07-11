@@ -10,13 +10,11 @@ export const createAdminUserSchema = z.object({
   displayName: z.string().trim().min(1, "Nama wajib diisi.").max(255),
   email: z.string().trim().email("Format email tidak valid."),
   role: z.enum(adminUserRoles, {
-    invalid_type_error: "Role tidak valid.",
-    required_error: "Role wajib diisi.",
+    error: "Role tidak valid.",
   }),
   phone: z.string().trim().min(8, "Nomor WhatsApp wajib diisi."),
   gender: z.enum(adminUserGenders, {
-    invalid_type_error: "Jenis kelamin tidak valid.",
-    required_error: "Jenis kelamin wajib diisi.",
+    error: "Jenis kelamin tidak valid.",
   }),
 });
 
@@ -26,13 +24,13 @@ export const updateAdminUserSchema = z
     email: z.string().trim().email("Format email tidak valid.").optional(),
     role: z
       .enum(adminUserRoles, {
-        invalid_type_error: "Role tidak valid.",
+        error: "Role tidak valid.",
       })
       .optional(),
     phone: z.string().trim().min(8, "Nomor WhatsApp wajib diisi.").optional(),
     gender: z
       .enum(adminUserGenders, {
-        invalid_type_error: "Jenis kelamin tidak valid.",
+        error: "Jenis kelamin tidak valid.",
       })
       .optional(),
   })

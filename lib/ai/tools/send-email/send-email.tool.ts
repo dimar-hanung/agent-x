@@ -8,7 +8,7 @@ import { sendEmailInputSchema } from "./schema";
 export function createSendEmailTool(user: UserContext) {
   return tool({
     description:
-      "Send an email from the user's connected Gmail account. Confirm recipient and subject when the request is ambiguous.",
+      "Send an email from the user's connected Google account (Gmail). Confirm recipient and subject when the request is ambiguous.",
     inputSchema: sendEmailInputSchema,
     execute: (input) => executeSendEmail(input, { user }),
   });

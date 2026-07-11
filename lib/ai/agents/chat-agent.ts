@@ -1,6 +1,8 @@
 import {
   ToolLoopAgent,
   isStepCount,
+  type OnToolExecutionEndCallback,
+  type OnToolExecutionStartCallback,
   type Tool,
   type ToolSet,
   type UIMessage,
@@ -17,11 +19,17 @@ export interface ChatAgentRuntimeContext {
   chatId: string;
 }
 
+export interface CreateChatAgentOptions {
+  instructions?: string;
+  onToolExecutionStart?: OnToolExecutionStartCallback;
+  onToolExecutionEnd?: OnToolExecutionEndCallback;
+}
+
 export async function createChatAgent(
   user: UserContext,
   runtimeContext?: ChatAgentRuntimeContext,
   toolsOverride?: Partial<Record<ToolKey, Tool>>,
-  options?: { instructions?: string }
+  options?: CreateChatAgentOptions
 ) {
   const tools = (toolsOverride ??
     (await createAllToolsForUser(user, { runtimeContext }))) as ToolSet;
@@ -31,6 +39,8 @@ export async function createChatAgent(
     instructions: options?.instructions ?? buildSystemPrompt(user),
     tools,
     stopWhen: isStepCount(MAX_AGENT_STEPS),
+    onToolExecutionStart: options?.onToolExecutionStart,
+    onToolExecutionEnd: options?.onToolExecutionEnd,
   });
 }
 
@@ -46,10 +56,14 @@ export async function createChatAgentForRun({
   user,
   chatId,
   instructions,
+  onToolExecutionStart,
+  onToolExecutionEnd,
 }: {
   user: UserContext;
   chatId: string;
   instructions?: string;
+  onToolExecutionStart?: OnToolExecutionStartCallback;
+  onToolExecutionEnd?: OnToolExecutionEndCallback;
 }) {
   const runtimeContext = {
     userId: user.userId,
@@ -58,6 +72,8 @@ export async function createChatAgentForRun({
 
   const agent = await createChatAgent(user, runtimeContext, undefined, {
     instructions,
+    onToolExecutionStart,
+    onToolExecutionEnd,
   });
 
   return {

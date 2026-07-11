@@ -39,6 +39,7 @@ function buildSummarizePrompt(
 Keep the summary under ${maxTokens} tokens.
 Use these sections: ${sections}.
 Preserve entities, names, dates, and decisions. Overwrite superseded information.
+In user_preferences, keep durable preferences that matter for this chat; a separate system also extracts them into long-term user memory.
 
 EXISTING SUMMARY:
 ${existingSummary}
@@ -54,6 +55,7 @@ Return only the updated summary in the same structured format.`;
 Keep the summary under ${maxTokens} tokens.
 Use these sections: ${sections}.
 Preserve entities, names, dates, and decisions.
+In user_preferences, keep durable preferences that matter for this chat; a separate system also extracts them into long-term user memory.
 
 MESSAGES:
 ${transcript}

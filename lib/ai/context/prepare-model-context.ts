@@ -6,15 +6,21 @@ import {
 } from "@/lib/ai/context/context-config";
 import { estimateMessagesTokens } from "@/lib/ai/context/estimate-tokens";
 import { effectiveSummarizedUpToSequence } from "@/lib/ai/context/effective-summarized-sequence";
+import { extractAndPersistUserMemories } from "@/lib/ai/context/extract-user-memories";
 import { fitContextToBudget } from "@/lib/ai/context/fit-context-to-budget";
 import { summarizeMessages } from "@/lib/ai/context/summarize-messages";
 import type { StoredChatMessage } from "@/lib/ai/context/types";
-import { buildSystemPrompt } from "@/lib/ai/chat-config";
+import {
+  buildSystemPrompt,
+  formatUserMemoryBlock,
+} from "@/lib/ai/chat-config";
 import type { UserContext } from "@/lib/ai/roles/types";
 import {
   getChatContextMeta,
   updateChatContextSummary,
 } from "@/lib/db/repositories/chat-repository";
+import { MEMORY_PROMPT_LIMIT } from "@/lib/db/schema";
+import { listMemoriesForPrompt } from "@/lib/memory/repository";
 import type { UIMessage } from "ai";
 
 export interface PrepareModelContextInput {
@@ -31,7 +37,6 @@ export interface PrepareModelContextResult {
 }
 
 function shouldSummarize(unsummarized: StoredChatMessage[]): boolean {
-  const protectedTail = unsummarized.slice(-MIN_RECENT_PAIRS);
   const toMeasure = unsummarized.slice(0, -MIN_RECENT_PAIRS);
 
   if (toMeasure.length === 0) {
@@ -96,10 +101,25 @@ export async function prepareModelContext({
         contextSummary: newSummary,
         summarizedUpToSequence: lastSummarized.sequence,
       };
+
+      try {
+        await extractAndPersistUserMemories(user.userId, newSummary);
+      } catch (error) {
+        console.error(
+          `[memory] Failed to extract memories for user ${user.userId}:`,
+          error
+        );
+      }
     }
   }
 
-  const baseSystemPrompt = buildSystemPrompt(user, { whatsappOutput });
+  const memories = await listMemoriesForPrompt(
+    user.userId,
+    MEMORY_PROMPT_LIMIT
+  );
+  const baseSystemPrompt =
+    buildSystemPrompt(user, { whatsappOutput }) +
+    formatUserMemoryBlock(memories);
 
   return fitContextToBudget({
     systemPrompt: baseSystemPrompt,

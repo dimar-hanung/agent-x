@@ -3,8 +3,9 @@ services:
     container_name: agentx_evolution_api
     image: evoapicloud/evolution-api:v2.3.7
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8080:8080"
+    # Host network so webhooks can reach AgentX on 127.0.0.1:3000.
+    # Bridge → host:3000 times out on this server (Docker hairpin).
+    network_mode: host
     env_file:
       - .env
     volumes:
@@ -14,8 +15,6 @@ services:
         condition: service_healthy
       evolution-redis:
         condition: service_started
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   evolution-postgres:
     container_name: agentx_evolution_postgres
@@ -25,6 +24,8 @@ services:
       POSTGRES_DB: evolution
       POSTGRES_USER: evolution
       POSTGRES_PASSWORD: evolution_local_pass
+    ports:
+      - "127.0.0.1:5433:5432"
     volumes:
       - evolution_postgres:/var/lib/postgresql/data
     healthcheck:
@@ -38,6 +39,8 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
+    ports:
+      - "127.0.0.1:6380:6379"
     volumes:
       - evolution_redis:/data
 

@@ -1,0 +1,11 @@
+# Forwards host LAN/public IP:5432 -> local Postgres (127.0.0.1:5432).
+# Needed because system Postgres listen_addresses=localhost and sudo is required to change it.
+services:
+  postgres-proxy:
+    container_name: agentx_postgres_proxy
+    image: alpine/socat:latest
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - TCP-LISTEN:5432,bind=172.30.17.120,fork,reuseaddr
+      - TCP:127.0.0.1:5432

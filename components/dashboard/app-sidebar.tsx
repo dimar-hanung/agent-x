@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import {
-  LifeBuoy,
+  Brain,
+  CalendarClock,
+  CheckSquare,
   MessageSquare,
   Radio,
-  Send,
   Settings2,
   SquareTerminal,
   Users,
@@ -13,7 +15,6 @@ import {
 
 import { IndonesianFlagIcon } from "@/components/icons/indonesian-flag-icon";
 import { NavMain } from "./nav-main";
-import { NavSecondary } from "./nav-secondary";
 import { NavUser } from "./nav-user";
 import { siteConfig, appRoutes } from "@/lib/site-config";
 import {
@@ -35,7 +36,16 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   };
 }
 
+function isNavActive(pathname: string, url: string) {
+  if (url === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+  return pathname === url || pathname.startsWith(`${url}/`);
+}
+
 export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
+  const pathname = usePathname();
+
   const adminNav =
     role === "admin"
       ? [
@@ -59,12 +69,26 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         title: "Dashboard",
         url: "/dashboard",
         icon: SquareTerminal,
-        isActive: true,
       },
       {
         title: "Chat",
         url: appRoutes.chat,
         icon: MessageSquare,
+      },
+      {
+        title: "Todo",
+        url: appRoutes.todos,
+        icon: CheckSquare,
+      },
+      {
+        title: "Otomatisasi",
+        url: appRoutes.schedules,
+        icon: CalendarClock,
+      },
+      {
+        title: "Memory",
+        url: appRoutes.memories,
+        icon: Brain,
       },
       ...adminNav,
       {
@@ -72,19 +96,10 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         url: appRoutes.settings,
         icon: Settings2,
       },
-    ],
-    navSecondary: [
-      {
-        title: "Support",
-        url: "#",
-        icon: LifeBuoy,
-      },
-      {
-        title: "Feedback",
-        url: "#",
-        icon: Send,
-      },
-    ],
+    ].map((item) => ({
+      ...item,
+      isActive: isNavActive(pathname, item.url),
+    })),
   };
 
   return (
@@ -107,7 +122,6 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

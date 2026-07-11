@@ -15,14 +15,22 @@ const SEED_USERS = [
     role: "admin",
   },
   {
-    email: "student@agentx.local",
-    password: "student12345",
-    displayName: "Student User",
+    email: "client@agentx.local",
+    password: "client12345",
+    displayName: "Client User",
     role: "client",
   },
 ] as const;
 
 async function seed() {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DB_SEED !== "1") {
+    console.error(
+      "Seed blocked in production. Set ALLOW_DB_SEED=1 to override (dev/staging only)."
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   for (const seedUser of SEED_USERS) {
     const [existing] = await db
       .select({ id: users.id })

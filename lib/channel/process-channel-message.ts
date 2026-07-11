@@ -13,6 +13,7 @@ import {
   saveChat,
 } from "@/lib/db/repositories/chat-repository";
 import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
+import { notifyWhatsAppToolError, notifyWhatsAppToolStart } from "@/lib/integrations/whatsapp/notify-tool-progress";
 import { createAllToolsForUser } from "@/lib/ai/tools/resolve-tools";
 import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
 
@@ -75,18 +76,63 @@ export async function processChannelMessage(
     whatsappOutput: true,
   });
 
+  const replyViaWhatsApp =
+    input.source === "whatsapp" && Boolean(input.replyViaWhatsApp);
+  const mirrorViaWhatsApp = input.source !== "whatsapp";
+  const notifyToolProgress = replyViaWhatsApp || mirrorViaWhatsApp;
+
   const agent = await createChatAgent(user, { userId: user.userId, chatId }, tools, {
     instructions: systemPrompt,
+    onToolExecutionStart: notifyToolProgress
+      ? async ({ toolCall }) => {
+          await notifyWhatsAppToolStart(user.userId, toolCall.toolName);
+        }
+      : undefined,
+    onToolExecutionEnd: notifyToolProgress
+      ? async ({ toolCall, toolOutput }) => {
+          await notifyWhatsAppToolError(
+            user.userId,
+            toolCall.toolName,
+            toolOutput
+          );
+        }
+      : undefined,
   });
 
   const result = await agent.generate({
     messages: await convertToModelMessages(modelMessages),
+    onStepEnd: async ({ text }) => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      if (replyViaWhatsApp) {
+        await sendWhatsAppToUser(user.userId, trimmed);
+        return;
+      }
+
+      if (mirrorViaWhatsApp) {
+        try {
+          await sendWhatsAppToUser(user.userId, trimmed);
+        } catch (error) {
+          console.error("Mirror WhatsApp gagal:", error);
+        }
+      }
+    },
   });
+
+  const assistantTextParts = result.steps
+    .map((step) => step.text.trim())
+    .filter((text) => text.length > 0);
 
   const assistantMessage: UIMessage = {
     id: generateId(),
     role: "assistant",
-    parts: [{ type: "text", text: result.text }],
+    parts:
+      assistantTextParts.length > 0
+        ? assistantTextParts.map((text) => ({ type: "text" as const, text }))
+        : [{ type: "text", text: result.text }],
     metadata: {
       source: input.source,
       ...input.metadata,
@@ -104,16 +150,11 @@ export async function processChannelMessage(
     allMessages: [...allInputMessages, assistantMessage],
   });
 
-  if (input.source === "whatsapp" && input.replyViaWhatsApp) {
-    await sendWhatsAppToUser(user.userId, result.text);
-  } else if (input.source !== "whatsapp") {
-    void sendWhatsAppToUser(user.userId, result.text).catch((error) => {
-      console.error("Mirror WhatsApp gagal:", error);
-    });
-  }
-
   return {
-    assistantText: result.text,
+    assistantText:
+      assistantTextParts.length > 0
+        ? assistantTextParts.join("\n\n")
+        : result.text,
     chatId,
   };
 }

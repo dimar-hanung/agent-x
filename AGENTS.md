@@ -49,15 +49,18 @@ types.ts    # *ToolResult extends ToolResult
 
 ## Workspace facts
 
-- 11 native tool seragam pakai kontrak 4 file (termasuk stub)
-- Chat UI tool registry belum ada — `message-row.tsx` masih conditional per tool
+- Native tools (Exa, Google, todos, memory, Apify social, schedules, …) seragam pakai kontrak 4 file; memory: `remember_memory` / `forget_memory` / `list_memories`
+- Apify social: `fetch_tiktok_data` / `fetch_twitter_data` / `fetch_threads_data` — async on cache miss; worker `npm run apify:worker` menulis hasil ke Kanal utama (`source: "apify"`)
+- Chat UI tool registry belum ada — `message-row.tsx` masih conditional per tool (Exa chip, SocialMediaToolChip, generic ToolChip); soft-fail (`success: false`) ditampilkan sebagai **Gagal** + `message` di chips
+- System prompt (`chat-config.ts`) mewajibkan balasan Bahasa Indonesia setelah tool gagal — jangan silent turn; Apify: jangan sebut job/snapshot/actor IDs ke user
 - `summarizedUpToSequence` default `-1`; `0` tanpa summary = belum di-summarize
 - Main channel per user; WhatsApp channel global (admin scan QR, user pair nomor di Settings)
+- Saat tool jalan di path WhatsApp (main-channel mirror / channel reply), kirim status singkat ke WA via `onToolExecutionStart` (`tool-progress-labels.ts`); kirim error tool via `onToolExecutionEnd` (`notifyWhatsAppToolError`)
 - Konteks chat di-ringkas ~5k token; riwayat lama via infinite scroll
 
 ## Environment
 
-`.env.example` → `.env.local`. Wajib: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `DATABASE_URL`, `SESSION_SECRET`.
+`.env.example` → `.env.local`. Wajib: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `DATABASE_URL`, `SESSION_SECRET`. Opsional sosial: `APIFY_API_TOKEN`.
 
 ## Prinsip implementasi
 
@@ -65,3 +68,37 @@ types.ts    # *ToolResult extends ToolResult
 - Jangan over-engineer
 - Jangan edit file plan terlampir saat implementasi
 - Jangan commit kecuali diminta user
+
+## Skills (`.agents/skills`)
+
+Every conversation or development cycle must create or update skills inside `.agents/skills`.
+
+Format:
+
+```
+.agents/skills/develop-feature-[module-name]/SKILL.md
+.agents/skills/develop-module-[feature-name]/SKILL.md
+```
+
+Scope: only major features or modules.
+
+Guidelines:
+
+- Create skills at a higher level — focus on relevant file locations, not specific code implementations
+- Add anything useful the agent should know
+- Goal: prevent the agent from needing to gather or explore too much context at the start
+- Use English language
+
+Required structure:
+
+```
+## When to Use
+
+## Overview
+
+## Key locations
+
+## Behavior agents must know
+```
+
+You can add another section if needed and important.

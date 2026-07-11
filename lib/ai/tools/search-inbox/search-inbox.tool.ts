@@ -8,7 +8,7 @@ import { searchInboxInputSchema } from "./schema";
 export function createSearchInboxTool(user: UserContext) {
   return tool({
     description:
-      "Search the user's Gmail inbox. Returns message summaries with UIDs for use with read_email.",
+      "Search the user's connected Google Gmail inbox. Returns message summaries with ids for use with read_email.",
     inputSchema: searchInboxInputSchema,
     execute: (input) => executeSearchInbox(input, { user }),
   });

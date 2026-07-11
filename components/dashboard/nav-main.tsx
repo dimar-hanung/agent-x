@@ -31,7 +31,7 @@ export function NavMain({
               size="lg"
               tooltip={item.title}
               isActive={item.isActive}
-              className="[&>svg]:size-5"
+              className="relative [&>svg]:size-5 before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-r-full before:bg-primary before:opacity-0 before:transition-opacity data-[active=true]:before:opacity-100"
             >
               <a href={item.url}>
                 <item.icon />

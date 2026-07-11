@@ -11,6 +11,7 @@ export async function executeListSchedules(
 ): Promise<ListSchedulesToolResult> {
   const schedules = await listScheduledJobsForUser(ctx.user.userId, {
     status: input.status,
+    scheduleKind: "cron",
   });
 
   return {

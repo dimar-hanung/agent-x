@@ -2,7 +2,8 @@ import type { ToolResult } from "../ai-tools.types";
 
 export interface ReadEmailToolResult extends ToolResult {
   data?: {
-    uid: number;
+    id: string;
+    threadId: string;
     from: string;
     to: string;
     subject: string;

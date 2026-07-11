@@ -41,9 +41,9 @@ interface ChatPanelProps {
 }
 
 const BASE_SUGGESTIONS = [
-  "What time is it?",
-  "Echo hello",
-  "What tools can I use?",
+  "Jam berapa sekarang di Asia/Jakarta?",
+  "Tampilkan todo saya",
+  "Ingat bahwa saya prefer Bahasa Indonesia",
 ];
 
 const EXA_SUGGESTION = "Cari berita AI terbaru";
@@ -354,10 +354,10 @@ export function ChatPanel({
             <IndonesianFlagIcon className="size-14 shadow-sm" />
             <div className="space-y-1.5">
               <h2 className="text-xl font-semibold tracking-tight">
-                How can I help today?
+                Ada yang bisa dibantu?
               </h2>
               <p className="text-muted-foreground text-sm">
-                Ask anything, or try one of the suggestions below.
+                Tanya apa saja, atau coba salah satu saran di bawah.
               </p>
             </div>
             <div className="flex w-full max-w-sm flex-col gap-2">

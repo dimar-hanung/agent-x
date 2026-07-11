@@ -12,7 +12,7 @@ export function createCreateScheduleTool(
 ) {
   return tool({
     description:
-      "Create a scheduled job that runs an AI prompt at a specific time or on a cron schedule. Stored prompts run on Kanal and are delivered via WhatsApp — use WhatsApp formatting syntax, not Markdown.",
+      "Create a recurring automation (cron only) that runs an AI prompt on a schedule. Delivered via WhatsApp — use WhatsApp formatting, not Markdown. For one-time reminders use create_todo with starts_at.",
     inputSchema: createScheduleInputSchema,
     execute: (input) =>
       executeCreateSchedule(input, { user, runtimeContext }),

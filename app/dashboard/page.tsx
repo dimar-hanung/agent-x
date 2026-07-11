@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { Brain, CalendarClock, CheckSquare, MessageSquare } from "lucide-react";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,6 +11,34 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { appRoutes, siteConfig } from "@/lib/site-config";
+
+const quickLinks = [
+  {
+    title: "Chat",
+    description: "Bicara dengan agent",
+    href: appRoutes.chat,
+    icon: MessageSquare,
+  },
+  {
+    title: "Todo",
+    description: "Kelola daftar tugas",
+    href: appRoutes.todos,
+    icon: CheckSquare,
+  },
+  {
+    title: "Otomatisasi",
+    description: "Kelola otomatisasi berulang",
+    href: appRoutes.schedules,
+    icon: CalendarClock,
+  },
+  {
+    title: "Memory",
+    description: "Lihat memori tersimpan",
+    href: appRoutes.memories,
+    icon: Brain,
+  },
+] as const;
 
 export default function Page() {
   return (
@@ -26,19 +57,38 @@ export default function Page() {
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Overview</BreadcrumbPage>
+                <BreadcrumbPage>Ringkasan</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
       </header>
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-          <div className="bg-muted/50 aspect-video rounded-xl" />
-          <div className="bg-muted/50 aspect-video rounded-xl" />
-          <div className="bg-muted/50 aspect-video rounded-xl" />
+      <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Selamat datang di {siteConfig.name}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Pilih area kerja untuk mulai.
+          </p>
         </div>
-        <div className="bg-muted/50 min-h-screen flex-1 rounded-xl md:min-h-min" />
+        <nav className="flex flex-col gap-3 sm:flex-row sm:gap-6">
+          {quickLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="hover:text-foreground text-muted-foreground flex items-start gap-3 transition-colors"
+            >
+              <item.icon className="mt-0.5 size-5 shrink-0" />
+              <span>
+                <span className="text-foreground block font-medium">
+                  {item.title}
+                </span>
+                <span className="text-sm">{item.description}</span>
+              </span>
+            </Link>
+          ))}
+        </nav>
       </div>
     </>
   );

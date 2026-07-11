@@ -24,6 +24,30 @@ export type WhatsAppChannelStatus = (typeof WHATSAPP_CHANNEL_STATUSES)[number];
 export const USER_GENDERS = ["laki_laki", "perempuan"] as const;
 export type UserGender = (typeof USER_GENDERS)[number];
 
+export const TODO_STATUSES = [
+  "todo",
+  "in_progress",
+  "waiting",
+  "done",
+] as const;
+export type TodoStatus = (typeof TODO_STATUSES)[number];
+
+export const APIFY_SOCIAL_PLATFORMS = [
+  "tiktok",
+  "twitter",
+  "threads",
+] as const;
+export type ApifySocialPlatform = (typeof APIFY_SOCIAL_PLATFORMS)[number];
+
+export const APIFY_SOCIAL_SNAPSHOT_STATUSES = [
+  "queued",
+  "running",
+  "completed",
+  "failed",
+] as const;
+export type ApifySocialSnapshotStatus =
+  (typeof APIFY_SOCIAL_SNAPSHOT_STATUSES)[number];
+
 export const users = pgTable(
   "users",
   {
@@ -139,6 +163,8 @@ export const userIntegrations = pgTable(
     credentialsEncrypted: text("credentials_encrypted").notNull(),
     status: varchar("status", { length: 32 }).notNull().default("connected"),
     lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true }),
+    scopes: text("scopes"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -186,6 +212,144 @@ export const scheduledJobs = pgTable(
   ]
 );
 
+export const apifySocialSnapshots = pgTable(
+  "apify_social_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    chatId: uuid("chat_id").references(() => chats.id, { onDelete: "set null" }),
+    platform: varchar("platform", { length: 32 }).notNull(),
+    actorId: varchar("actor_id", { length: 128 }).notNull(),
+    queryHash: varchar("query_hash", { length: 64 }).notNull(),
+    normalizedInput: jsonb("normalized_input").notNull(),
+    actorInput: jsonb("actor_input").notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("queued"),
+    apifyRunId: varchar("apify_run_id", { length: 128 }),
+    apifyDatasetId: varchar("apify_dataset_id", { length: 128 }),
+    items: jsonb("items"),
+    itemCount: integer("item_count").notNull().default(0),
+    error: text("error"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("apify_social_snapshots_user_hash_idx").on(
+      table.userId,
+      table.platform,
+      table.queryHash
+    ),
+    index("apify_social_snapshots_status_updated_at_idx").on(
+      table.status,
+      table.updatedAt
+    ),
+    index("apify_social_snapshots_user_status_idx").on(
+      table.userId,
+      table.status
+    ),
+  ]
+);
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 128 }).notNull(),
+    tokenPrefix: varchar("token_prefix", { length: 16 }).notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("api_keys_token_hash_idx").on(table.tokenHash),
+    index("api_keys_user_id_idx").on(table.userId),
+  ]
+);
+
+export const MEMORY_SOURCES = ["tool", "summary"] as const;
+export type MemorySource = (typeof MEMORY_SOURCES)[number];
+
+export const MEMORY_SOFT_CAP = 200;
+export const MEMORY_PROMPT_LIMIT = 40;
+export const MEMORY_CONTENT_MAX_LENGTH = 280;
+
+export const userMemories = pgTable(
+  "user_memories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    source: varchar("source", { length: 16 }).notNull().default("tool"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("user_memories_user_id_created_at_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+  ]
+);
+
+export const TODO_CODE_PREFIX = "TODO" as const;
+
+export const todos = pgTable(
+  "todos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 32 }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    project: varchar("project", { length: 128 }),
+    status: varchar("status", { length: 32 }).notNull().default("todo"),
+    tags: text("tags")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
+    position: integer("position").notNull().default(0),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    notifyReminderAt: timestamp("notify_reminder_at", { withTimezone: true })
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::timestamptz[]`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("todos_user_id_code_idx").on(table.userId, table.code),
+    index("todos_user_id_status_idx").on(table.userId, table.status),
+    index("todos_user_id_position_idx").on(table.userId, table.position),
+    index("todos_user_id_project_idx").on(table.userId, table.project),
+    index("todos_starts_at_idx").on(table.startsAt),
+  ]
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
@@ -193,3 +357,7 @@ export type Message = typeof messages.$inferSelect;
 export type ScheduledJob = typeof scheduledJobs.$inferSelect;
 export type UserIntegration = typeof userIntegrations.$inferSelect;
 export type WhatsAppChannelConfig = typeof whatsappChannelConfig.$inferSelect;
+export type Todo = typeof todos.$inferSelect;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type UserMemory = typeof userMemories.$inferSelect;
+export type ApifySocialSnapshot = typeof apifySocialSnapshots.$inferSelect;

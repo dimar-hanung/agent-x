@@ -1,15 +1,29 @@
 export type NativeToolKey =
   | "get_time"
-  | "echo"
-  | "role_info"
   | "exa_web_search"
   | "exa_web_fetch"
+  | "fetch_tiktok_data"
+  | "fetch_twitter_data"
+  | "fetch_threads_data"
   | "create_schedule"
   | "list_schedules"
   | "cancel_schedule"
   | "send_email"
   | "search_inbox"
-  | "read_email";
+  | "read_email"
+  | "list_calendar_events"
+  | "create_calendar_event"
+  | "search_drive"
+  | "read_drive_file"
+  | "upload_drive_file"
+  | "list_todos"
+  | "get_todo"
+  | "create_todo"
+  | "update_todo"
+  | "delete_todo"
+  | "remember_memory"
+  | "forget_memory"
+  | "list_memories";
 
 const MCP_TOOL_KEYS = [] as const satisfies readonly string[];
 

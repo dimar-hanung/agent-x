@@ -4,7 +4,7 @@ export interface CreateScheduleToolResult extends ToolResult {
   data?: {
     jobId: string;
     title: string;
-    scheduleKind: "cron" | "once";
+    scheduleKind: "cron";
     nextRunAt: string | null;
     nextRunAtLabel: string | null;
   };

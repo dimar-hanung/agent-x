@@ -15,12 +15,15 @@ export type ScheduleStatus = "active" | "paused" | "completed" | "cancelled";
 export interface ScheduleSummary {
   id: string;
   title: string;
+  prompt: string;
   scheduleKind: ScheduleKind;
   status: ScheduleStatus;
   cronExpression: string | null;
   runAt: Date | null;
   timezone: string;
   nextRunAt: Date | null;
+  lastRunAt: Date | null;
+  lastError: string | null;
   runCount: number;
   createdAt: Date;
 }
@@ -40,12 +43,15 @@ function toScheduleSummary(row: ScheduledJob): ScheduleSummary {
   return {
     id: row.id,
     title: row.title,
+    prompt: row.prompt,
     scheduleKind: row.scheduleKind as ScheduleKind,
     status: row.status as ScheduleStatus,
     cronExpression: row.cronExpression,
     runAt: row.runAt,
     timezone: row.timezone,
     nextRunAt: row.nextRunAt,
+    lastRunAt: row.lastRunAt,
+    lastError: row.lastError,
     runCount: row.runCount,
     createdAt: row.createdAt,
   };
@@ -54,6 +60,12 @@ function toScheduleSummary(row: ScheduledJob): ScheduleSummary {
 export async function createScheduledJob(
   input: CreateScheduledJobInput
 ): Promise<ScheduleSummary> {
+  if (input.scheduleKind !== "cron") {
+    throw new Error(
+      "Otomatisasi hanya untuk jadwal berulang. Untuk pengingat sekali, buat todo dengan starts_at."
+    );
+  }
+
   if (input.chatId) {
     const ownsChat = await verifyChatOwnership(input.chatId, input.userId);
 
@@ -92,16 +104,22 @@ export async function createScheduledJob(
 
 export async function listScheduledJobsForUser(
   userId: string,
-  options?: { status?: ScheduleStatus }
+  options?: { status?: ScheduleStatus; scheduleKind?: ScheduleKind }
 ): Promise<ScheduleSummary[]> {
-  const conditions = options?.status
-    ? and(eq(scheduledJobs.userId, userId), eq(scheduledJobs.status, options.status))
-    : eq(scheduledJobs.userId, userId);
+  const conditions = [eq(scheduledJobs.userId, userId)];
+
+  if (options?.status) {
+    conditions.push(eq(scheduledJobs.status, options.status));
+  }
+
+  if (options?.scheduleKind) {
+    conditions.push(eq(scheduledJobs.scheduleKind, options.scheduleKind));
+  }
 
   const rows = await db
     .select()
     .from(scheduledJobs)
-    .where(conditions)
+    .where(and(...conditions))
     .orderBy(desc(scheduledJobs.createdAt));
 
   return rows.map(toScheduleSummary);
@@ -110,7 +128,10 @@ export async function listScheduledJobsForUser(
 export async function listActiveSchedulesForUser(
   userId: string
 ): Promise<ScheduleSummary[]> {
-  return listScheduledJobsForUser(userId, { status: "active" });
+  return listScheduledJobsForUser(userId, {
+    status: "active",
+    scheduleKind: "cron",
+  });
 }
 
 export interface ScheduleWatchItem {
@@ -189,12 +210,93 @@ export async function cancelScheduledJob(
       and(
         eq(scheduledJobs.id, jobId),
         eq(scheduledJobs.userId, userId),
-        eq(scheduledJobs.status, "active")
+        or(
+          eq(scheduledJobs.status, "active"),
+          eq(scheduledJobs.status, "paused")
+        )
       )
     )
     .returning({ id: scheduledJobs.id });
 
   return Boolean(row);
+}
+
+export async function pauseScheduledJob(
+  jobId: string,
+  userId: string
+): Promise<ScheduleSummary | null> {
+  const [row] = await db
+    .update(scheduledJobs)
+    .set({ status: "paused", updatedAt: new Date() })
+    .where(
+      and(
+        eq(scheduledJobs.id, jobId),
+        eq(scheduledJobs.userId, userId),
+        eq(scheduledJobs.status, "active")
+      )
+    )
+    .returning();
+
+  return row ? toScheduleSummary(row) : null;
+}
+
+export async function resumeScheduledJob(
+  jobId: string,
+  userId: string
+): Promise<ScheduleSummary | null> {
+  const [existing] = await db
+    .select()
+    .from(scheduledJobs)
+    .where(
+      and(
+        eq(scheduledJobs.id, jobId),
+        eq(scheduledJobs.userId, userId),
+        eq(scheduledJobs.status, "paused")
+      )
+    )
+    .limit(1);
+
+  if (!existing) {
+    return null;
+  }
+
+  const now = new Date();
+  let nextRunAt = existing.nextRunAt;
+
+  if (existing.scheduleKind === "cron" && existing.cronExpression) {
+    nextRunAt = computeNextRunAt({
+      scheduleKind: "cron",
+      cronExpression: existing.cronExpression,
+      timezone: existing.timezone,
+      runAt: null,
+      fromDate: now,
+    });
+  } else if (existing.scheduleKind === "once") {
+    nextRunAt = existing.runAt;
+    if (nextRunAt && nextRunAt.getTime() <= now.getTime()) {
+      throw new Error(
+        "Waktu otomatisasi sekali sudah lewat. Batalkan dan buat baru."
+      );
+    }
+  }
+
+  const [row] = await db
+    .update(scheduledJobs)
+    .set({
+      status: "active",
+      nextRunAt,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(scheduledJobs.id, jobId),
+        eq(scheduledJobs.userId, userId),
+        eq(scheduledJobs.status, "paused")
+      )
+    )
+    .returning();
+
+  return row ? toScheduleSummary(row) : null;
 }
 
 export async function listActiveJobsForWorker(): Promise<ScheduledJob[]> {

@@ -23,10 +23,10 @@ export async function executeCreateSchedule(
       chatId,
       title: input.title,
       prompt: input.prompt,
-      scheduleKind: input.schedule_kind,
+      scheduleKind: "cron",
       cronExpression: input.cron_expression,
       timezone: input.timezone,
-      runAt: input.run_at ? new Date(input.run_at) : null,
+      runAt: null,
     });
 
     return {
@@ -45,7 +45,7 @@ export async function executeCreateSchedule(
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Gagal membuat jadwal.",
+        error instanceof Error ? error.message : "Gagal membuat otomatisasi.",
     };
   }
 }

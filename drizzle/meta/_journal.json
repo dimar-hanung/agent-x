@@ -29,6 +29,62 @@
       "when": 1783179581270,
       "tag": "0003_rename_pejabat_to_client",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783179581271,
+      "tag": "0004_add_user_gender",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783600000000,
+      "tag": "0005_google_oauth",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783617000348,
+      "tag": "0006_silky_master_mold",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783617252316,
+      "tag": "0007_needy_doctor_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783617386550,
+      "tag": "0008_conscious_vertigo",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783617630347,
+      "tag": "0009_dashing_talisman",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783707148592,
+      "tag": "0010_left_kitty_pryde",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783750000000,
+      "tag": "0011_hard_wasp",
+      "breakpoints": true
     }
   ]
 }
