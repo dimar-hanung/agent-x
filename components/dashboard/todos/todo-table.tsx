@@ -12,8 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatTodoDate, formatTodoStatus } from "@/lib/todos/labels";
+import {
+  formatTodoDate,
+  formatTodoStatus,
+  TODO_STATUS_COLORS,
+} from "@/lib/todos/labels";
 import type { TodoListItem } from "@/lib/todos/schemas";
+import { cn } from "@/lib/utils";
 
 interface TodoTableProps {
   todos: TodoListItem[];
@@ -72,7 +77,10 @@ export function TodoTable({ todos, onOpen, onDelete }: TodoTableProps) {
                 )}
               </TableCell>
               <TableCell>
-                <Badge variant="secondary">
+                <Badge
+                  variant="secondary"
+                  className={cn(TODO_STATUS_COLORS[todo.status].badge)}
+                >
                   {formatTodoStatus(todo.status)}
                 </Badge>
               </TableCell>

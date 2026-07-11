@@ -68,7 +68,7 @@ types.ts    # *ToolResult extends ToolResult
 
 ## Skills (`.agents/skills`)
 
-Every development cycle must create or update skills inside `.agents/skills`.
+Every conversation or development cycle must create or update skills inside `.agents/skills`.
 
 Format:
 
@@ -77,10 +77,25 @@ Format:
 .agents/skills/develop-module-[feature-name]/SKILL.md
 ```
 
-Scope: hanya major features atau modules.
+Scope: only major features or modules.
 
 Guidelines:
 
-- Buat skill di level tinggi — fokus lokasi file relevan, bukan detail implementasi spesifik
-- Tambahkan hal berguna yang perlu diketahui agent
-- Tujuan: agent tidak perlu gather/explore terlalu banyak konteks di awal
+- Create skills at a higher level — focus on relevant file locations, not specific code implementations
+- Add anything useful the agent should know
+- Goal: prevent the agent from needing to gather or explore too much context at the start
+- Use English language
+
+Required structure:
+
+```
+## When to Use
+
+## Overview
+
+## Key locations
+
+## Behavior agents must know
+```
+
+You can add another section if needed and important.

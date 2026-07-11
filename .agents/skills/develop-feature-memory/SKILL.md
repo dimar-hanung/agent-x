@@ -8,6 +8,14 @@ description: >-
 
 # Develop Feature: User Memory
 
+## When to Use
+
+- Adding or changing remember / forget / list memory tools
+- Touching `user_memories` schema, repository, or Memory dashboard UI
+- Changing how memories are injected into the system prompt or extracted after summarization
+
+## Overview
+
 Long-term user preferences for AgentX chat. One user → many memory rows.
 
 ## Key locations
