@@ -3,8 +3,8 @@
 import {
   AlertCircle,
   ArrowUp,
-  Loader2,
   Menu,
+  Square,
   SquarePen,
 } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
@@ -94,20 +94,26 @@ export function ChatPanel({
     }
   }, [id, initialSequences]);
 
-  const { messages: liveMessages, sendMessage, status, error, setMessages } =
-    useChat({
-      id: chatId,
-      messages: initialMessages,
-      transport: new DefaultChatTransport({
-        api: "/api/chat",
-        prepareSendMessagesRequest: ({ id: sendChatId, messages: allMessages }) => ({
-          body: {
-            id: sendChatId,
-            message: allMessages.at(-1),
-          },
-        }),
+  const {
+    messages: liveMessages,
+    sendMessage,
+    status,
+    error,
+    setMessages,
+    stop,
+  } = useChat({
+    id: chatId,
+    messages: initialMessages,
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      prepareSendMessagesRequest: ({ id: sendChatId, messages: allMessages }) => ({
+        body: {
+          id: sendChatId,
+          message: allMessages.at(-1),
+        },
       }),
-    });
+    }),
+  });
 
   React.useEffect(() => {
     let nextSequence =
@@ -129,6 +135,7 @@ export function ChatPanel({
   );
 
   const isReady = status === "ready";
+  const isBusy = status === "submitted" || status === "streaming";
   const hasMessages = displayMessages.length > 0;
   const refreshedScheduleTools = React.useRef(new Set<string>());
 
@@ -260,9 +267,13 @@ export function ChatPanel({
   const prevStatusRef = React.useRef(status);
 
   React.useEffect(() => {
+    const wasBusy =
+      prevStatusRef.current === "streaming" ||
+      prevStatusRef.current === "submitted";
+
     if (
       !id &&
-      prevStatusRef.current === "streaming" &&
+      wasBusy &&
       status === "ready" &&
       liveMessages.length > 0 &&
       !navigatedRef.current
@@ -405,20 +416,29 @@ export function ChatPanel({
               autoComplete="off"
               className="text-foreground placeholder:text-muted-foreground max-h-48 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none disabled:opacity-50"
             />
-            <Button
-              type="button"
-              size="icon"
-              className="rounded-full"
-              onClick={() => send(input)}
-              disabled={!isReady || !input.trim()}
-              aria-label="Send message"
-            >
-              {isReady ? (
+            {isBusy ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="text-destructive hover:text-destructive rounded-full"
+                onClick={() => void stop()}
+                aria-label="Hentikan"
+              >
+                <Square className="size-3.5 fill-current" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="icon"
+                className="rounded-full"
+                onClick={() => send(input)}
+                disabled={!isReady || !input.trim()}
+                aria-label="Kirim pesan"
+              >
                 <ArrowUp className="size-4" />
-              ) : (
-                <Loader2 className="size-4 animate-spin" />
-              )}
-            </Button>
+              </Button>
+            )}
           </div>
 
           <p className="text-muted-foreground mt-1.5 text-center text-xs">
