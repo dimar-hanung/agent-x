@@ -245,6 +245,9 @@ export async function sendWhatsAppToUser(
   const connected = await isChannelConnected();
 
   if (!connected) {
+    // #region agent log
+    fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'B',location:'whatsapp-channel-repository.ts:sendWhatsAppToUser',message:'skip: channel not connected',data:{userId,textLen:text.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     return;
   }
 
@@ -254,11 +257,17 @@ export async function sendWhatsAppToUser(
   ]);
 
   if (!phone) {
+    // #region agent log
+    fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'B',location:'whatsapp-channel-repository.ts:sendWhatsAppToUser',message:'skip: no phone paired',data:{userId,textLen:text.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     return;
   }
 
   const provider = getWhatsAppProvider();
-  await provider.sendText(config.instanceName, phone, text);
+  const result = await provider.sendText(config.instanceName, phone, text);
+  // #region agent log
+  fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'D',location:'whatsapp-channel-repository.ts:sendWhatsAppToUser',message:'provider sendText result',data:{userId,textLen:text.length,instanceName:config.instanceName,success:result?.success ?? null,error:result?.error ?? null},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
 }
 
 export async function sendWhatsAppToPhone(

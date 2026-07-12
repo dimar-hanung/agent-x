@@ -61,3 +61,4 @@ Optional time window (`starts_at`, optional `ends_at`) with early reminders — 
 - Clearing `starts_at` clears `ends_at` and reminders
 - No `done_at` / `due_at` / `notify_at`
 - Does not create `scheduled_jobs` rows
+- `listTodosDueToStart` must use drizzle `lte(todos.startsAt, now)` + `isNotNull` — interpolating `Date` into `sql\`...\`` crash-loops `scheduler:worker`

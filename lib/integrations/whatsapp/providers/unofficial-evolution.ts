@@ -336,8 +336,15 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
         }),
       });
 
+      // #region agent log
+      fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'D',location:'unofficial-evolution.ts:sendText',message:'evolution sendText ok',data:{instanceName,digitsLen:digits.length,textLen:text.length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
       return { success: true };
     } catch (error) {
+      // #region agent log
+      fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'D',location:'unofficial-evolution.ts:sendText',message:'evolution sendText failed',data:{instanceName,digitsLen:digits.length,textLen:text.length,error:error instanceof Error?error.message:String(error)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       return {
         success: false,
         error:

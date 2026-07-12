@@ -81,6 +81,10 @@ export async function processChannelMessage(
   const mirrorViaWhatsApp = input.source !== "whatsapp";
   const notifyToolProgress = replyViaWhatsApp || mirrorViaWhatsApp;
 
+  // #region agent log
+  fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'C',location:'process-channel-message.ts:flags',message:'channel message WA flags',data:{source:input.source,replyViaWhatsApp,mirrorViaWhatsApp,jobId:input.metadata?.jobId ?? null,chatId},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
   const agent = await createChatAgent(user, { userId: user.userId, chatId }, tools, {
     instructions: systemPrompt,
     onToolExecutionStart: notifyToolProgress
@@ -104,8 +108,15 @@ export async function processChannelMessage(
     onStepEnd: async ({ text }) => {
       const trimmed = text.trim();
       if (!trimmed) {
+        // #region agent log
+        fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'C',location:'process-channel-message.ts:onStepEnd',message:'skip empty step text',data:{source:input.source,jobId:input.metadata?.jobId ?? null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         return;
       }
+
+      // #region agent log
+      fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'C',location:'process-channel-message.ts:onStepEnd',message:'step text ready for WA',data:{source:input.source,replyViaWhatsApp,mirrorViaWhatsApp,textLen:trimmed.length,jobId:input.metadata?.jobId ?? null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       if (replyViaWhatsApp) {
         await sendWhatsAppToUser(user.userId, trimmed);
@@ -116,6 +127,9 @@ export async function processChannelMessage(
         try {
           await sendWhatsAppToUser(user.userId, trimmed);
         } catch (error) {
+          // #region agent log
+          fetch('http://localhost:7290/ingest/dd2ac6a0-2684-40fc-8133-4176bd7c2469',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5803d0'},body:JSON.stringify({sessionId:'5803d0',runId:'pre-fix',hypothesisId:'D',location:'process-channel-message.ts:onStepEnd',message:'mirror WA threw',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           console.error("Mirror WhatsApp gagal:", error);
         }
       }
