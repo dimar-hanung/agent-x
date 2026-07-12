@@ -27,6 +27,9 @@ const TOOL_PROGRESS_LABELS = {
   remember_memory: "Menyimpan memory…",
   forget_memory: "Menghapus memory…",
   list_memories: "Memuat memory…",
+  list_files: "Memuat file…",
+  upload_file: "Mengunggah file…",
+  read_file: "Membaca file…",
 } as const satisfies Record<NativeToolKey, string>;
 
 export function getToolProgressLabel(toolName: string): string {

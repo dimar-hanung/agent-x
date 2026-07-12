@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "agentx",
+      "credentials": [
+        {
+          "accessKey": "agentx_s3_access",
+          "secretKey": "agentx_s3_secret_change_me"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

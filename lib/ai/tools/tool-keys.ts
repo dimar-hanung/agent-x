@@ -23,7 +23,10 @@ export type NativeToolKey =
   | "delete_todo"
   | "remember_memory"
   | "forget_memory"
-  | "list_memories";
+  | "list_memories"
+  | "list_files"
+  | "upload_file"
+  | "read_file";
 
 const MCP_TOOL_KEYS = [] as const satisfies readonly string[];
 

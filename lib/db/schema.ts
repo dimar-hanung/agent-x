@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   index,
   integer,
   jsonb,
@@ -350,6 +351,44 @@ export const todos = pgTable(
   ]
 );
 
+export const USER_FILE_KINDS = ["file", "folder"] as const;
+export type UserFileKind = (typeof USER_FILE_KINDS)[number];
+
+export const USER_FILE_STATUSES = ["pending", "ready"] as const;
+export type UserFileStatus = (typeof USER_FILE_STATUSES)[number];
+
+export const userFiles = pgTable(
+  "user_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id"),
+    name: varchar("name", { length: 255 }).notNull(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    mimeType: varchar("mime_type", { length: 255 }),
+    sizeBytes: bigint("size_bytes", { mode: "number" }).notNull().default(0),
+    storageKey: text("storage_key"),
+    status: varchar("status", { length: 16 }).notNull().default("ready"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("user_files_user_id_parent_id_idx").on(table.userId, table.parentId),
+    index("user_files_user_id_status_idx").on(table.userId, table.status),
+    uniqueIndex("user_files_user_parent_name_idx").on(
+      table.userId,
+      table.parentId,
+      table.name
+    ),
+  ]
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
@@ -361,3 +400,4 @@ export type Todo = typeof todos.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type UserMemory = typeof userMemories.$inferSelect;
 export type ApifySocialSnapshot = typeof apifySocialSnapshots.$inferSelect;
+export type UserFile = typeof userFiles.$inferSelect;

@@ -52,6 +52,14 @@ const PROMPT_GOOGLE = `Google integrations (require Settings > Integrations > Co
 - Drive: use search_drive, read_drive_file, and upload_drive_file. Prefer text content for notes; set convert_to_google_doc when the user wants a Google Doc. Max upload 5 MB.
 - If a Google tool says the account is not connected, tell the user in Indonesian to connect Google in Settings.`;
 
+const PROMPT_FILES = `AgentX private file storage (Dashboard → File, SeaweedFS — NOT Google Drive):
+- Use list_files, upload_file, and read_file when the user talks about AgentX storage / "file saya" / "penyimpanan" / upload ke File di dashboard.
+- Do NOT use Google Drive tools (search_drive / read_drive_file / upload_drive_file) for AgentX storage.
+- list_files: omit parent_id for root; pass parent_id to browse a folder.
+- upload_file: text via content or binary via content_base64; max 5 MB via this tool. Larger files: tell the user to use Dashboard → File.
+- read_file: by file_id from list_files. Text content may be truncated; binary returns metadata only — tell the user to download from Dashboard → File.
+- Quota is 20 GB per user. If a tool returns success: false with quota or SEAWEEDFS_NOT_CONFIGURED, explain in Indonesian.`;
+
 const PROMPT_MEMORY = `User memory (durable preferences across all chats):
 - When the user asks you to remember a lasting preference (language, tone, timezone, name spelling, recurring constraints), call remember_memory with a short factual content string.
 - When the user asks to forget or remove a preference, call list_memories if needed, then forget_memory by id.
@@ -94,6 +102,8 @@ ${PROMPT_MEMORY.replace(
   "- After a memory tool succeeds, confirm the change briefly in Indonesian."
 )}
 
+${PROMPT_FILES}
+
 ${PROMPT_GOOGLE}`;
 
 export const maxDuration = 30;
@@ -134,6 +144,8 @@ ${PROMPT_SCHEDULING.replace("{schedulingConfirm}", schedulingConfirm)}
 ${PROMPT_TODOS.replace("{todoConfirm}", todoConfirm)}
 
 ${PROMPT_MEMORY.replace("{memoryConfirm}", memoryConfirm)}
+
+${PROMPT_FILES}
 
 ${PROMPT_GOOGLE}`;
 

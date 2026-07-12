@@ -34,6 +34,7 @@ yarn-error.log*
 .env*
 !.env.example
 !infra/evolution/.env.example
+!infra/seaweedfs/.env.example
 
 # vercel
 .vercel

@@ -27,6 +27,9 @@ const TOOL_FRIENDLY_NOUNS = {
   remember_memory: "memory",
   forget_memory: "memory",
   list_memories: "memory",
+  list_files: "penyimpanan file",
+  upload_file: "penyimpanan file",
+  read_file: "penyimpanan file",
 } as const satisfies Record<NativeToolKey, string>;
 
 function getToolFriendlyNoun(toolName: string): string {
@@ -79,6 +82,14 @@ export function toFriendlyToolError(options: {
     /APIFY_NOT_CONFIGURED|APIFY_API_TOKEN/i.test(raw)
   ) {
     return "Pengambilan data sosial media belum tersedia. Hubungi admin untuk mengaktifkannya.";
+  }
+
+  if (
+    code === "SEAWEEDFS_NOT_CONFIGURED" ||
+    /SEAWEEDFS_NOT_CONFIGURED|SEAWEEDFS_S3_/i.test(raw) ||
+    /Penyimpanan file belum tersedia/i.test(raw)
+  ) {
+    return "Penyimpanan file belum tersedia. Hubungi admin untuk mengaktifkannya.";
   }
 
   if (
