@@ -38,6 +38,8 @@ There is **no public Sign Up** — new users are created only by an admin from t
 
 - Do **not** reintroduce `/api/auth/register` or a public register mode on the login form
 - New accounts: admin creates via `POST /api/admin/users` (`createUserWithWhatsApp`)
+- Creatable roles: `admin` | `client` | `guest` (`adminUserRoles` in `lib/admin/users/schemas.ts`)
+- Existing `admin` users cannot be edited or deleted from the dashboard (repo guards)
 - Login form is login-only; copy notes that accounts are admin-provisioned
 - User-facing auth strings: Bahasa Indonesia
 - Protected routes (`/chat`, `/dashboard`) gated in `middleware.ts`

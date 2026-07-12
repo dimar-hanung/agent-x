@@ -221,6 +221,7 @@ export function UserFormDialog({
                     <SelectValue placeholder="Pilih role" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="client">Client</SelectItem>
                     <SelectItem value="guest">Guest</SelectItem>
                   </SelectContent>

@@ -1,7 +1,7 @@
 import type { UserGender } from "@/lib/db/schema";
 import { z } from "zod";
 
-export const adminUserRoles = ["client", "guest"] as const;
+export const adminUserRoles = ["admin", "client", "guest"] as const;
 export type AdminUserRole = (typeof adminUserRoles)[number];
 
 export const adminUserGenders = ["laki_laki", "perempuan"] as const;
