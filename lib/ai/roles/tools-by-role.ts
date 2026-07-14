@@ -35,6 +35,9 @@ const CLIENT_ADMIN_TOOLS: ToolKey[] = [
   "remember_memory",
   "forget_memory",
   "list_memories",
+  "list_files",
+  "upload_file",
+  "read_file",
 ];
 
 const TOOLS_BY_ROLE: Record<AppRole, ToolKey[]> = {

@@ -34,7 +34,7 @@ export async function executeCreateSchedule(
       data: {
         jobId: summary.id,
         title: summary.title,
-        scheduleKind: summary.scheduleKind,
+        scheduleKind: "cron",
         nextRunAt: summary.nextRunAt?.toISOString() ?? null,
         nextRunAtLabel: summary.nextRunAt
           ? formatNextRunAt(summary.nextRunAt, summary.timezone)

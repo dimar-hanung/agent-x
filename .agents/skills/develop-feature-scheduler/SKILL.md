@@ -44,3 +44,7 @@ User-scoped **recurring** AI automations (`schedule_kind: cron` only). Created v
 - Dashboard: list, filter, pause, resume, cancel
 - UI Bahasa Indonesia label: **Otomatisasi** (not Jadwal)
 - Not the same as todo `starts_at` reminders
+- Scheduled runs go through `processChannelMessage` (`source: "scheduler"`) and mirror replies to WhatsApp when channel + phone are set
+- Todo due query (`listTodosDueToStart`) must use drizzle `lte` / `isNotNull` — never interpolate a `Date` into `sql\`...\`` (postgres.js throws and crash-loops the worker)
+- Worker `syncSchedules` must not let todo-notify failures kill cron registration (log and continue)
+- Run via PM2 `agentx-scheduler` (`npm run scheduler:worker`, env `--env-file=.env`)

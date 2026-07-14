@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { Brain, CalendarClock, CheckSquare, MessageSquare } from "lucide-react";
+import {
+  Brain,
+  CalendarClock,
+  CheckSquare,
+  FolderOpen,
+  MessageSquare,
+} from "lucide-react";
 
 import {
   Breadcrumb,
@@ -37,6 +43,12 @@ const quickLinks = [
     description: "Lihat memori tersimpan",
     href: appRoutes.memories,
     icon: Brain,
+  },
+  {
+    title: "File",
+    description: "Penyimpanan pribadi (20 GB)",
+    href: appRoutes.files,
+    icon: FolderOpen,
   },
 ] as const;
 

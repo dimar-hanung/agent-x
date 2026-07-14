@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, max, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, lte, max, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { TODO_CODE_PREFIX, todos, type TodoStatus } from "@/lib/db/schema";
@@ -466,8 +466,8 @@ export async function listTodosDueToStart(
     .where(
       and(
         ne(todos.status, "done"),
-        sql`${todos.startsAt} IS NOT NULL`,
-        sql`${todos.startsAt} <= ${now}`
+        isNotNull(todos.startsAt),
+        lte(todos.startsAt, now)
       )
     );
 }

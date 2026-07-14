@@ -11,7 +11,7 @@ export function getLoginUrl(): string {
 }
 
 interface BuildCreateUserWhatsAppMessageInput {
-  role: Extract<AppRole, "client" | "guest">;
+  role: Extract<AppRole, "admin" | "client" | "guest">;
   email: string;
   password: string;
   loginUrl?: string;

@@ -6,6 +6,7 @@ import {
   Brain,
   CalendarClock,
   CheckSquare,
+  FolderOpen,
   MessageSquare,
   Radio,
   Settings2,
@@ -89,6 +90,11 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         title: "Memory",
         url: appRoutes.memories,
         icon: Brain,
+      },
+      {
+        title: "File",
+        url: appRoutes.files,
+        icon: FolderOpen,
       },
       ...adminNav,
       {

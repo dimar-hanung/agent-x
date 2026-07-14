@@ -97,7 +97,12 @@ async function syncSchedules(): Promise<void> {
     registerJob(job);
   }
 
-  await processDueTodoNotifications();
+  try {
+    await processDueTodoNotifications();
+  } catch (error) {
+    // Keep cron jobs alive even if todo notify fails.
+    console.error("[scheduler] todo notify error:", error);
+  }
 }
 
 async function main(): Promise<void> {

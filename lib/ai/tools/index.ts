@@ -20,17 +20,20 @@ import { createForgetMemoryTool } from "./forget-memory/forget-memory.tool";
 import { createGetTimeTool } from "./get-time/get-time.tool";
 import { createGetTodoTool } from "./get-todo/get-todo.tool";
 import { createListCalendarEventsTool } from "./list-calendar-events/list-calendar-events.tool";
+import { createListFilesTool } from "./list-files/list-files.tool";
 import { createListMemoriesTool } from "./list-memories/list-memories.tool";
 import { createListSchedulesTool } from "./list-schedules/list-schedules.tool";
 import { createListTodosTool } from "./list-todos/list-todos.tool";
 import { createReadDriveFileTool } from "./read-drive-file/read-drive-file.tool";
 import { createReadEmailTool } from "./read-email/read-email.tool";
+import { createReadFileTool } from "./read-file/read-file.tool";
 import { createRememberMemoryTool } from "./remember-memory/remember-memory.tool";
 import { createSearchDriveTool } from "./search-drive/search-drive.tool";
 import { createSearchInboxTool } from "./search-inbox/search-inbox.tool";
 import { createSendEmailTool } from "./send-email/send-email.tool";
 import { createUpdateTodoTool } from "./update-todo/update-todo.tool";
 import { createUploadDriveFileTool } from "./upload-drive-file/upload-drive-file.tool";
+import { createUploadFileTool } from "./upload-file/upload-file.tool";
 
 function createToolRegistry(
   user: UserContext,
@@ -62,6 +65,9 @@ function createToolRegistry(
     remember_memory: createRememberMemoryTool(user),
     forget_memory: createForgetMemoryTool(user),
     list_memories: createListMemoriesTool(user),
+    list_files: createListFilesTool(user),
+    upload_file: createUploadFileTool(user),
+    read_file: createReadFileTool(user),
   };
 }
 

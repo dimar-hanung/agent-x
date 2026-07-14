@@ -62,6 +62,42 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). Chat is at [http://localhost:3000/chat](http://localhost:3000/chat) (requires login).
 
+## Production (PM2)
+
+Run the Next.js app plus background workers under [PM2](https://pm2.keymetrics.io/).
+
+```bash
+# Use the project Node version, then install PM2 once
+nvm use
+npm i -g pm2
+
+# Build
+npm run build
+
+# Workers read `.env` (not `.env.local`) — copy if needed
+cp .env.local .env
+
+# Start app + workers
+pm2 start npm --name agentx -- start
+pm2 start npm --name agentx-scheduler -- run scheduler:worker
+pm2 start npm --name agentx-apify -- run apify:worker
+
+# Persist process list across reboots
+pm2 save
+pm2 startup
+```
+
+Useful commands:
+
+```bash
+pm2 status
+pm2 logs agentx
+pm2 restart all
+pm2 stop all
+```
+
+After code changes: `npm run build && pm2 restart all`.
+
 ## Features
 
 - **Chat** — streaming agent with role-gated native tools and PostgreSQL history
@@ -71,6 +107,7 @@ Open [http://localhost:3000](http://localhost:3000). Chat is at [http://localhos
 - **Social media (Apify)** — async TikTok / Twitter/X / Threads snapshots via worker
 - **WhatsApp** — global channel via Evolution API (admin QR, user phone pairing)
 - **Integrations** — Google (Gmail / Calendar / Drive), personal API keys for MCP
+- **File storage** — private Drive-like files via SeaweedFS (20 GB/user); Dashboard → File; chat tools `list_files` / `upload_file` / `read_file`
 
 ## AI tools
 
@@ -121,6 +158,22 @@ Each user has one pinned **Kanal utama** at `/chat` (cron output and default cha
 cp infra/evolution/.env.example infra/evolution/.env   # edit keys & URLs
 npm run evolution:up
 ```
+
+### File storage (SeaweedFS)
+
+Private per-user storage (folders, upload/download, 20 GB quota) backed by SeaweedFS S3. UI: [Dashboard → File](http://localhost:3000/dashboard/files).
+
+**Setup guide:** [docs/seaweedfs-setup.md](docs/seaweedfs-setup.md)
+
+```bash
+# Start master + volume + filer + S3 gateway
+npm run seaweedfs:up
+
+# Set SEAWEEDFS_S3_* in .env.local (keys must match infra/seaweedfs/s3.json)
+# Create bucket once — see docs/seaweedfs-setup.md
+```
+
+Chat tools (distinct from Google Drive): `list_files`, `upload_file`, `read_file`.
 
 ### Todos MCP server
 

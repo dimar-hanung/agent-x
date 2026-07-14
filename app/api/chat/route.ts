@@ -126,6 +126,7 @@ export async function POST(req: Request) {
       agent,
       uiMessages: validatedModelMessages as never,
       originalMessages: validatedFullMessages as never,
+      abortSignal: req.signal,
       generateMessageId: createIdGenerator({
         prefix: "msg",
         size: 16,

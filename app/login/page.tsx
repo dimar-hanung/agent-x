@@ -12,10 +12,10 @@ export default function LoginPage() {
           href="/"
           className="flex items-center gap-2 self-center font-medium"
         >
-          <IndonesianFlagIcon className="size-6" />
+          <IndonesianFlagIcon className="size-32" />
           {siteConfig.name}
         </a>
-        <Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>
+        <Suspense fallback={<div className="text-muted-foreground text-sm">Memuat...</div>}>
           <LoginForm />
         </Suspense>
       </div>
