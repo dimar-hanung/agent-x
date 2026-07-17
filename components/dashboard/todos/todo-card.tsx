@@ -32,41 +32,49 @@ export function TodoCardFace({
     <div
       style={style}
       className={cn(
-        "bg-card rounded-md border p-3 shadow-xs",
+        "bg-card rounded-md border p-2.5 shadow-xs sm:p-3",
         className
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 space-y-0.5 text-left">
+        <div className="min-w-0 flex-1 space-y-0.5 text-left">
           <p className="text-muted-foreground font-mono text-[11px] tracking-wide">
             {todo.code}
           </p>
-          <p className="text-sm font-medium leading-snug">{todo.title}</p>
+          <p className="text-sm font-medium leading-snug break-words">
+            {todo.title}
+          </p>
           {todo.project ? (
-            <p className="text-muted-foreground text-[11px]">{todo.project}</p>
+            <p className="text-muted-foreground truncate text-[11px]">
+              {todo.project}
+            </p>
           ) : null}
           {formatTodoTimeWindow(todo.startsAt, todo.endsAt) ? (
-            <p className="text-muted-foreground text-[11px]">
+            <p className="text-muted-foreground text-[11px] break-words">
               {formatTodoTimeWindow(todo.startsAt, todo.endsAt)}
             </p>
           ) : null}
         </div>
         {showChevron ? (
           <ChevronRightIcon
-            className="text-muted-foreground size-3.5 shrink-0 opacity-60"
+            className="text-muted-foreground mt-0.5 size-3.5 shrink-0 opacity-60"
             aria-hidden
           />
         ) : null}
       </div>
       {todo.description ? (
-        <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
+        <p className="text-muted-foreground mt-1 line-clamp-2 text-xs break-words">
           {todo.description}
         </p>
       ) : null}
       {todo.tags.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-1">
           {todo.tags.map((tag) => (
-            <Badge key={tag} variant="outline" className="text-[10px]">
+            <Badge
+              key={tag}
+              variant="outline"
+              className="max-w-full truncate text-[10px]"
+            >
               {tag}
             </Badge>
           ))}
@@ -108,7 +116,7 @@ export function TodoCard({ todo, onOpen }: TodoCardProps) {
       style={style}
       aria-label={`Buka detail ${todo.code}`}
       className={cn(
-        "group cursor-pointer touch-none rounded-md transition-[box-shadow]",
+        "group cursor-pointer rounded-md transition-[box-shadow]",
         "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
         isDragging && "opacity-40"
       )}

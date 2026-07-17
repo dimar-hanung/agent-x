@@ -47,7 +47,7 @@ export function TodoKanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "bg-muted/40 flex min-h-[320px] w-11 shrink-0 flex-col items-center rounded-lg border transition-[border-color,box-shadow] duration-200 ease-out",
+          "bg-muted/40 flex min-h-[280px] w-11 shrink-0 flex-col items-center rounded-lg border transition-[border-color,box-shadow] duration-200 ease-out sm:min-h-[320px]",
           isHighlighted && "border-ring ring-ring ring-1 ring-inset"
         )}
       >
@@ -83,7 +83,7 @@ export function TodoKanbanColumn({
   return (
     <div
       className={cn(
-        "bg-muted/40 flex min-h-[320px] min-w-0 flex-1 flex-col rounded-lg border transition-[border-color,box-shadow] duration-200 ease-out",
+        "bg-muted/40 flex min-h-[280px] w-[min(85vw,20rem)] shrink-0 flex-col rounded-lg border transition-[border-color,box-shadow] duration-200 ease-out sm:min-h-[320px] md:w-auto md:min-w-0 md:flex-1 md:shrink",
         isHighlighted && "border-ring ring-ring ring-1 ring-inset"
       )}
     >

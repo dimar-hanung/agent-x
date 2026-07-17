@@ -99,6 +99,9 @@ export function TodoWorkspace({ initialTodos }: TodoWorkspaceProps) {
   const [deleteTarget, setDeleteTarget] = useState<TodoListItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [statusChangeError, setStatusChangeError] = useState<string | null>(
+    null
+  );
 
   const projects = useMemo(() => collectProjects(todos), [todos]);
   const filteredTodos = useMemo(
@@ -163,6 +166,51 @@ export function TodoWorkspace({ initialTodos }: TodoWorkspaceProps) {
     setTodos((prev) =>
       prev.map((item) => (item.id === data.todo!.id ? data.todo! : item))
     );
+  }
+
+  async function handleStatusChange(todo: TodoListItem, newStatus: TodoStatus) {
+    if (newStatus === todo.status) {
+      return;
+    }
+
+    const previousStatus = todo.status;
+    setStatusChangeError(null);
+
+    setTodos((prev) =>
+      prev.map((item) =>
+        item.id === todo.id ? { ...item, status: newStatus } : item
+      )
+    );
+
+    try {
+      const response = await fetch(`/api/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const data = (await response.json()) as {
+        todo?: TodoListItem;
+        message?: string;
+      };
+
+      if (!response.ok || !data.todo) {
+        throw new Error(data.message ?? "Gagal mengubah status.");
+      }
+
+      setTodos((prev) =>
+        prev.map((item) => (item.id === data.todo!.id ? data.todo! : item))
+      );
+    } catch (error) {
+      setTodos((prev) =>
+        prev.map((item) =>
+          item.id === todo.id ? { ...item, status: previousStatus } : item
+        )
+      );
+      setStatusChangeError(
+        error instanceof Error ? error.message : "Gagal mengubah status."
+      );
+    }
   }
 
   async function handleDelete() {
@@ -236,6 +284,12 @@ export function TodoWorkspace({ initialTodos }: TodoWorkspaceProps) {
         </p>
       ) : null}
 
+      {statusChangeError ? (
+        <p className="text-destructive text-sm" role="alert">
+          {statusChangeError}
+        </p>
+      ) : null}
+
       {view === "kanban" ? (
         <TodoKanban
           todos={filteredTodos}
@@ -248,6 +302,7 @@ export function TodoWorkspace({ initialTodos }: TodoWorkspaceProps) {
           todos={filteredTodos}
           onOpen={openTodoDetail}
           onDelete={setDeleteTarget}
+          onStatusChange={handleStatusChange}
         />
       )}
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { ChevronRightIcon, Trash2Icon } from "lucide-react";
+import { useState } from "react";
 
+import { TodoStatusSelect } from "./todo-status-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,20 +16,37 @@ import {
 } from "@/components/ui/table";
 import {
   formatTodoDate,
-  formatTodoStatus,
   formatTodoTimeWindow,
-  TODO_STATUS_COLORS,
 } from "@/lib/todos/labels";
 import type { TodoListItem } from "@/lib/todos/schemas";
-import { cn } from "@/lib/utils";
+import type { TodoStatus } from "@/lib/db/schema";
 
 interface TodoTableProps {
   todos: TodoListItem[];
   onOpen: (todo: TodoListItem) => void;
   onDelete: (todo: TodoListItem) => void;
+  onStatusChange: (
+    todo: TodoListItem,
+    status: TodoStatus
+  ) => void | Promise<void>;
 }
 
-export function TodoTable({ todos, onOpen, onDelete }: TodoTableProps) {
+export function TodoTable({
+  todos,
+  onOpen,
+  onDelete,
+  onStatusChange,
+}: TodoTableProps) {
+  const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+
+  async function handleStatusChange(todo: TodoListItem, status: TodoStatus) {
+    setPendingStatusId(todo.id);
+    try {
+      await onStatusChange(todo, status);
+    } finally {
+      setPendingStatusId(null);
+    }
+  }
   if (todos.length === 0) {
     return (
       <div className="text-muted-foreground flex flex-col items-center justify-center rounded-lg border border-dashed px-6 py-16 text-center text-sm">
@@ -78,12 +97,14 @@ export function TodoTable({ todos, onOpen, onDelete }: TodoTableProps) {
                 )}
               </TableCell>
               <TableCell>
-                <Badge
-                  variant="secondary"
-                  className={cn(TODO_STATUS_COLORS[todo.status].badge)}
-                >
-                  {formatTodoStatus(todo.status)}
-                </Badge>
+                <TodoStatusSelect
+                  value={todo.status}
+                  disabled={pendingStatusId === todo.id}
+                  ariaLabel={`Ubah status ${todo.code}`}
+                  onValueChange={(status) =>
+                    void handleStatusChange(todo, status)
+                  }
+                />
               </TableCell>
               <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                 {formatTodoTimeWindow(todo.startsAt, todo.endsAt) ?? (

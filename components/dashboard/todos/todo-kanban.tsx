@@ -3,7 +3,8 @@
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   pointerWithin,
   rectIntersection,
@@ -101,8 +102,11 @@ export function TodoKanban({
   const { isCollapsed, toggle } = useKanbanCollapsedStatuses();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: 6 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
     })
   );
 
@@ -288,7 +292,7 @@ export function TodoKanban({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex min-h-[320px] gap-3 overflow-x-auto p-0.5">
+      <div className="-mx-4 flex min-h-[280px] gap-3 overflow-x-auto overscroll-x-contain px-4 py-0.5 sm:min-h-[320px] md:mx-0 md:px-0.5">
         {TODO_STATUS_ORDER.map((status) => (
           <TodoKanbanColumn
             key={status}
