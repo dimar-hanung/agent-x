@@ -56,12 +56,14 @@ export async function createChatAgentForRun({
   user,
   chatId,
   instructions,
+  toolsOverride,
   onToolExecutionStart,
   onToolExecutionEnd,
 }: {
   user: UserContext;
   chatId: string;
   instructions?: string;
+  toolsOverride?: Partial<Record<ToolKey, Tool>>;
   onToolExecutionStart?: OnToolExecutionStartCallback;
   onToolExecutionEnd?: OnToolExecutionEndCallback;
 }) {
@@ -70,7 +72,7 @@ export async function createChatAgentForRun({
     chatId,
   } satisfies ChatAgentRuntimeContext;
 
-  const agent = await createChatAgent(user, runtimeContext, undefined, {
+  const agent = await createChatAgent(user, runtimeContext, toolsOverride, {
     instructions,
     onToolExecutionStart,
     onToolExecutionEnd,

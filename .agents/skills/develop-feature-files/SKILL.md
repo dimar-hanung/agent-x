@@ -14,10 +14,11 @@ description: >-
 - Touching SeaweedFS Docker Compose, S3 client, or storage env vars
 - Working on `list_files` / `upload_file` / `read_file` (AgentX storage, not Google Drive)
 - Quota, upload-session/confirm flow, or `user_files` schema
+- **PDF/DOCX indexing**, Docling, pgvector, file Q&A UI (`/dashboard/files/[fileId]`)
 
 ## Overview
 
-Private Drive-like storage per user. Blobs live in **SeaweedFS** (S3 API); hierarchy, sizes, and quota live in PostgreSQL (`user_files`). Hard cap **20 GiB** per user. No public share links. Google Drive OAuth tools remain separate.
+Private Drive-like storage per user. Blobs live in **SeaweedFS** (S3 API); hierarchy, sizes, and quota live in PostgreSQL (`user_files`). Hard cap **20 GiB** per user. **PDF/DOCX** uploaded via dashboard confirm are indexed asynchronously (Docling HybridChunker + OpenRouter embeddings → `user_file_chunks`). Users open **Tanya isi file** for RAG chat scoped to one document.
 
 ## Key locations
 
@@ -36,6 +37,14 @@ Private Drive-like storage per user. Blobs live in **SeaweedFS** (S3 API); hiera
 | AI tools | `lib/ai/tools/list-files/`, `upload-file/`, `read-file/` |
 | Prompt | `PROMPT_FILES` in `lib/ai/chat-config.ts` |
 | Env | `SEAWEEDFS_S3_*` in `.env.example` |
+| Docling client | `lib/docling/` |
+| Embeddings | `lib/ai/embeddings/openrouter-embeddings.ts` |
+| Index DB + RAG | `lib/files/index-repository.ts`, `lib/files/file-rag-context.ts` |
+| Index worker | `lib/files/indexing/`, `npm run files:index-worker` |
+| Index docs | `docs/file-indexing-docling.md` |
+| File chat UI | `app/dashboard/files/[fileId]/`, `file-chat-layout.tsx`, `file-preview-panel.tsx` |
+| Index APIs | `app/api/files/[id]/index`, `preview` |
+| Preview chunks | `listPreviewChunks` in `index-repository.ts`; preview API returns `kind: "chunks"` when index ready; UI renders each chunk via `MessageMarkdown` |
 
 ## Dashboard UI (Google Drive-like)
 
@@ -66,9 +75,24 @@ Notes for agents:
 ## Behavior agents must know
 
 - Object key: `users/{userId}/{fileId}/{sanitizedName}`
-- Browser upload: `POST upload-session` → client PUT to presigned URL → `POST confirm` (HeadObject → `ready`)
+- Browser upload: `POST upload-session` → client PUT to presigned URL → `POST confirm` (HeadObject → `ready`); PDF/DOCX confirm enqueues `user_file_indexes` when Docling configured
 - AI `upload_file`: server-side PutObject; max **5 MiB**; distinct from `upload_drive_file`
 - Soft-fail with `SEAWEEDFS_NOT_CONFIGURED` when env missing — Indonesian user messages
 - Quota: `SUM(size_bytes)` where `status = ready` vs `USER_STORAGE_QUOTA_BYTES` (20 GiB)
 - Isolation: all queries filter `userId`; no cross-user access; no unauthenticated download routes
 - Do not confuse with Google Drive tools (`search_drive`, `read_drive_file`, `upload_drive_file`)
+- Tanya isi preview: when index is `ready`, API returns discrete chunks (`kind: "chunks"`) with headings/pageNumbers; UI renders each via `MessageMarkdown` (not one concatenated markdown blob). PDF can still toggle native viewer via `pdfUrl`.
+
+## References
+
+- [docs/file-indexing-docling.md](../../../docs/file-indexing-docling.md) — when changing Docling indexing, worker, or file RAG chat
+
+## Learned user preferences
+
+- Prefer chunk-based document preview on Tanya isi (show indexed chunks individually with markdown rendering).
+- Chunk preview must surface Docling heading context explicitly ("Konteks"), not bury it in muted metadata.
+
+## Learned Workspace Facts
+
+- Preview endpoint switches to `kind: "chunks"` once indexing finishes; DOCX no longer relies on single `previewMarkdown` blob in the UI.
+- HybridChunker stores contextualized `text` in `chunk_text`; with `chunking_include_raw_text=true`, also stores `raw_text`. Preview shows headings as **Konteks** and body from raw when available.

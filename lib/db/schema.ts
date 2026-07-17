@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  customType,
   index,
   integer,
   jsonb,
@@ -11,6 +12,27 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
+import { toVectorLiteral } from "@/lib/db/pgvector";
+
+const vector3072 = customType<{ data: number[]; driverData: string }>({
+  dataType() {
+    return "vector(3072)";
+  },
+  toDriver(value: number[]) {
+    return toVectorLiteral(value);
+  },
+  fromDriver(value: string) {
+    if (!value) {
+      return [];
+    }
+    const trimmed = value.trim();
+    if (trimmed.startsWith("[")) {
+      return JSON.parse(trimmed) as number[];
+    }
+    return [];
+  },
+});
 
 export const CHAT_KINDS = ["channel", "conversation"] as const;
 export type ChatKind = (typeof CHAT_KINDS)[number];
@@ -107,12 +129,16 @@ export const chats = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    sourceFileId: uuid("source_file_id").references(() => userFiles.id, {
+      onDelete: "set null",
+    }),
   },
   (table) => [
     index("chats_user_id_updated_at_idx").on(table.userId, table.updatedAt),
     uniqueIndex("chats_user_channel_idx")
       .on(table.userId)
       .where(sql`${table.kind} = 'channel'`),
+    index("chats_user_source_file_idx").on(table.userId, table.sourceFileId),
   ]
 );
 
@@ -389,6 +415,74 @@ export const userFiles = pgTable(
   ]
 );
 
+export const USER_FILE_INDEX_STATUSES = [
+  "pending",
+  "processing",
+  "ready",
+  "failed",
+] as const;
+export type UserFileIndexStatus = (typeof USER_FILE_INDEX_STATUSES)[number];
+
+export const userFileIndexes = pgTable(
+  "user_file_indexes",
+  {
+    fileId: uuid("file_id")
+      .primaryKey()
+      .references(() => userFiles.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    errorMessage: text("error_message"),
+    previewMarkdown: text("preview_markdown"),
+    chunkCount: integer("chunk_count").notNull().default(0),
+    embeddingModel: varchar("embedding_model", { length: 128 }),
+    indexedAt: timestamp("indexed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("user_file_indexes_user_status_idx").on(table.userId, table.status),
+    index("user_file_indexes_status_created_idx").on(
+      table.status,
+      table.createdAt
+    ),
+  ]
+);
+
+export const userFileChunks = pgTable(
+  "user_file_chunks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => userFiles.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    chunkIndex: integer("chunk_index").notNull(),
+    chunkText: text("chunk_text").notNull(),
+    rawText: text("raw_text"),
+    headings: jsonb("headings"),
+    pageNumbers: jsonb("page_numbers"),
+    embedding: vector3072("embedding").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("user_file_chunks_user_file_idx").on(table.userId, table.fileId),
+    uniqueIndex("user_file_chunks_file_chunk_idx").on(
+      table.fileId,
+      table.chunkIndex
+    ),
+  ]
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
@@ -401,3 +495,5 @@ export type ApiKey = typeof apiKeys.$inferSelect;
 export type UserMemory = typeof userMemories.$inferSelect;
 export type ApifySocialSnapshot = typeof apifySocialSnapshots.$inferSelect;
 export type UserFile = typeof userFiles.$inferSelect;
+export type UserFileIndex = typeof userFileIndexes.$inferSelect;
+export type UserFileChunk = typeof userFileChunks.$inferSelect;

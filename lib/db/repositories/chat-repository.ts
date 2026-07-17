@@ -98,12 +98,53 @@ export async function getChatOwner(chatId: string): Promise<string | null> {
 
 export async function createChatWithId(
   userId: string,
-  chatId: string
+  chatId: string,
+  options?: { sourceFileId?: string; title?: string }
 ): Promise<void> {
   await db
     .insert(chats)
-    .values({ id: chatId, userId, kind: "conversation" })
+    .values({
+      id: chatId,
+      userId,
+      kind: "conversation",
+      title: options?.title ?? DEFAULT_CHAT_TITLE,
+      sourceFileId: options?.sourceFileId ?? null,
+    })
     .onConflictDoNothing({ target: chats.id });
+}
+
+export async function findChatIdBySourceFile(
+  userId: string,
+  sourceFileId: string
+): Promise<string | null> {
+  const [row] = await db
+    .select({ id: chats.id })
+    .from(chats)
+    .where(
+      and(eq(chats.userId, userId), eq(chats.sourceFileId, sourceFileId))
+    )
+    .orderBy(desc(chats.updatedAt))
+    .limit(1);
+
+  return row?.id ?? null;
+}
+
+export async function getOrCreateChatForFile(
+  userId: string,
+  fileId: string,
+  fileName: string
+): Promise<string> {
+  const existing = await findChatIdBySourceFile(userId, fileId);
+  if (existing) {
+    return existing;
+  }
+
+  const chatId = crypto.randomUUID();
+  await createChatWithId(userId, chatId, {
+    sourceFileId: fileId,
+    title: fileName,
+  });
+  return chatId;
 }
 
 export async function listChatsForUser(userId: string): Promise<ChatSummary[]> {

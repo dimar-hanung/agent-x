@@ -12,4 +12,5 @@ export const appRoutes = {
   memories: "/dashboard/memories",
   schedules: "/dashboard/schedules",
   files: "/dashboard/files",
+  filesFileChat: (fileId: string) => `/dashboard/files/${fileId}`,
 } as const;

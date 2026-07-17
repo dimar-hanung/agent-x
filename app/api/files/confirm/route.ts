@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 
 import { UnauthorizedError, resolveUser } from "@/lib/ai/roles/resolve-user";
 import {
+  isIndexableFile,
   SEAWEEDFS_NOT_CONFIGURED_CODE,
   SEAWEEDFS_NOT_CONFIGURED_MESSAGE,
 } from "@/lib/files/constants";
+import { enqueueFileIndex } from "@/lib/files/index-repository";
+import { isDoclingConfigured } from "@/lib/docling/env";
 import {
   FilesError,
   cleanupStalePending,
@@ -45,6 +48,17 @@ export async function POST(request: Request) {
 
     try {
       const file = await confirmUpload(user.userId, parsed.data.fileId);
+
+      if (
+        isDoclingConfigured() &&
+        file.kind === "file" &&
+        isIndexableFile(file.mimeType, file.name)
+      ) {
+        await enqueueFileIndex(user.userId, file.id).catch((error) => {
+          console.error("enqueueFileIndex error:", error);
+        });
+      }
+
       return NextResponse.json({ file });
     } catch (error) {
       // If confirm fails (object missing), drop pending row
