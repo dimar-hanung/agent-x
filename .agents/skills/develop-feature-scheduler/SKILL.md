@@ -42,9 +42,22 @@ User-scoped **recurring** AI automations (`schedule_kind: cron` only). Created v
 - Statuses: `active` \| `paused` \| `completed` \| `cancelled`
 - Lists (API, dashboard, chat, list_schedules) filter `scheduleKind: cron`
 - Dashboard: list, filter, pause, resume, cancel
+- Dashboard never shows raw cron; use `formatCronExpression` (e.g. `0 9 * * *` → "Setiap hari pukul 09.00")
 - UI Bahasa Indonesia label: **Otomatisasi** (not Jadwal)
 - Not the same as todo `starts_at` reminders
 - Scheduled runs go through `processChannelMessage` (`source: "scheduler"`) and mirror replies to WhatsApp when channel + phone are set
 - Todo due query (`listTodosDueToStart`) must use drizzle `lte` / `isNotNull` — never interpolate a `Date` into `sql\`...\`` (postgres.js throws and crash-loops the worker)
 - Worker `syncSchedules` must not let todo-notify failures kill cron registration (log and continue)
 - Run via PM2 `agentx-scheduler` (`npm run scheduler:worker`, env `--env-file=.env`)
+
+## References
+
+- (none)
+
+## Learned user preferences
+
+- On Otomatisasi dashboard, show human-readable schedule labels (Bahasa Indonesia), not raw cron
+
+## Learned Workspace Facts
+
+- `formatCronExpression` in `lib/scheduler/format-schedule.ts` converts common 5-field cron to ID labels; unknown patterns fall back to "Jadwal berulang"

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { appRoutes } from "@/lib/site-config";
 import {
+  formatCronExpression,
   formatNextRunAt,
   formatScheduleKind,
   formatScheduleStatus,
@@ -190,8 +191,8 @@ export function ScheduleWorkspace({ initialSchedules }: ScheduleWorkspaceProps) 
                             {schedule.lastError}
                           </p>
                         ) : schedule.cronExpression ? (
-                          <p className="text-muted-foreground mt-0.5 font-mono text-xs">
-                            {schedule.cronExpression}
+                          <p className="text-muted-foreground mt-0.5 text-xs">
+                            {formatCronExpression(schedule.cronExpression)}
                           </p>
                         ) : null}
                       </div>
