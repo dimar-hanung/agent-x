@@ -9,6 +9,7 @@ import type { PreparedApifyRequest } from "./types";
 
 const DEFAULT_TIKTOK_RESULTS_PER_PAGE = 20;
 const DEFAULT_TWITTER_MAX_ITEMS = 100;
+const DEFAULT_TWITTER_LATEST_DAYS = 7;
 const DEFAULT_THREADS_MAX_POSTS = 20;
 
 interface TikTokRequestInput {
@@ -41,31 +42,67 @@ interface TikTokRequestInput {
 }
 
 interface TwitterRequestInput {
-  start_urls?: string[];
+  query?: string;
   search_terms?: string[];
-  twitter_handles?: string[];
-  conversation_ids?: string[];
-  max_items?: number;
-  sort?: "Top" | "Latest" | "Latest + Top";
-  tweet_language?: string;
-  only_verified_users?: boolean;
-  only_twitter_blue?: boolean;
-  only_image?: boolean;
-  only_video?: boolean;
-  only_quote?: boolean;
-  author?: string;
-  in_reply_to?: string;
-  mentioning?: string;
-  geotagged_near?: string;
-  within_radius?: string;
-  geocode?: string;
-  place_object_id?: string;
-  minimum_retweets?: number;
-  minimum_favorites?: number;
-  minimum_replies?: number;
-  start?: string;
-  end?: string;
-  include_search_terms?: boolean;
+  latest?: boolean;
+  number_of_tweets?: number;
+  scrape_all?: boolean;
+  engagement_level?: "none" | "low" | "medium" | "high" | "viral";
+  engagement_min_retweets?: number;
+  engagement_max_retweets?: number;
+  engagement_min_likes?: number;
+  engagement_max_likes?: number;
+  engagement_min_replies?: number;
+  engagement_max_replies?: number;
+  engagement_has_engagement?: boolean;
+  media_types?: string[];
+  media_has_links?: boolean;
+  media_has_mentions?: boolean;
+  media_has_hashtags?: boolean;
+  media_news_only?: boolean;
+  media_safe_content_only?: boolean;
+  users_blue_verified_only?: boolean;
+  users_verified_only?: boolean;
+  users_from_users?: string[];
+  users_to_users?: string[];
+  users_mention_users?: string[];
+  users_exclude_from_users?: string[];
+  users_list_members?: string[];
+  content_language?: string;
+  content_emoticons?: "positive" | "negative";
+  content_keywords?: string[];
+  content_exact_phrases?: string[];
+  content_exclude_keywords?: string[];
+  content_hashtags?: string[];
+  content_exclude_hashtags?: string[];
+  content_cashtags?: string[];
+  content_question_marks?: boolean;
+  tweet_types?: string[];
+  tweet_types_exclude?: string[];
+  tweet_conversation_id?: string;
+  tweet_quoted_tweet_id?: string;
+  tweet_quoted_user_id?: string;
+  tweet_poll_types?: string[];
+  time_since?: string;
+  time_until?: string;
+  time_within_time?: string;
+  time_since_unix?: number;
+  time_until_unix?: number;
+  time_since_id?: string;
+  time_max_id?: string;
+  geo_near?: string;
+  geo_within_radius?: string;
+  geo_geocode?: string;
+  geo_place_id?: string;
+  apps_sources?: string[];
+  apps_exclude_sources?: string[];
+  card_domain?: string;
+  card_url?: string;
+  card_name?: string;
+}
+
+interface BuildTwitterApifyRequestOptions {
+  now?: Date;
 }
 
 interface ThreadsRequestInput {
@@ -183,85 +220,168 @@ export function buildTikTokApifyRequest(input: TikTokRequestInput): PreparedApif
   });
 }
 
-export function buildTwitterApifyRequest(input: TwitterRequestInput): PreparedApifyRequest {
-  const startUrls = normalizeStringArray(input.start_urls);
+export function buildTwitterApifyRequest(
+  input: TwitterRequestInput,
+  options: BuildTwitterApifyRequestOptions = {}
+): PreparedApifyRequest {
+  const explicitQuery = normalizeOptionalString(input.query);
   const searchTerms = normalizeStringArray(input.search_terms);
-  const twitterHandles = normalizeStringArray(input.twitter_handles);
-  const conversationIds = normalizeStringArray(input.conversation_ids);
-  const author = normalizeOptionalString(input.author);
-  const inReplyTo = normalizeOptionalString(input.in_reply_to);
-  const mentioning = normalizeOptionalString(input.mentioning);
-
-  if (
-    startUrls.length === 0 &&
-    searchTerms.length === 0 &&
-    twitterHandles.length === 0 &&
-    conversationIds.length === 0 &&
-    !author &&
-    !inReplyTo &&
-    !mentioning
-  ) {
-    throw new Error("Isi minimal satu sumber Twitter/X: URL, search term, handle, conversation ID, author, reply, atau mention.");
-  }
-
-  const maxItems = input.max_items ?? DEFAULT_TWITTER_MAX_ITEMS;
-  const sort = input.sort ?? "Latest";
+  const query =
+    explicitQuery ??
+    (searchTerms.length > 0 ? buildCombinedSearchQuery(searchTerms) : undefined);
+  const numberOfTweets = input.number_of_tweets ?? DEFAULT_TWITTER_MAX_ITEMS;
+  const explicitRelativeTime = normalizeOptionalString(input.time_within_time);
+  const hasAlternateTimeFilter =
+    Boolean(explicitRelativeTime) ||
+    input.time_since_unix !== undefined ||
+    input.time_until_unix !== undefined ||
+    Boolean(normalizeOptionalString(input.time_since_id)) ||
+    Boolean(normalizeOptionalString(input.time_max_id));
+  const latestRange = input.latest && !hasAlternateTimeFilter
+    ? buildLatestTwitterDateRange(options.now ?? new Date())
+    : undefined;
+  const timeSince = normalizeOptionalString(input.time_since) ?? latestRange?.start;
+  const timeUntil = normalizeOptionalString(input.time_until) ?? latestRange?.end;
 
   const normalizedInput = compactObject({
-    start_urls: startUrls,
-    search_terms: searchTerms,
-    twitter_handles: twitterHandles,
-    conversation_ids: conversationIds,
-    max_items: maxItems,
-    sort,
-    tweet_language: normalizeOptionalString(input.tweet_language)?.toLowerCase(),
-    only_verified_users: input.only_verified_users ?? false,
-    only_twitter_blue: input.only_twitter_blue ?? false,
-    only_image: input.only_image ?? false,
-    only_video: input.only_video ?? false,
-    only_quote: input.only_quote ?? false,
-    author,
-    in_reply_to: inReplyTo,
-    mentioning,
-    geotagged_near: normalizeOptionalString(input.geotagged_near),
-    within_radius: normalizeOptionalString(input.within_radius),
-    geocode: normalizeOptionalString(input.geocode),
-    place_object_id: normalizeOptionalString(input.place_object_id),
-    minimum_retweets: input.minimum_retweets,
-    minimum_favorites: input.minimum_favorites,
-    minimum_replies: input.minimum_replies,
-    start: normalizeOptionalString(input.start),
-    end: normalizeOptionalString(input.end),
-    include_search_terms: input.include_search_terms ?? false,
+    query,
+    search_type: "Top",
+    number_of_tweets: numberOfTweets,
+    scrape_all: input.scrape_all ?? false,
+    engagement_level: input.engagement_level ?? "none",
+    engagement_min_retweets: input.engagement_min_retweets,
+    engagement_max_retweets: input.engagement_max_retweets,
+    engagement_min_likes: input.engagement_min_likes,
+    engagement_max_likes: input.engagement_max_likes,
+    engagement_min_replies: input.engagement_min_replies,
+    engagement_max_replies: input.engagement_max_replies,
+    engagement_has_engagement: input.engagement_has_engagement,
+    media_types: normalizeStringArray(input.media_types),
+    media_has_links: input.media_has_links,
+    media_has_mentions: input.media_has_mentions,
+    media_has_hashtags: input.media_has_hashtags,
+    media_news_only: input.media_news_only,
+    media_safe_content_only: input.media_safe_content_only,
+    users_blue_verified_only: input.users_blue_verified_only,
+    users_verified_only: input.users_verified_only,
+    users_from_users: normalizeStringArray(input.users_from_users),
+    users_to_users: normalizeStringArray(input.users_to_users),
+    users_mention_users: normalizeStringArray(input.users_mention_users),
+    users_exclude_from_users: normalizeStringArray(
+      input.users_exclude_from_users
+    ),
+    users_list_members: normalizeStringArray(input.users_list_members),
+    content_language: normalizeOptionalString(
+      input.content_language
+    )?.toLowerCase(),
+    content_emoticons: input.content_emoticons,
+    content_keywords: normalizeStringArray(input.content_keywords),
+    content_exact_phrases: normalizeStringArray(input.content_exact_phrases),
+    content_exclude_keywords: normalizeStringArray(
+      input.content_exclude_keywords
+    ),
+    content_hashtags: normalizeStringArray(input.content_hashtags),
+    content_exclude_hashtags: normalizeStringArray(
+      input.content_exclude_hashtags
+    ),
+    content_cashtags: normalizeStringArray(input.content_cashtags),
+    content_question_marks: input.content_question_marks,
+    tweet_types: normalizeStringArray(input.tweet_types),
+    tweet_types_exclude: normalizeStringArray(input.tweet_types_exclude),
+    tweet_conversation_id: normalizeOptionalString(
+      input.tweet_conversation_id
+    ),
+    tweet_quoted_tweet_id: normalizeOptionalString(input.tweet_quoted_tweet_id),
+    tweet_quoted_user_id: normalizeOptionalString(input.tweet_quoted_user_id),
+    tweet_poll_types: normalizeStringArray(input.tweet_poll_types),
+    time_since: timeSince,
+    time_until: timeUntil,
+    time_within_time: explicitRelativeTime,
+    time_since_unix: input.time_since_unix,
+    time_until_unix: input.time_until_unix,
+    time_since_id: normalizeOptionalString(input.time_since_id),
+    time_max_id: normalizeOptionalString(input.time_max_id),
+    geo_near: normalizeOptionalString(input.geo_near),
+    geo_within_radius: normalizeOptionalString(input.geo_within_radius),
+    geo_geocode: normalizeOptionalString(input.geo_geocode),
+    geo_place_id: normalizeOptionalString(input.geo_place_id),
+    apps_sources: normalizeStringArray(input.apps_sources),
+    apps_exclude_sources: normalizeStringArray(input.apps_exclude_sources),
+    card_domain: normalizeOptionalString(input.card_domain),
+    card_url: normalizeOptionalString(input.card_url),
+    card_name: input.card_name,
   });
 
   const actorInput = compactObject({
-    startUrls,
-    searchTerms,
-    twitterHandles,
-    conversationIds,
-    maxItems,
-    sort,
-    tweetLanguage: normalizeOptionalString(input.tweet_language)?.toLowerCase(),
-    onlyVerifiedUsers: input.only_verified_users ?? false,
-    onlyTwitterBlue: input.only_twitter_blue ?? false,
-    onlyImage: input.only_image ?? false,
-    onlyVideo: input.only_video ?? false,
-    onlyQuote: input.only_quote ?? false,
-    author,
-    inReplyTo,
-    mentioning,
-    geotaggedNear: normalizeOptionalString(input.geotagged_near),
-    withinRadius: normalizeOptionalString(input.within_radius),
-    geocode: normalizeOptionalString(input.geocode),
-    placeObjectId: normalizeOptionalString(input.place_object_id),
-    minimumRetweets: input.minimum_retweets,
-    minimumFavorites: input.minimum_favorites,
-    minimumReplies: input.minimum_replies,
-    start: normalizeOptionalString(input.start),
-    end: normalizeOptionalString(input.end),
-    includeSearchTerms: input.include_search_terms ?? false,
+    query,
+    search_type: "Top",
+    numberOfTweets,
+    scrapeAll: input.scrape_all ?? false,
+    engagementLevel: input.engagement_level ?? "none",
+    engagementMinRetweets: input.engagement_min_retweets,
+    engagementMaxRetweets: input.engagement_max_retweets,
+    engagementMinLikes: input.engagement_min_likes,
+    engagementMaxLikes: input.engagement_max_likes,
+    engagementMinReplies: input.engagement_min_replies,
+    engagementMaxReplies: input.engagement_max_replies,
+    engagementHasEngagement: input.engagement_has_engagement,
+    mediaTypes: normalizeStringArray(input.media_types),
+    mediaHasLinks: input.media_has_links,
+    mediaHasMentions: input.media_has_mentions,
+    mediaHasHashtags: input.media_has_hashtags,
+    mediaNewsOnly: input.media_news_only,
+    mediaSafeContentOnly: input.media_safe_content_only,
+    usersBlueVerifiedOnly: input.users_blue_verified_only,
+    usersVerifiedOnly: input.users_verified_only,
+    usersFromUsers: normalizeStringArray(input.users_from_users),
+    usersToUsers: normalizeStringArray(input.users_to_users),
+    usersMentionUsers: normalizeStringArray(input.users_mention_users),
+    usersExcludeFromUsers: normalizeStringArray(input.users_exclude_from_users),
+    usersListMembers: normalizeStringArray(input.users_list_members),
+    contentLanguage: normalizeOptionalString(
+      input.content_language
+    )?.toLowerCase(),
+    contentEmoticons: input.content_emoticons,
+    contentKeywords: normalizeStringArray(input.content_keywords),
+    contentExactPhrases: normalizeStringArray(input.content_exact_phrases),
+    contentExcludeKeywords: normalizeStringArray(
+      input.content_exclude_keywords
+    ),
+    contentHashtags: normalizeStringArray(input.content_hashtags),
+    contentExcludeHashtags: normalizeStringArray(
+      input.content_exclude_hashtags
+    ),
+    contentCashtags: normalizeStringArray(input.content_cashtags),
+    contentQuestionMarks: input.content_question_marks,
+    tweetTypes: normalizeStringArray(input.tweet_types),
+    tweetTypesExclude: normalizeStringArray(input.tweet_types_exclude),
+    tweetConversationId: normalizeOptionalString(input.tweet_conversation_id),
+    tweetQuotedTweetId: normalizeOptionalString(input.tweet_quoted_tweet_id),
+    tweetQuotedUserId: normalizeOptionalString(input.tweet_quoted_user_id),
+    tweetPollTypes: normalizeStringArray(input.tweet_poll_types),
+    timeSince,
+    timeUntil,
+    timeWithinTime: explicitRelativeTime,
+    timeSinceUnix: input.time_since_unix,
+    timeUntilUnix: input.time_until_unix,
+    timeSinceId: normalizeOptionalString(input.time_since_id),
+    timeMaxId: normalizeOptionalString(input.time_max_id),
+    geoNear: normalizeOptionalString(input.geo_near),
+    geoWithinRadius: normalizeOptionalString(input.geo_within_radius),
+    geoGeocode: normalizeOptionalString(input.geo_geocode),
+    geoPlaceId: normalizeOptionalString(input.geo_place_id),
+    appsSources: normalizeStringArray(input.apps_sources),
+    appsExcludeSources: normalizeStringArray(input.apps_exclude_sources),
+    cardDomain: normalizeOptionalString(input.card_domain),
+    cardUrl: normalizeOptionalString(input.card_url),
+    cardName: input.card_name,
   });
+
+  if (!hasTwitterSearchCriteria(actorInput)) {
+    throw new Error(
+      "Isi query, search term, atau minimal satu filter pencarian Twitter/X."
+    );
+  }
 
   return withHash({
     platform: "twitter",
@@ -311,5 +431,85 @@ export function buildThreadsApifyRequest(input: ThreadsRequestInput): PreparedAp
     actorId: APIFY_SOCIAL_ACTORS.threads,
     normalizedInput,
     actorInput,
+  });
+}
+
+function datePartsInJakarta(date: Date): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day),
+  };
+}
+
+function formatUtcDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function buildLatestTwitterDateRange(now: Date): {
+  start: string;
+  end: string;
+} {
+  const { year, month, day } = datePartsInJakarta(now);
+  const today = new Date(Date.UTC(year, month - 1, day));
+  const dayInMs = 24 * 60 * 60 * 1000;
+
+  return {
+    start: formatUtcDate(
+      new Date(today.getTime() - DEFAULT_TWITTER_LATEST_DAYS * dayInMs)
+    ),
+    // Actor's end date is exclusive, so tomorrow keeps today's posts included.
+    end: formatUtcDate(new Date(today.getTime() + dayInMs)),
+  };
+}
+
+const TWITTER_NON_SEARCH_FIELDS = new Set([
+  "search_type",
+  "numberOfTweets",
+  "scrapeAll",
+  "timeSince",
+  "timeUntil",
+  "timeWithinTime",
+  "timeSinceUnix",
+  "timeUntilUnix",
+  "timeSinceId",
+  "timeMaxId",
+]);
+
+function hasTwitterSearchCriteria(input: Record<string, unknown>): boolean {
+  return Object.entries(input).some(([key, value]) => {
+    if (TWITTER_NON_SEARCH_FIELDS.has(key)) {
+      return false;
+    }
+
+    if (key === "engagementLevel" && value === "none") {
+      return false;
+    }
+
+    if (typeof value === "string") {
+      return value.trim().length > 0;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    if (typeof value === "number") {
+      return true;
+    }
+
+    return value === true;
   });
 }

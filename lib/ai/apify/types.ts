@@ -14,6 +14,7 @@ export interface ApifyPreviewItem {
   title?: string;
   text?: string;
   url?: string;
+  imageUrl?: string;
   author?: string;
   createdAt?: string;
   metrics?: Record<string, number>;

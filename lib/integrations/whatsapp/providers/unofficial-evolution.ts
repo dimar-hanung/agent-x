@@ -4,10 +4,12 @@ import { normalizePhoneE164 } from "../phone";
 import type {
   WhatsAppConnectionStatus,
   WhatsAppInboundMessage,
+  WhatsAppMediaMessage,
   WhatsAppPresence,
   WhatsAppQrCode,
   WhatsAppReadMessage,
   WhatsAppSendResult,
+  WhatsAppTextOptions,
   WhatsAppWebhookPayload,
 } from "../types";
 
@@ -323,7 +325,8 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
   async sendText(
     instanceName: string,
     toPhoneE164: string,
-    text: string
+    text: string,
+    options?: WhatsAppTextOptions
   ): Promise<WhatsAppSendResult> {
     const digits = toPhoneE164.replace(/\D/g, "");
 
@@ -333,6 +336,9 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
         body: JSON.stringify({
           number: digits,
           text,
+          ...(options?.linkPreview !== undefined
+            ? { linkPreview: options.linkPreview }
+            : {}),
         }),
       });
 
@@ -342,6 +348,38 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
         success: false,
         error:
           error instanceof Error ? error.message : "Gagal mengirim pesan WhatsApp.",
+      };
+    }
+  }
+
+  async sendMedia(
+    instanceName: string,
+    toPhoneE164: string,
+    media: WhatsAppMediaMessage
+  ): Promise<WhatsAppSendResult> {
+    const digits = toPhoneE164.replace(/\D/g, "");
+
+    try {
+      await this.request(`/message/sendMedia/${instanceName}`, {
+        method: "POST",
+        body: JSON.stringify({
+          number: digits,
+          mediatype: media.mediaType,
+          mimetype: media.mimeType,
+          caption: media.caption,
+          media: media.mediaUrl,
+          fileName: media.fileName,
+        }),
+      });
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Gagal mengirim media WhatsApp.",
       };
     }
   }

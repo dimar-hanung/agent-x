@@ -2,7 +2,7 @@ import type { ApifySocialPlatform } from "@/lib/db/schema";
 
 export const APIFY_SOCIAL_ACTORS = {
   tiktok: "clockworks~tiktok-scraper",
-  twitter: "apidojo~tweet-scraper",
+  twitter: "api-ninja~x-twitter-advanced-search",
   threads: "igview-owner~threads-search-scraper",
 } as const satisfies Record<ApifySocialPlatform, string>;
 

@@ -1,10 +1,12 @@
 import type {
   WhatsAppConnectionStatus,
   WhatsAppInboundMessage,
+  WhatsAppMediaMessage,
   WhatsAppPresence,
   WhatsAppQrCode,
   WhatsAppReadMessage,
   WhatsAppSendResult,
+  WhatsAppTextOptions,
   WhatsAppWebhookPayload,
 } from "./types";
 
@@ -26,7 +28,14 @@ export interface WhatsAppProvider {
   sendText(
     instanceName: string,
     toPhoneE164: string,
-    text: string
+    text: string,
+    options?: WhatsAppTextOptions
+  ): Promise<WhatsAppSendResult>;
+
+  sendMedia(
+    instanceName: string,
+    toPhoneE164: string,
+    media: WhatsAppMediaMessage
   ): Promise<WhatsAppSendResult>;
 
   /** Mark inbound messages as read (blue ticks). */

@@ -8,6 +8,10 @@ import {
 } from "@/lib/db/schema";
 import { getEvolutionConfig } from "@/lib/integrations/whatsapp/env";
 import { getWhatsAppProvider } from "@/lib/integrations/whatsapp/factory";
+import type {
+  WhatsAppMediaMessage,
+  WhatsAppTextOptions,
+} from "@/lib/integrations/whatsapp/types";
 import {
   normalizePhoneE164,
 } from "@/lib/integrations/whatsapp/phone";
@@ -240,7 +244,8 @@ export async function getUserPairingStatus(
 
 export async function sendWhatsAppToUser(
   userId: string,
-  text: string
+  text: string,
+  options?: WhatsAppTextOptions
 ): Promise<void> {
   const connected = await isChannelConnected();
 
@@ -258,7 +263,34 @@ export async function sendWhatsAppToUser(
   }
 
   const provider = getWhatsAppProvider();
-  await provider.sendText(config.instanceName, phone, text);
+  await provider.sendText(config.instanceName, phone, text, options);
+}
+
+export async function sendWhatsAppMediaToUser(
+  userId: string,
+  media: WhatsAppMediaMessage
+): Promise<void> {
+  const connected = await isChannelConnected();
+
+  if (!connected) {
+    return;
+  }
+
+  const [phone, config] = await Promise.all([
+    getUserWhatsAppPhone(userId),
+    getOrCreateConfigRow(),
+  ]);
+
+  if (!phone) {
+    return;
+  }
+
+  const provider = getWhatsAppProvider();
+  const result = await provider.sendMedia(config.instanceName, phone, media);
+
+  if (!result.success) {
+    throw new Error(result.error ?? "Gagal mengirim media WhatsApp.");
+  }
 }
 
 export async function sendWhatsAppToPhone(

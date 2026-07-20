@@ -20,6 +20,15 @@ function readPath(item: Record<string, unknown>, path: string): unknown {
   let current: unknown = item;
 
   for (const key of path.split(".")) {
+    if (Array.isArray(current)) {
+      const index = Number(key);
+      if (!Number.isInteger(index) || index < 0 || index >= current.length) {
+        return undefined;
+      }
+      current = current[index];
+      continue;
+    }
+
     const record = asRecord(current);
     if (!record || !(key in record)) {
       return undefined;
@@ -42,6 +51,26 @@ export function readString(
   }
 
   return undefined;
+}
+
+function readHttpUrl(
+  item: Record<string, unknown>,
+  paths: string[]
+): string | undefined {
+  const value = readString(item, paths);
+
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function readNumber(
@@ -92,6 +121,18 @@ function previewTikTok(item: Record<string, unknown>): ApifyPreviewItem {
       "videoMeta.description",
     ]),
     url: readString(item, ["webVideoUrl", "shareUrl", "videoUrl", "url"]),
+    imageUrl: readHttpUrl(item, [
+      "videoMeta.coverUrl",
+      "videoMeta.originalCoverUrl",
+      "covers.default",
+      "covers.origin",
+      "covers.dynamic",
+      "imagePost.coverImages.0",
+      "imagePost.images.0",
+      "thumbnailUrl",
+      "thumbnail",
+      "cover",
+    ]),
     author: readString(item, [
       "authorMeta.name",
       "authorMeta.nickName",
@@ -113,19 +154,42 @@ function previewTikTok(item: Record<string, unknown>): ApifyPreviewItem {
 
 function previewTwitter(item: Record<string, unknown>): ApifyPreviewItem {
   return {
-    text: readString(item, ["text", "fullText", "full_text", "tweetText"]),
+    text: readString(item, [
+      "text",
+      "fullText",
+      "full_text",
+      "tweetText",
+      "noteTweet.text",
+      "article.previewText",
+      "article.title",
+    ]),
     url: readString(item, ["url", "twitterUrl", "tweetUrl"]),
+    imageUrl: readHttpUrl(item, [
+      "media.photo.0.media_url_https",
+      "media.video.media_url_https",
+      "media.animated_gif.media_url_https",
+      "media.0.media_url_https",
+      "media.0.url",
+      "entities.media.0.media_url_https",
+      "extendedEntities.media.0.media_url_https",
+      "extended_entities.media.0.media_url_https",
+      "card.binding_values.thumbnail_image_large.image_value.url",
+      "card.binding_values.thumbnail_image.image_value.url",
+    ]),
     author: readString(item, [
       "author.userName",
       "author.username",
       "author.name",
       "user.username",
       "user.screen_name",
+      "user_info.screen_name",
+      "user_info.name",
+      "screen_name",
       "username",
     ]),
     createdAt: readString(item, ["createdAt", "created_at", "timestamp"]),
     metrics: collectMetrics(item, {
-      likes: ["likeCount", "favoriteCount", "likes"],
+      likes: ["likeCount", "favoriteCount", "favorites", "likes"],
       retweets: ["retweetCount", "retweets"],
       replies: ["replyCount", "reply_count", "replies"],
       quotes: ["quoteCount", "quotes"],
@@ -143,6 +207,15 @@ function previewThreads(item: Record<string, unknown>): ApifyPreviewItem {
       "text",
     ]),
     url: readString(item, ["postUrl", "thread_url", "url"]),
+    imageUrl: readHttpUrl(item, [
+      "imageUrl",
+      "thumbnailUrl",
+      "linkPreviewImageUrl",
+      "image_url",
+      "thumbnail_url",
+      "media.0.url",
+      "media.0.imageUrl",
+    ]),
     author: readString(item, ["username", "user.username", "user.full_name"]),
     createdAt: readString(item, ["takenAtISO", "timestamp", "takenAtFormatted"]),
     metrics: collectMetrics(item, {
@@ -172,10 +245,20 @@ export function buildPreviewItems(
   items: unknown[],
   limit = 5
 ): ApifyPreviewItem[] {
-  return items.slice(0, limit).flatMap((item) => {
+  const previews: ApifyPreviewItem[] = [];
+
+  for (const item of items) {
+    if (previews.length >= limit) {
+      break;
+    }
+
     const record = asRecord(item);
     if (!record) {
-      return [];
+      continue;
+    }
+
+    if (platform === "twitter" && record.noResults === true) {
+      continue;
     }
 
     const preview =
@@ -187,8 +270,22 @@ export function buildPreviewItems(
             ? previewThreads(record)
             : previewGeneric(record);
 
-    return [preview];
-  });
+    if (
+      !preview.text &&
+      !preview.title &&
+      !preview.url &&
+      !preview.imageUrl &&
+      !preview.author &&
+      !preview.createdAt &&
+      !preview.metrics
+    ) {
+      continue;
+    }
+
+    previews.push(preview);
+  }
+
+  return previews;
 }
 
 export function formatPreviewBullet(item: ApifyPreviewItem): string {
