@@ -9,10 +9,19 @@ import type {
   ApifySocialPlatform,
   ApifySocialSnapshot,
 } from "@/lib/db/schema";
-import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
+import {
+  sendWhatsAppMediaToUser,
+  sendWhatsAppToUser,
+} from "@/lib/integrations/whatsapp-channel-repository";
 
 import { generateApifySnapshotAnalysis } from "./analysis";
-import { platformLabel } from "./preview";
+import {
+  buildPreviewItems,
+  getSnapshotItems,
+  platformLabel,
+} from "./preview";
+import { buildSocialMediaCard } from "./social-card";
+import type { ApifyPreviewItem } from "./types";
 
 function formatFailedText(snapshot: ApifySocialSnapshot): string {
   const platform = platformLabel(snapshot.platform as ApifySocialPlatform);
@@ -34,12 +43,43 @@ async function buildNotificationText(
   return formatFailedText(snapshot);
 }
 
+async function sendWhatsAppSnapshot(
+  snapshot: ApifySocialSnapshot,
+  text: string,
+  previews: ApifyPreviewItem[]
+): Promise<void> {
+  const platform = snapshot.platform as ApifySocialPlatform;
+  const card = buildSocialMediaCard(platform, previews);
+
+  if (card) {
+    try {
+      await sendWhatsAppMediaToUser(snapshot.userId, card);
+    } catch (error) {
+      console.error("Kirim kartu media sosial via WhatsApp gagal:", error);
+    }
+  }
+
+  await sendWhatsAppToUser(
+    snapshot.userId,
+    text,
+    card ? { linkPreview: false } : undefined
+  );
+}
+
 export async function notifyApifySnapshot(
   snapshot: ApifySocialSnapshot
 ): Promise<void> {
   const chatId = await getOrCreateMainChannel(snapshot.userId);
   const previousMessages = await loadStoredChatMessages(chatId, snapshot.userId);
   const text = await buildNotificationText(snapshot);
+  const previews =
+    snapshot.status === "completed"
+      ? buildPreviewItems(
+          snapshot.platform as ApifySocialPlatform,
+          getSnapshotItems(snapshot),
+          3
+        )
+      : [];
 
   const assistantMessage: UIMessage = {
     id: generateId(),
@@ -49,6 +89,7 @@ export async function notifyApifySnapshot(
       source: "apify",
       snapshotId: snapshot.id,
       platform: snapshot.platform,
+      socialPreviews: previews,
     },
   };
 
@@ -61,7 +102,7 @@ export async function notifyApifySnapshot(
     ],
   });
 
-  void sendWhatsAppToUser(snapshot.userId, text).catch((error) => {
+  void sendWhatsAppSnapshot(snapshot, text, previews).catch((error) => {
     console.error("Kirim notifikasi Apify via WhatsApp gagal:", error);
   });
 }

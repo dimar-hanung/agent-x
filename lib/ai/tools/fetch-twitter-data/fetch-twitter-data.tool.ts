@@ -12,7 +12,7 @@ export function createFetchTwitterDataTool(
 ) {
   return tool({
     description:
-      "Primary tool for Twitter/X social listening and platform data. Create or reuse an asynchronous social media data collection for X/Twitter URLs, advanced searches, handles, conversations, filters, trends, sentiment, and posts. Prefer this over Exa for Twitter/X-specific data. When the user gives multiple Twitter/X topics, pass them together as search_terms in one call instead of making separate calls. Completed exact matches reuse previously collected data; new requests notify the user later.",
+      "Primary tool for Twitter/X social listening and advanced search. Search by query or structured engagement, media, user, content, tweet, time, geo, app, and card filters. Prefer this over Exa for Twitter/X-specific posts, trends, and sentiment. When the user gives multiple topics, pass them together as search_terms in one call; they are combined into one OR query. Set latest=true for latest, recent, newest, current, or baru-baru ini topics. Results always use Top sorting. Only set content_language when the user explicitly requests a source language; use 'in' for Indonesian. Completed exact matches reuse previously collected data; new requests notify the user later.",
     inputSchema: fetchTwitterDataInputSchema,
     execute: (input) => executeFetchTwitterData(input, { user, runtimeContext }),
   });

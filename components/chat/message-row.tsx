@@ -17,6 +17,7 @@ import {
   ExaToolChip,
   isExaToolPart,
 } from "@/components/chat/exa-tool-chip";
+import { SocialMediaResultCards } from "@/components/chat/social-media-result-cards";
 import { toFriendlyToolError } from "@/lib/ai/tools/friendly-tool-error";
 import { cn } from "@/lib/utils";
 
@@ -221,7 +222,12 @@ function SocialMediaToolChip({ part }: { part: UIMessage["parts"][number] }) {
   const topics = readFirstStringArray(input, [
     "search_queries",
     "search_query",
+    "query",
     "search_terms",
+    "content_keywords",
+    "content_hashtags",
+    "content_cashtags",
+    "users_from_users",
     "hashtags",
     "profiles",
     "twitter_handles",
@@ -420,6 +426,7 @@ export function MessageRow({
     <div className="px-4 py-4">
       <div className="flex w-full flex-col gap-2">
         <MessageSourceBadge message={message} />
+        <SocialMediaResultCards message={message} />
         <MessageContent message={message} isUser={isUser} />
         {showInlineTyping ? <TypingDots /> : null}
       </div>

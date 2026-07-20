@@ -43,6 +43,13 @@ function buildFallbackText(snapshot: ApifySocialSnapshot): string {
       ? `\n\nSinyal awal:\n${preview.map(formatPreviewBullet).join("\n")}`
       : "";
 
+  if (preview.length === 0) {
+    return [
+      `Belum menemukan percakapan ${platform} yang sesuai dengan pencarian ini.`,
+      "Coba perluas rentang tanggal, gunakan istilah yang lebih umum, atau hapus filter bahasa yang terlalu ketat.",
+    ].join("\n\n");
+  }
+
   return [
     `Analisis ${platform} sudah siap.`,
     "",
@@ -106,6 +113,9 @@ Format jawaban:
 
 \u{1F4CA} Sentimen umum
 - [positif/netral/negatif/campuran] dan alasan singkat.
+- Jumlah item pada masing-masing kategori sentimen (positif, netral, negatif). Jika tidak ada data sentimen, tulis "Tidak ada data sentimen yang tersedia."
+
+\u{1F4CA} Berikan list postingan/tanggapan (beserta urlnya) dengan impression/engagement tertinggi (sebanyak 3) beserta sentimennya. Engagement = like + retweet/repost/quote + comment/reply.
 
 \u{1F525} Topik hangat
 - 3-5 poin tentang isu yang paling menonjol.

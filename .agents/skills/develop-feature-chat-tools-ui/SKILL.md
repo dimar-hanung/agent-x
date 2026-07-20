@@ -47,4 +47,6 @@ Native tools return `ToolResult` (`success`, optional `message`). Soft failures 
 - WhatsApp tool progress: wire `onToolExecutionStart` on the agent (not only `onStepEnd`). Labels live in `tool-progress-labels.ts`; unknown tools fall back to `Menjalankan {name}…`.
 - WhatsApp tool errors: wire `onToolExecutionEnd` → `notifyWhatsAppToolError`. Soft + hard fails mapped via `toFriendlyToolError` / `formatWhatsAppToolError` (no snake_case tool keys, no API/HTTP jargon). Format: `❌ {friendly Indonesian message}`.
 - Progress/error notifies are for main-channel web mirror and WhatsApp/scheduler channel replies; send failures are swallowed so the agent continues.
+- Async Apify assistant messages can include `metadata.socialPreviews`. Render these with `components/chat/social-media-result-cards.tsx` as stable, wide source cards before the analysis.
+- Keep missing-image placeholders the same size as image-backed cards so social results do not collapse into a smaller chip.
 - Friendly error map: `lib/ai/tools/friendly-tool-error.ts` — also used by chat tool chips.

@@ -27,7 +27,9 @@ Apify tools scrape social platforms asynchronously. On cache hit they return a p
 | Input + hash | `lib/ai/apify/input-mapping.ts`, `hash.ts` |
 | Submit / cache | `lib/ai/apify/submission.ts`, `repository.ts` |
 | Worker | `lib/ai/apify/worker.ts`, `worker-service.ts` |
-| Result notify | `lib/ai/apify/notify.ts`, `analysis.ts`, `preview.ts` |
+| Result notify | `lib/ai/apify/notify.ts`, `analysis.ts`, `preview.ts`, `social-card.ts` |
+| Social result cards | `components/chat/social-media-result-cards.tsx` |
+| WhatsApp media | `lib/integrations/whatsapp/provider.ts`, `providers/unofficial-evolution.ts` |
 | Tools | `lib/ai/tools/fetch-tiktok-data/`, `fetch-twitter-data/`, `fetch-threads-data/` |
 | Schema | `lib/db/schema.ts` — `apifySocialSnapshots` |
 | Migration | `drizzle/0011_hard_wasp.sql` |
@@ -45,6 +47,13 @@ Apify tools scrape social platforms asynchronously. On cache hit they return a p
 - `.env` token must be a bare Apify token (`apify_api_…`). A duplicated `APIFY_API_TOKEN=APIFY_API_TOKEN=…` value yields Apify HTTP 401 and failed snapshots.
 - Add WA progress labels in `tool-progress-labels.ts` for each new fetch tool.
 - Keep Exa secondary for social listening — Exa tool descriptions and `PROMPT_EXA` already defer to Apify.
+- Twitter/X uses `api-ninja/x-twitter-advanced-search`. Its contract mixes `search_type` with camelCase grouped fields such as `numberOfTweets`, `contentKeywords`, and `timeSince`; keep the mapper aligned with the actor input schema.
+- Twitter/X always sends `search_type: "Top"`, defaults to 100 items (actor minimum 20), and combines tool-level `search_terms` into one OR `query`. The `latest` intent expands to a concrete seven-day Jakarta date window.
+- Do not infer Twitter/X `contentLanguage` from the user's conversation language. Leave it unset unless explicitly requested; this actor uses `in` for Indonesian.
+- The Twitter/X actor can return `{ "noResults": true }` dataset sentinels. Preview and analysis code must skip these records and show a useful empty-result message instead of `Item tanpa teks`.
+- Completed snapshot messages store up to three compact `socialPreviews` in message metadata. The web chat renders them as wide source cards before the analysis text.
+- Preview extraction should expose a post `imageUrl` when available. Prefer post media or cover fields; never use profile pictures as the card image.
+- Evolution sends the first preview with an image through `/message/sendMedia/{instance}`, then sends the full analysis as text. Media failures are logged and must not block the text analysis.
 - Migration numbering on this branch: Apify table is `0011_hard_wasp` (after `0010_left_kitty_pryde` memories). Do not reintroduce the noop `0010_apify_social_snapshots`.
 - After merging Apify, apply `drizzle/0011_hard_wasp.sql` (or `npm run db:migrate` / push). Without `apify_social_snapshots`, tools throw and `agentx-apify` crash-loops with `relation does not exist`. This DB may have been provisioned via push (empty `drizzle.__drizzle_migrations`) — prefer applying the Apify SQL if migrate would replay older files.
 - Worker env file matches scheduler on this branch: `tsx --env-file=.env` (not `.env.local`).

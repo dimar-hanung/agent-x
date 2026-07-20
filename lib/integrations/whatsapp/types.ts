@@ -4,6 +4,18 @@ export interface WhatsAppSendResult {
   error?: string;
 }
 
+export interface WhatsAppMediaMessage {
+  mediaType: "image" | "video" | "document";
+  mediaUrl: string;
+  mimeType: string;
+  fileName: string;
+  caption?: string;
+}
+
+export interface WhatsAppTextOptions {
+  linkPreview?: boolean;
+}
+
 export interface WhatsAppConnectionStatus {
   status: "disconnected" | "pairing" | "connected";
   phoneE164?: string;
