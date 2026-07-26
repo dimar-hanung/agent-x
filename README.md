@@ -105,7 +105,7 @@ After code changes: `npm run build && pm2 restart all`.
 - **Memory** — persistent user memories via chat tools
 - **Scheduled jobs** — recurring / one-time AI jobs via `node-schedule` worker
 - **Social media (Apify)** — async TikTok / Twitter/X / Threads snapshots via worker
-- **WhatsApp** — global channel via Evolution API (admin QR, user phone pairing)
+- **WhatsApp** — global channel via Evolution API (admin QR, user phone pairing); personal read-only inbox with executive summaries per chat
 - **Integrations** — Google (Gmail / Calendar / Drive), personal API keys for MCP
 - **File storage** — private Drive-like files via SeaweedFS (20 GB/user); Dashboard → File; chat tools `list_files` / `upload_file` / `read_file`
 
@@ -147,10 +147,20 @@ Active schedules appear under **Jadwal aktif** in the chat sidebar.
 
 ### Main channel & WhatsApp
 
-Each user has one pinned **Kanal utama** at `/chat` (cron output and default chat land here). WhatsApp uses a **single global channel number**:
+Each user has one pinned **Kanal utama** at `/chat` (cron output and default chat land here). WhatsApp has two modes:
+
+1. **Global channel** (admin) — one shared bot number for AI chat via WhatsApp.
+2. **Personal inbox** (read-only) — each user scans QR to connect their own WhatsApp; AgentX ingests DMs and groups for executive summaries (Dashboard → Ringkasan WhatsApp or via chat tools).
+
+**Global channel setup:**
 
 1. **Admin** — open [Dashboard → Channel WhatsApp](http://localhost:3000/dashboard/whatsapp-channel), scan QR (Evolution API).
 2. **Users** — open [Settings → Integrations](http://localhost:3000/dashboard/settings), register their phone number, then message the global channel number from that phone.
+
+**Personal inbox setup:**
+
+1. **Users** — open [Settings → Integrations](http://localhost:3000/dashboard/settings), connect **WhatsApp pribadi** (scan QR).
+2. Browse summaries at [Dashboard → Ringkasan WhatsApp](http://localhost:3000/dashboard/whatsapp-inbox) or ask in chat: *"Rangkum grup Marketing hari ini"*.
 
 **Full setup guide:** [docs/evolution-api-setup.md](docs/evolution-api-setup.md)
 

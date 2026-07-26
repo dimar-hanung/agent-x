@@ -21,6 +21,7 @@ export interface ChatAgentRuntimeContext {
 
 export interface CreateChatAgentOptions {
   instructions?: string;
+  maxSteps?: number;
   onToolExecutionStart?: OnToolExecutionStartCallback;
   onToolExecutionEnd?: OnToolExecutionEndCallback;
 }
@@ -38,7 +39,7 @@ export async function createChatAgent(
     model: getChatModel(),
     instructions: options?.instructions ?? buildSystemPrompt(user),
     tools,
-    stopWhen: isStepCount(MAX_AGENT_STEPS),
+    stopWhen: isStepCount(options?.maxSteps ?? MAX_AGENT_STEPS),
     onToolExecutionStart: options?.onToolExecutionStart,
     onToolExecutionEnd: options?.onToolExecutionEnd,
   });

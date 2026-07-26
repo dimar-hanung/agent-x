@@ -12,11 +12,13 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ApiKeyIntegrationCard } from "@/components/settings/api-key-integration-card";
 import { GoogleIntegrationCard } from "@/components/settings/google-integration-card";
+import { WhatsAppInboxConnectCard } from "@/components/settings/whatsapp-inbox-connect-card";
 import { WhatsAppPairingCard } from "@/components/settings/whatsapp-pairing-card";
 import { listApiKeys } from "@/lib/api-keys/repository";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 import { getGoogleIntegrationStatus } from "@/lib/integrations/google-repository";
 import { getUserPairingStatus } from "@/lib/integrations/whatsapp-channel-repository";
+import { getUserInstance } from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
 
 export default async function SettingsPage() {
   const user = await getSessionUser();
@@ -25,9 +27,11 @@ export default async function SettingsPage() {
     return null;
   }
 
-  const [googleStatus, whatsappStatus, apiKeys] = await Promise.all([
+  const [googleStatus, whatsappStatus, whatsappInboxInstance, apiKeys] =
+    await Promise.all([
     getGoogleIntegrationStatus(user.userId),
     getUserPairingStatus(user.userId),
+    getUserInstance(user.userId),
     listApiKeys(user.userId),
   ]);
 
@@ -65,6 +69,7 @@ export default async function SettingsPage() {
             <GoogleIntegrationCard initialStatus={googleStatus} />
           </Suspense>
           <WhatsAppPairingCard initialStatus={whatsappStatus} />
+          <WhatsAppInboxConnectCard initialInstance={whatsappInboxInstance} />
           <ApiKeyIntegrationCard initialKeys={apiKeys} />
         </div>
       </div>

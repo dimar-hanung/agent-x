@@ -30,6 +30,9 @@ const TOOL_FRIENDLY_NOUNS = {
   list_files: "penyimpanan file",
   upload_file: "penyimpanan file",
   read_file: "penyimpanan file",
+  list_whatsapp_chats: "WhatsApp",
+  summarize_whatsapp_chat: "ringkasan WhatsApp",
+  summarize_whatsapp_digest: "ringkasan WhatsApp",
 } as const satisfies Record<NativeToolKey, string>;
 
 function getToolFriendlyNoun(toolName: string): string {

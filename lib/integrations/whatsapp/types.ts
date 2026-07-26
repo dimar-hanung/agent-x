@@ -37,6 +37,51 @@ export interface WhatsAppInboundMessage {
   remoteJid?: string;
 }
 
+export type WhatsAppChatType = "dm" | "group";
+
+export interface WhatsAppChatInfo {
+  remoteJid: string;
+  chatType: WhatsAppChatType;
+  displayName: string;
+  lastMessageAt?: Date;
+}
+
+export interface WhatsAppStoredMessage {
+  waMessageId: string;
+  remoteJid: string;
+  chatType: WhatsAppChatType;
+  senderJid?: string;
+  senderName?: string;
+  direction: "inbound" | "outbound";
+  text: string;
+  sentAt: Date;
+}
+
+export interface WhatsAppFetchMessagesOptions {
+  since?: Date;
+  limit?: number;
+}
+
+export interface WhatsAppIngestMessage {
+  remoteJid: string;
+  chatType: WhatsAppChatType;
+  senderJid?: string;
+  senderName?: string;
+  senderPhoneE164?: string;
+  direction: "inbound" | "outbound";
+  text: string;
+  messageId?: string;
+  sentAt?: Date;
+  fromMe: boolean;
+  isGroup: boolean;
+}
+
+export interface WhatsAppParsedWebhook {
+  instanceName?: string;
+  message: WhatsAppIngestMessage | null;
+  messages?: WhatsAppIngestMessage[];
+}
+
 export interface WhatsAppQrCode {
   base64: string;
   pairingCode?: string;

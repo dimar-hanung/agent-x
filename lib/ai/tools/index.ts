@@ -24,6 +24,7 @@ import { createListFilesTool } from "./list-files/list-files.tool";
 import { createListMemoriesTool } from "./list-memories/list-memories.tool";
 import { createListSchedulesTool } from "./list-schedules/list-schedules.tool";
 import { createListTodosTool } from "./list-todos/list-todos.tool";
+import { createListWhatsappChatsTool } from "./list-whatsapp-chats/list-whatsapp-chats.tool";
 import { createReadDriveFileTool } from "./read-drive-file/read-drive-file.tool";
 import { createReadEmailTool } from "./read-email/read-email.tool";
 import { createReadFileTool } from "./read-file/read-file.tool";
@@ -31,6 +32,8 @@ import { createRememberMemoryTool } from "./remember-memory/remember-memory.tool
 import { createSearchDriveTool } from "./search-drive/search-drive.tool";
 import { createSearchInboxTool } from "./search-inbox/search-inbox.tool";
 import { createSendEmailTool } from "./send-email/send-email.tool";
+import { createSummarizeWhatsappChatTool } from "./summarize-whatsapp-chat/summarize-whatsapp-chat.tool";
+import { createSummarizeWhatsappDigestTool } from "./summarize-whatsapp-digest/summarize-whatsapp-digest.tool";
 import { createUpdateTodoTool } from "./update-todo/update-todo.tool";
 import { createUploadDriveFileTool } from "./upload-drive-file/upload-drive-file.tool";
 import { createUploadFileTool } from "./upload-file/upload-file.tool";
@@ -68,6 +71,9 @@ function createToolRegistry(
     list_files: createListFilesTool(user),
     upload_file: createUploadFileTool(user),
     read_file: createReadFileTool(user),
+    list_whatsapp_chats: createListWhatsappChatsTool(user),
+    summarize_whatsapp_chat: createSummarizeWhatsappChatTool(user),
+    summarize_whatsapp_digest: createSummarizeWhatsappDigestTool(user),
   };
 }
 

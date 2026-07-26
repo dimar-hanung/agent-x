@@ -68,6 +68,13 @@ const PROMPT_MEMORY = `User memory (durable preferences across all chats):
 - After remember_memory or forget_memory succeeds, confirm briefly in Indonesian.
 {memoryConfirm}`;
 
+const PROMPT_WHATSAPP_INBOX = `Personal WhatsApp inbox (read-only — user connects their own account in Settings):
+- When the user asks what happened in WhatsApp, wants a catch-up, or asks for a general summary, call summarize_whatsapp_digest once — it returns one all-chat snapshot.
+- Use summarize_whatsapp_chat only when the user names a specific chat or JID. Do not loop summarize_whatsapp_chat for catch-up.
+- list_whatsapp_chats is for browse/lookup only — not required before digest on a plain summary ask.
+- If tools report WhatsApp is not connected, tell the user in Indonesian to connect in Settings → Integrations (WhatsApp pribadi).
+- This is read-only ingest — never claim you sent messages on the user's behalf from their personal WhatsApp.`;
+
 export const WHATSAPP_OUTPUT_BLOCK = `Output formatting (WhatsApp delivery):
 - Use WhatsApp text formatting, NOT standard Markdown.
 - Allowed: *bold* (single asterisk), _italic_, ~strikethrough~, \`inline code\`, bulleted lists (- item), numbered lists (1. item), block quotes (> text).
@@ -76,7 +83,8 @@ export const WHATSAPP_OUTPUT_BLOCK = `Output formatting (WhatsApp delivery):
 - WhatsApp does NOT support Markdown links. Never use [label](url) or [url](url). Always paste the full URL as plain text (e.g. https://example.com).
 - End citations with "Sumber:" followed by plain URLs on separate lines (no markdown headers or link syntax).
 - Each agent step is delivered as a separate WhatsApp message. When you need multiple tool steps, write a short user-facing update in that step (progress or partial result) instead of holding everything for the final reply.
-- After using any tool, summarize the result in natural Indonesian using WhatsApp formatting.`;
+- After using any tool, summarize the result in natural Indonesian using WhatsApp formatting.
+- For WhatsApp catch-up, call summarize_whatsapp_digest exactly once. Never call summarize_whatsapp_chat or list_whatsapp_chats for catch-up on WhatsApp.`;
 
 export const CHAT_SYSTEM_PROMPT = `${PROMPT_INTRO}
 
@@ -104,10 +112,13 @@ ${PROMPT_MEMORY.replace(
 
 ${PROMPT_FILES}
 
-${PROMPT_GOOGLE}`;
+${PROMPT_GOOGLE}
+
+${PROMPT_WHATSAPP_INBOX}`;
 
 export const maxDuration = 30;
 export const MAX_AGENT_STEPS = 10;
+export const WHATSAPP_MAX_AGENT_STEPS = 3;
 
 export interface BuildSystemPromptOptions {
   whatsappOutput?: boolean;
@@ -147,7 +158,9 @@ ${PROMPT_MEMORY.replace("{memoryConfirm}", memoryConfirm)}
 
 ${PROMPT_FILES}
 
-${PROMPT_GOOGLE}`;
+${PROMPT_GOOGLE}
+
+${PROMPT_WHATSAPP_INBOX}`;
 
   if (options?.whatsappOutput) {
     prompt += `\n\n${WHATSAPP_OUTPUT_BLOCK}`;

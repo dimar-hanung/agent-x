@@ -8,6 +8,7 @@ import {
   CheckSquare,
   FolderOpen,
   MessageSquare,
+  MessagesSquare,
   Radio,
   Settings2,
   SquareTerminal,
@@ -95,6 +96,11 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         title: "File",
         url: appRoutes.files,
         icon: FolderOpen,
+      },
+      {
+        title: "Ringkasan WhatsApp",
+        url: appRoutes.whatsappInbox,
+        icon: MessagesSquare,
       },
       ...adminNav,
       {

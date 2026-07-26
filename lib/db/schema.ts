@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   index,
   integer,
   jsonb,
@@ -21,6 +22,21 @@ export const WHATSAPP_CHANNEL_STATUSES = [
   "connected",
 ] as const;
 export type WhatsAppChannelStatus = (typeof WHATSAPP_CHANNEL_STATUSES)[number];
+
+export const WHATSAPP_USER_INSTANCE_STATUSES = [
+  "disconnected",
+  "pairing",
+  "connected",
+] as const;
+export type WhatsAppUserInstanceStatus =
+  (typeof WHATSAPP_USER_INSTANCE_STATUSES)[number];
+
+export const WHATSAPP_CHAT_TYPES = ["dm", "group"] as const;
+export type WhatsAppChatType = (typeof WHATSAPP_CHAT_TYPES)[number];
+
+export const WHATSAPP_MESSAGE_DIRECTIONS = ["inbound", "outbound"] as const;
+export type WhatsAppMessageDirection =
+  (typeof WHATSAPP_MESSAGE_DIRECTIONS)[number];
 
 export const USER_GENDERS = ["laki_laki", "perempuan"] as const;
 export type UserGender = (typeof USER_GENDERS)[number];
@@ -113,6 +129,148 @@ export const chats = pgTable(
     uniqueIndex("chats_user_channel_idx")
       .on(table.userId)
       .where(sql`${table.kind} = 'channel'`),
+  ]
+);
+
+export const whatsappUserInstances = pgTable(
+  "whatsapp_user_instances",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    instanceName: varchar("instance_name", { length: 128 }).notNull(),
+    status: varchar("status", { length: 32 })
+      .notNull()
+      .default("disconnected"),
+    phoneE164: varchar("phone_e164", { length: 20 }),
+    connectedAt: timestamp("connected_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_user_instances_user_id_idx").on(table.userId),
+    uniqueIndex("whatsapp_user_instances_instance_name_idx").on(
+      table.instanceName
+    ),
+    uniqueIndex("whatsapp_user_instances_phone_e164_idx").on(table.phoneE164),
+  ]
+);
+
+export const whatsappChats = pgTable(
+  "whatsapp_chats",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    remoteJid: varchar("remote_jid", { length: 128 }).notNull(),
+    chatType: varchar("chat_type", { length: 16 }).notNull(),
+    displayName: varchar("display_name", { length: 255 }).notNull(),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true }),
+    unreadCount: integer("unread_count").notNull().default(0),
+    isArchived: boolean("is_archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_chats_user_remote_jid_idx").on(
+      table.userId,
+      table.remoteJid
+    ),
+    index("whatsapp_chats_user_last_message_at_idx").on(
+      table.userId,
+      table.lastMessageAt
+    ),
+  ]
+);
+
+export const whatsappMessages = pgTable(
+  "whatsapp_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => whatsappChats.id, { onDelete: "cascade" }),
+    waMessageId: varchar("wa_message_id", { length: 128 }).notNull(),
+    senderJid: varchar("sender_jid", { length: 128 }),
+    senderName: varchar("sender_name", { length: 255 }),
+    direction: varchar("direction", { length: 16 }).notNull(),
+    text: text("text").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+    ingestedAt: timestamp("ingested_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_messages_user_wa_message_id_idx").on(
+      table.userId,
+      table.waMessageId
+    ),
+    index("whatsapp_messages_chat_sent_at_idx").on(table.chatId, table.sentAt),
+  ]
+);
+
+export const whatsappChatSummaries = pgTable(
+  "whatsapp_chat_summaries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => whatsappChats.id, { onDelete: "cascade" }),
+    summaryText: text("summary_text").notNull(),
+    highlights: jsonb("highlights").notNull(),
+    coversFrom: timestamp("covers_from", { withTimezone: true }).notNull(),
+    coversTo: timestamp("covers_to", { withTimezone: true }).notNull(),
+    messageCount: integer("message_count").notNull().default(0),
+    generatedAt: timestamp("generated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_chat_summaries_chat_id_idx").on(table.chatId),
+    index("whatsapp_chat_summaries_user_generated_at_idx").on(
+      table.userId,
+      table.generatedAt
+    ),
+  ]
+);
+
+export const whatsappDigestSnapshots = pgTable(
+  "whatsapp_digest_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    digestText: text("digest_text").notNull(),
+    chatCount: integer("chat_count").notNull().default(0),
+    chunkCount: integer("chunk_count").notNull().default(1),
+    coversFrom: timestamp("covers_from", { withTimezone: true }).notNull(),
+    coversTo: timestamp("covers_to", { withTimezone: true }).notNull(),
+    generatedAt: timestamp("generated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("whatsapp_digest_snapshots_user_generated_at_idx").on(
+      table.userId,
+      table.generatedAt
+    ),
   ]
 );
 
@@ -396,6 +554,12 @@ export type Message = typeof messages.$inferSelect;
 export type ScheduledJob = typeof scheduledJobs.$inferSelect;
 export type UserIntegration = typeof userIntegrations.$inferSelect;
 export type WhatsAppChannelConfig = typeof whatsappChannelConfig.$inferSelect;
+export type WhatsAppUserInstance = typeof whatsappUserInstances.$inferSelect;
+export type WhatsAppChat = typeof whatsappChats.$inferSelect;
+export type WhatsAppMessage = typeof whatsappMessages.$inferSelect;
+export type WhatsAppChatSummary = typeof whatsappChatSummaries.$inferSelect;
+export type WhatsAppDigestSnapshot = typeof whatsappDigestSnapshots.$inferSelect;
+export type NewWhatsAppDigestSnapshot = typeof whatsappDigestSnapshots.$inferInsert;
 export type Todo = typeof todos.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type UserMemory = typeof userMemories.$inferSelect;

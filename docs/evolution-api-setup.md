@@ -23,11 +23,13 @@ User phone ──► WhatsApp channel number ──► Evolution API
 
 | Component | Role |
 |-----------|------|
-| **Evolution API** | Holds the single global WhatsApp session (admin scans QR once) |
-| **AgentX webhook** | `POST /api/integrations/whatsapp/webhook` — receives inbound messages |
-| **Phone pairing** | Users register their phone in Settings; AgentX routes by `users.whatsapp_phone_e164` |
+| **Evolution API** | Holds WhatsApp sessions: one global channel (admin) + one per-user instance for personal inbox |
+| **AgentX webhook** | `POST /api/integrations/whatsapp/webhook` — routes by `instance` name to global bot or read-only ingest |
+| **Phone pairing** | Global channel: users register phone in Settings to chat with the bot. Personal inbox: each user scans their own QR (read-only) |
 
-Only **admin** scans QR. Other users register their phone number in **Settings → Integrations**.
+**Global channel:** only **admin** scans QR on Dashboard → Channel WhatsApp. Users register their phone in Settings to message the bot.
+
+**Personal inbox (read-only):** each user connects their own WhatsApp in Settings → WhatsApp pribadi. AgentX ingests DMs and groups for executive summaries (Dashboard → Ringkasan WhatsApp). No auto-reply from the personal instance.
 
 ## Prerequisites
 

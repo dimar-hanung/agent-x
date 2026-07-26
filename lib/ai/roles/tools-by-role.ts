@@ -38,6 +38,9 @@ const CLIENT_ADMIN_TOOLS: ToolKey[] = [
   "list_files",
   "upload_file",
   "read_file",
+  "list_whatsapp_chats",
+  "summarize_whatsapp_chat",
+  "summarize_whatsapp_digest",
 ];
 
 const TOOLS_BY_ROLE: Record<AppRole, ToolKey[]> = {

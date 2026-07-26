@@ -12,4 +12,5 @@ export const appRoutes = {
   memories: "/dashboard/memories",
   schedules: "/dashboard/schedules",
   files: "/dashboard/files",
+  whatsappInbox: "/dashboard/whatsapp-inbox",
 } as const;

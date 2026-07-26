@@ -20,16 +20,11 @@ export function getEvolutionConfig() {
   );
   const explicitWebhookUrl = process.env.AGENTX_WEBHOOK_URL?.trim();
 
-  const evolutionOnSameHost =
-    baseUrl?.includes("127.0.0.1") || baseUrl?.includes("localhost");
-
   const webhookUrl =
     explicitWebhookUrl ||
-    (evolutionOnSameHost
-      ? "http://127.0.0.1:3000/api/integrations/whatsapp/webhook"
-      : agentxPublicUrl
-        ? `${agentxPublicUrl}/api/integrations/whatsapp/webhook`
-        : undefined);
+    (agentxPublicUrl
+      ? `${agentxPublicUrl}/api/integrations/whatsapp/webhook`
+      : undefined);
 
   return {
     baseUrl,

@@ -2,19 +2,58 @@ import { getEvolutionConfig } from "../env";
 import type { WhatsAppProvider } from "../provider";
 import { normalizePhoneE164 } from "../phone";
 import type {
+  WhatsAppChatInfo,
   WhatsAppConnectionStatus,
+  WhatsAppFetchMessagesOptions,
   WhatsAppInboundMessage,
+  WhatsAppIngestMessage,
   WhatsAppMediaMessage,
+  WhatsAppParsedWebhook,
   WhatsAppPresence,
   WhatsAppQrCode,
   WhatsAppReadMessage,
   WhatsAppSendResult,
+  WhatsAppStoredMessage,
   WhatsAppTextOptions,
   WhatsAppWebhookPayload,
 } from "../types";
 
 /** Short Evolution-managed typing pulse; the endpoint clears it after delay. */
 const DEFAULT_TYPING_DELAY_MS = 1_200;
+
+function isLocalEvolutionWebhook(req: Request): boolean {
+  const host = (req.headers.get("host") ?? "").toLowerCase();
+  if (
+    host.startsWith("127.0.0.1") ||
+    host.startsWith("localhost") ||
+    host.startsWith("[::1]")
+  ) {
+    return true;
+  }
+
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  const ip = forwarded ?? realIp ?? "";
+
+  if (!ip) {
+    return false;
+  }
+
+  if (ip === "127.0.0.1" || ip === "::1") {
+    return true;
+  }
+
+  if (ip.startsWith("10.") || ip.startsWith("192.168.")) {
+    return true;
+  }
+
+  if (ip.startsWith("172.")) {
+    const second = Number(ip.split(".")[1]);
+    return second >= 16 && second <= 31;
+  }
+
+  return false;
+}
 
 interface EvolutionConnectResponse {
   base64?: string;
@@ -89,6 +128,146 @@ function extractMessageText(data: Record<string, unknown>): string | null {
   }
 
   return null;
+}
+
+function extractRemoteJid(data: Record<string, unknown>): string | null {
+  const key = data.key as
+    | { remoteJid?: string; remoteJidAlt?: string }
+    | undefined;
+
+  let jid = key?.remoteJid ?? null;
+
+  if (jid?.includes("@lid") && key?.remoteJidAlt) {
+    jid = key.remoteJidAlt;
+  }
+
+  if (!jid || jid.includes("@broadcast")) {
+    return null;
+  }
+
+  return jid;
+}
+
+function isGroupJid(jid: string): boolean {
+  return jid.includes("@g.us");
+}
+
+function extractSenderName(data: Record<string, unknown>): string | undefined {
+  const pushName = data.pushName;
+  if (typeof pushName === "string" && pushName.trim()) {
+    return pushName.trim();
+  }
+
+  return undefined;
+}
+
+function extractParticipantJid(data: Record<string, unknown>): string | undefined {
+  const key = data.key as { participant?: string; participantAlt?: string } | undefined;
+  let participant = key?.participant;
+
+  if (participant?.includes("@lid") && key?.participantAlt) {
+    participant = key.participantAlt;
+  }
+
+  return participant ?? undefined;
+}
+
+function parseMessageTimestamp(data: Record<string, unknown>): Date | undefined {
+  const messageTimestamp = data.messageTimestamp;
+
+  if (typeof messageTimestamp === "number") {
+    return new Date(messageTimestamp * 1000);
+  }
+
+  if (typeof messageTimestamp === "string") {
+    const parsed = Number(messageTimestamp);
+    if (!Number.isNaN(parsed)) {
+      return new Date(parsed * 1000);
+    }
+  }
+
+  return undefined;
+}
+
+function extractIngestDataRecords(
+  payload: WhatsAppWebhookPayload
+): Record<string, unknown>[] {
+  const event = payload.event?.toLowerCase().replace(/_/g, ".") ?? "";
+
+  if (event !== "messages.upsert") {
+    return [];
+  }
+
+  const data = payload.data;
+
+  if (Array.isArray(data)) {
+    return data.filter(
+      (item): item is Record<string, unknown> =>
+        typeof item === "object" && item !== null
+    );
+  }
+
+  if (typeof data === "object" && data !== null) {
+    const record = data as Record<string, unknown>;
+    const nested = record.messages;
+
+    if (Array.isArray(nested)) {
+      return nested.filter(
+        (item): item is Record<string, unknown> =>
+          typeof item === "object" && item !== null
+      );
+    }
+
+    return [record];
+  }
+
+  return [];
+}
+
+function buildIngestMessage(
+  data: Record<string, unknown>
+): WhatsAppIngestMessage | null {
+  const remoteJid = extractRemoteJid(data);
+
+  if (!remoteJid) {
+    return null;
+  }
+
+  const text = extractMessageText(data);
+
+  if (!text?.trim()) {
+    return null;
+  }
+
+  const key = data.key as
+    | {
+        id?: string;
+        remoteJid?: string;
+        fromMe?: boolean;
+      }
+    | undefined;
+
+  const fromMe = Boolean(key?.fromMe);
+  const isGroup = isGroupJid(remoteJid);
+  const participantJid = extractParticipantJid(data);
+  const senderJid = isGroup ? participantJid : remoteJid;
+  const senderDigits = senderJid?.replace(/@.*$/, "").replace(/\D/g, "");
+
+  return {
+    remoteJid,
+    chatType: isGroup ? "group" : "dm",
+    senderJid,
+    senderName: extractSenderName(data),
+    senderPhoneE164: senderDigits
+      ? normalizePhoneE164(senderDigits)
+      : undefined,
+    direction: fromMe ? "outbound" : "inbound",
+    text: text.trim(),
+    messageId: key?.id,
+    sentAt: parseMessageTimestamp(data),
+    fromMe,
+    isGroup,
+  };
 }
 
 function extractSenderJid(
@@ -426,10 +605,26 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
 
   async verifyWebhook(req: Request): Promise<boolean> {
     const { webhookSecret, apiKey } = getEvolutionConfig();
-    const apikeyHeader = req.headers.get("apikey");
+    const apikeyHeader =
+      req.headers.get("apikey")?.trim() ??
+      req.headers.get("Apikey")?.trim() ??
+      req.headers.get("APIKEY")?.trim() ??
+      null;
+    const authHeader = req.headers.get("authorization")?.trim() ?? null;
+    const webhookSecretHeader =
+      req.headers.get("x-webhook-secret")?.trim() ??
+      req.headers.get("X-Webhook-Secret")?.trim() ??
+      null;
 
-    // Evolution sends the global/instance apikey header on webhooks
     if (apiKey && apikeyHeader === apiKey) {
+      return true;
+    }
+
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : null;
+
+    if (apiKey && bearerToken === apiKey) {
       return true;
     }
 
@@ -437,63 +632,168 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
       return true;
     }
 
-    const secretHeader =
-      req.headers.get("x-webhook-secret") ??
-      req.headers.get("authorization");
+    const secretMatches = Boolean(
+      webhookSecretHeader === webhookSecret ||
+        authHeader === webhookSecret ||
+        bearerToken === webhookSecret
+    );
 
-    if (!secretHeader) {
-      return false;
+    if (secretMatches) {
+      return true;
     }
 
-    return (
-      secretHeader === webhookSecret ||
-      secretHeader === `Bearer ${webhookSecret}`
-    );
+    if (isLocalEvolutionWebhook(req)) {
+      return true;
+    }
+
+    return false;
   }
 
   parseInboundMessage(
     payload: WhatsAppWebhookPayload
   ): WhatsAppInboundMessage | null {
-    const event = payload.event?.toLowerCase().replace(/_/g, ".") ?? "";
+    const ingest = this.parseIngestMessage(payload);
 
-    if (event !== "messages.upsert") {
+    if (!ingest || ingest.isGroup || ingest.fromMe || !ingest.senderPhoneE164) {
       return null;
     }
-
-    const data = payload.data as Record<string, unknown> | undefined;
-
-    if (!data) {
-      return null;
-    }
-
-    const jid = extractSenderJid(data, payload);
-
-    if (!jid) {
-      return null;
-    }
-
-    const text = extractMessageText(data);
-
-    if (!text?.trim()) {
-      return null;
-    }
-
-    const digits = jid.replace(/@.*$/, "").replace(/\D/g, "");
-
-    if (!digits) {
-      return null;
-    }
-
-    const key = data.key as
-      | { id?: string; remoteJid?: string }
-      | undefined;
 
     return {
-      senderPhoneE164: normalizePhoneE164(digits),
-      text: text.trim(),
-      messageId: key?.id,
-      // Prefer original key.remoteJid (incl. @lid) for mark-as-read.
-      remoteJid: key?.remoteJid ?? jid,
+      senderPhoneE164: ingest.senderPhoneE164,
+      text: ingest.text,
+      messageId: ingest.messageId,
+      remoteJid: ingest.remoteJid,
     };
+  }
+
+  parseIngestMessage(payload: WhatsAppWebhookPayload): WhatsAppIngestMessage | null {
+    const records = extractIngestDataRecords(payload);
+
+    for (const record of records) {
+      const message = buildIngestMessage(record);
+      if (message) {
+        return message;
+      }
+    }
+
+    return null;
+  }
+
+  parseIngestMessages(payload: WhatsAppWebhookPayload): WhatsAppIngestMessage[] {
+    return extractIngestDataRecords(payload)
+      .map((record) => buildIngestMessage(record))
+      .filter((message): message is WhatsAppIngestMessage => message !== null);
+  }
+
+  parseInboundMessageForInstance(
+    payload: WhatsAppWebhookPayload
+  ): WhatsAppParsedWebhook {
+    return {
+      instanceName: payload.instance,
+      message: this.parseIngestMessage(payload),
+      messages: this.parseIngestMessages(payload),
+    };
+  }
+
+  async findChats(instanceName: string): Promise<WhatsAppChatInfo[]> {
+    const data = await this.request<unknown[]>(
+      `/chat/findChats/${instanceName}`,
+      {
+        method: "POST",
+        body: JSON.stringify({}),
+      }
+    );
+
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    return data
+      .map((item): WhatsAppChatInfo | null => {
+        const record = item as Record<string, unknown>;
+        const remoteJid =
+          (typeof record.id === "string" ? record.id : null) ??
+          (typeof record.remoteJid === "string" ? record.remoteJid : null);
+
+        if (!remoteJid || remoteJid.includes("@broadcast")) {
+          return null;
+        }
+
+        const name =
+          (typeof record.name === "string" && record.name.trim()) ||
+          (typeof record.pushName === "string" && record.pushName.trim()) ||
+          remoteJid.replace(/@.*$/, "");
+
+        const updatedAt =
+          typeof record.updatedAt === "string"
+            ? new Date(record.updatedAt)
+            : typeof record.conversationTimestamp === "number"
+              ? new Date(record.conversationTimestamp * 1000)
+              : undefined;
+
+        return {
+          remoteJid,
+          chatType: isGroupJid(remoteJid) ? "group" : "dm",
+          displayName: name,
+          lastMessageAt: updatedAt,
+        };
+      })
+      .filter((chat): chat is WhatsAppChatInfo => chat !== null);
+  }
+
+  async findMessages(
+    instanceName: string,
+    remoteJid: string,
+    options?: WhatsAppFetchMessagesOptions
+  ): Promise<WhatsAppStoredMessage[]> {
+    const limit = options?.limit ?? 50;
+
+    const data = await this.request<unknown[]>(
+      `/chat/findMessages/${instanceName}`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          where: {
+            key: {
+              remoteJid,
+            },
+          },
+          page: 1,
+          offset: limit,
+        }),
+      }
+    );
+
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    const messages: WhatsAppStoredMessage[] = [];
+
+    for (const item of data) {
+      const record = item as Record<string, unknown>;
+      const ingest = buildIngestMessage(record);
+
+      if (!ingest) {
+        continue;
+      }
+
+      if (options?.since && ingest.sentAt && ingest.sentAt < options.since) {
+        continue;
+      }
+
+      messages.push({
+        waMessageId: ingest.messageId ?? `${remoteJid}-${messages.length}`,
+        remoteJid: ingest.remoteJid,
+        chatType: ingest.chatType,
+        senderJid: ingest.senderJid,
+        senderName: ingest.senderName,
+        direction: ingest.direction,
+        text: ingest.text,
+        sentAt: ingest.sentAt ?? new Date(),
+      });
+    }
+
+    return messages.sort((a, b) => a.sentAt.getTime() - b.sentAt.getTime());
   }
 }

@@ -30,6 +30,9 @@ const TOOL_PROGRESS_LABELS = {
   list_files: "Memuat file…",
   upload_file: "Mengunggah file…",
   read_file: "Membaca file…",
+  list_whatsapp_chats: "Memuat chat WhatsApp…",
+  summarize_whatsapp_chat: "Merangkum chat WhatsApp…",
+  summarize_whatsapp_digest: "Merangkum chat WhatsApp…",
 } as const satisfies Record<NativeToolKey, string>;
 
 export function getToolProgressLabel(toolName: string): string {

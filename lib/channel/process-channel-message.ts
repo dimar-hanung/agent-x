@@ -6,6 +6,7 @@ import {
 
 import { createChatAgent } from "@/lib/ai/agents/chat-agent";
 import { prepareModelContext } from "@/lib/ai/context/prepare-model-context";
+import { WHATSAPP_MAX_AGENT_STEPS } from "@/lib/ai/chat-config";
 import { getUserById } from "@/lib/auth/get-user-by-id";
 import { getOrCreateMainChannel } from "@/lib/db/repositories/channel-repository";
 import {
@@ -13,6 +14,7 @@ import {
   saveChat,
 } from "@/lib/db/repositories/chat-repository";
 import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
+import { clearDigestInFlight } from "@/lib/integrations/whatsapp-inbox/summary/service";
 import { notifyWhatsAppToolError, notifyWhatsAppToolStart } from "@/lib/integrations/whatsapp/notify-tool-progress";
 import { createAllToolsForUser } from "@/lib/ai/tools/resolve-tools";
 import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
@@ -21,12 +23,18 @@ export type ChannelMessageSource = "web" | "whatsapp" | "scheduler";
 
 const EXCLUDED_SCHEDULER_TOOL_KEYS: NativeToolKey[] = ["create_schedule"];
 
+const EXCLUDED_WHATSAPP_TOOL_KEYS: NativeToolKey[] = [
+  "summarize_whatsapp_chat",
+  "list_whatsapp_chats",
+];
+
 export interface ProcessChannelMessageInput {
   userId: string;
   text: string;
   source: ChannelMessageSource;
   metadata?: Record<string, unknown>;
   replyViaWhatsApp?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 export interface ProcessChannelMessageResult {
@@ -62,7 +70,11 @@ export async function processChannelMessage(
   ];
 
   const excludeNativeKeys =
-    input.source === "scheduler" ? EXCLUDED_SCHEDULER_TOOL_KEYS : undefined;
+    input.source === "scheduler"
+      ? EXCLUDED_SCHEDULER_TOOL_KEYS
+      : input.source === "whatsapp"
+        ? EXCLUDED_WHATSAPP_TOOL_KEYS
+        : undefined;
 
   const tools = await createAllToolsForUser(user, {
     excludeNativeKeys,
@@ -83,6 +95,7 @@ export async function processChannelMessage(
 
   const agent = await createChatAgent(user, { userId: user.userId, chatId }, tools, {
     instructions: systemPrompt,
+    maxSteps: input.source === "whatsapp" ? WHATSAPP_MAX_AGENT_STEPS : undefined,
     onToolExecutionStart: notifyToolProgress
       ? async ({ toolCall }) => {
           await notifyWhatsAppToolStart(user.userId, toolCall.toolName);
@@ -99,32 +112,47 @@ export async function processChannelMessage(
       : undefined,
   });
 
-  const result = await agent.generate({
-    messages: await convertToModelMessages(modelMessages),
-    onStepEnd: async ({ text }) => {
-      const trimmed = text.trim();
-      if (!trimmed) {
-        return;
-      }
-
-      if (replyViaWhatsApp) {
-        await sendWhatsAppToUser(user.userId, trimmed);
-        return;
-      }
-
-      if (mirrorViaWhatsApp) {
-        try {
-          await sendWhatsAppToUser(user.userId, trimmed);
-        } catch (error) {
-          console.error("Mirror WhatsApp gagal:", error);
+  let result;
+  try {
+    result = await agent.generate({
+      messages: await convertToModelMessages(modelMessages),
+      abortSignal: input.abortSignal,
+      onStepEnd: async ({ text }) => {
+        const trimmed = text.trim();
+        if (!trimmed || replyViaWhatsApp) {
+          return;
         }
-      }
-    },
-  });
+
+        if (mirrorViaWhatsApp) {
+          try {
+            await sendWhatsAppToUser(user.userId, trimmed);
+          } catch (error) {
+            console.error("Mirror WhatsApp gagal:", error);
+          }
+        }
+      },
+    });
+  } catch (error) {
+    if (input.abortSignal?.aborted) {
+      clearDigestInFlight(user.userId);
+      return { assistantText: "", chatId };
+    }
+
+    throw error;
+  }
 
   const assistantTextParts = result.steps
     .map((step) => step.text.trim())
     .filter((text) => text.length > 0);
+
+  const finalAssistantText =
+    assistantTextParts.length > 0
+      ? assistantTextParts.join("\n\n")
+      : result.text.trim();
+
+  if (replyViaWhatsApp && finalAssistantText) {
+    await sendWhatsAppToUser(user.userId, finalAssistantText);
+  }
 
   const assistantMessage: UIMessage = {
     id: generateId(),
@@ -151,10 +179,7 @@ export async function processChannelMessage(
   });
 
   return {
-    assistantText:
-      assistantTextParts.length > 0
-        ? assistantTextParts.join("\n\n")
-        : result.text,
+    assistantText: finalAssistantText,
     chatId,
   };
 }
