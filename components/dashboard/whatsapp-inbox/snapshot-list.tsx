@@ -1,5 +1,8 @@
 "use client";
 
+import { HistoryIcon } from "lucide-react";
+
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { cn } from "@/lib/utils";
 
 export interface DigestSnapshotListItem {
@@ -33,9 +36,13 @@ export function SnapshotList({
 }: SnapshotListProps) {
   if (snapshots.length === 0) {
     return (
-      <div className="text-muted-foreground p-4 text-sm">
-        Belum ada snapshot tersimpan.
-      </div>
+      <DashboardEmptyState
+        variant="inline"
+        icon={HistoryIcon}
+        title="Belum ada snapshot"
+        description="Buat ringkasan untuk melihat riwayat percakapan yang sudah dirangkum."
+        className="py-10"
+      />
     );
   }
 

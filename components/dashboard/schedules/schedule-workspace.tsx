@@ -1,8 +1,10 @@
 "use client";
 
+import { CalendarClockIcon, SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -146,17 +148,19 @@ export function ScheduleWorkspace({ initialSchedules }: ScheduleWorkspaceProps) 
       ) : null}
 
       {schedules.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Belum ada otomatisasi. Buat lewat{" "}
-          <Link href={appRoutes.chat} className="text-foreground underline">
-            Chat
-          </Link>
-          .
-        </p>
+        <DashboardEmptyState
+          icon={CalendarClockIcon}
+          title="Belum ada otomatisasi"
+          description='Minta asisten membuat jadwal berulang di Chat, misalnya "Ingatkan saya setiap Senin pagi".'
+          action={{ label: "Buka Chat", href: appRoutes.chat }}
+        />
       ) : filtered.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Tidak ada otomatisasi dengan filter ini.
-        </p>
+        <DashboardEmptyState
+          icon={SearchIcon}
+          title="Tidak ada otomatisasi dengan filter ini"
+          description="Pilih filter lain atau tampilkan semua status."
+          action={{ label: "Tampilkan semua", onClick: () => setFilter("all") }}
+        />
       ) : (
         <div className="surface-panel overflow-hidden rounded-lg border">
           <Table>

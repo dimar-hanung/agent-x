@@ -34,6 +34,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import {
   Dialog,
   DialogContent,
@@ -593,7 +594,20 @@ export function FilesWorkspace({
           ) : null}
 
           {visibleItems.length === 0 ? (
-            <EmptyState hasQuery={trimmedQuery.length > 0} />
+            trimmedQuery.length > 0 ? (
+              <DashboardEmptyState
+                icon={Search}
+                title="Tidak ada file yang cocok"
+                description="Coba kata kunci lain atau kosongkan pencarian."
+              />
+            ) : (
+              <DashboardEmptyState
+                icon={FolderOpen}
+                title="Belum ada file di sini"
+                description="Unggah file, buat folder, atau seret file ke area ini."
+                action={{ label: "Unggah file", onClick: triggerUpload }}
+              />
+            )
           ) : view === "grid" ? (
             <FilesGridView
               items={visibleItems}
@@ -745,27 +759,6 @@ export function FilesWorkspace({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
-
-function EmptyState({ hasQuery }: { hasQuery: boolean }) {
-  if (hasQuery) {
-    return (
-      <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 py-16 text-center">
-        <Search className="size-8 opacity-40" />
-        <p className="text-sm">Tidak ada file yang cocok dengan pencarian.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <FolderOpen className="size-10 opacity-40" />
-      <p className="text-sm font-medium">Belum ada file di sini</p>
-      <p className="text-xs">
-        Unggah file, buat folder, atau seret file ke area ini.
-      </p>
     </div>
   );
 }

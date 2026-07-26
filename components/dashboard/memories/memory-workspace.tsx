@@ -1,7 +1,10 @@
 "use client";
 
+import { BrainIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 
 import {
   AlertDialog,
@@ -15,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { MemoryListItem } from "@/lib/memory/schemas";
+import { appRoutes } from "@/lib/site-config";
 
 interface MemoryWorkspaceProps {
   initialMemories: MemoryListItem[];
@@ -72,10 +76,12 @@ export function MemoryWorkspace({ initialMemories }: MemoryWorkspaceProps) {
 
   if (memories.length === 0) {
     return (
-      <p className="text-muted-foreground text-sm">
-        Belum ada memory. Minta asisten mengingat preference di chat, atau biarkan
-        diekstrak otomatis dari percakapan panjang.
-      </p>
+      <DashboardEmptyState
+        icon={BrainIcon}
+        title="Belum ada memory"
+        description="Minta asisten mengingat preference di chat, atau biarkan diekstrak otomatis dari percakapan panjang."
+        action={{ label: "Buka Chat", href: appRoutes.chat }}
+      />
     );
   }
 

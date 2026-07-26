@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon, Trash2Icon, UsersIcon } from "lucide-react";
+
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 
 import type { AdminUserListItem } from "@/lib/admin/users/schemas";
 
@@ -118,9 +120,12 @@ export function UsersTable({ initialUsers }: UsersTableProps) {
       </div>
 
       {users.length === 0 ? (
-        <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">
-          Belum ada user.
-        </div>
+        <DashboardEmptyState
+          icon={UsersIcon}
+          title="Belum ada user"
+          description="Tambahkan akun client agar mereka bisa login dan menggunakan AgentX."
+          action={{ label: "Tambah user", onClick: openCreateDialog }}
+        />
       ) : (
         <div className="surface-panel overflow-hidden rounded-lg border">
           <Table>

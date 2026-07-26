@@ -29,11 +29,7 @@ interface TodoTableProps {
 
 export function TodoTable({ todos, onOpen, onDelete }: TodoTableProps) {
   if (todos.length === 0) {
-    return (
-      <div className="text-muted-foreground flex flex-col items-center justify-center rounded-lg border border-dashed px-6 py-16 text-center text-sm">
-        Belum ada todo.
-      </div>
-    );
+    return null;
   }
 
   const sorted = [...todos].sort((a, b) => {

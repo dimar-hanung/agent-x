@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGridIcon, ListIcon, PlusIcon } from "lucide-react";
+import { CheckSquareIcon, LayoutGridIcon, ListIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -13,6 +13,7 @@ import {
 import { TodoFormDialog } from "./todo-form-dialog";
 import { TodoKanban } from "./todo-kanban";
 import { TodoTable } from "./todo-table";
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -230,13 +231,26 @@ export function TodoWorkspace({ initialTodos }: TodoWorkspaceProps) {
         onChange={setFilters}
       />
 
-      {filteredTodos.length === 0 && todos.length > 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Tidak ada todo yang cocok dengan filter.
-        </p>
-      ) : null}
-
-      {view === "kanban" ? (
+      {filteredTodos.length === 0 ? (
+        todos.length === 0 ? (
+          <DashboardEmptyState
+            icon={CheckSquareIcon}
+            title="Belum ada todo"
+            description="Buat todo pertama untuk melacak tugas, deadline, dan project."
+            action={{ label: "Tambah todo", onClick: openCreateDialog }}
+          />
+        ) : (
+          <DashboardEmptyState
+            icon={SearchIcon}
+            title="Tidak ada todo yang cocok"
+            description="Coba ubah filter atau kosongkan pencarian."
+            action={{
+              label: "Reset filter",
+              onClick: () => setFilters(EMPTY_FILTERS),
+            }}
+          />
+        )
+      ) : view === "kanban" ? (
         <TodoKanban
           todos={filteredTodos}
           onTodosChange={handleKanbanChange}
