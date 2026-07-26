@@ -81,7 +81,7 @@ export function MemoryWorkspace({ initialMemories }: MemoryWorkspaceProps) {
 
   return (
     <>
-      <ul className="divide-border max-w-3xl divide-y rounded-lg border">
+      <ul className="divide-border surface-panel max-w-3xl divide-y overflow-hidden rounded-lg border">
         {memories.map((memory) => (
           <li
             key={memory.id}

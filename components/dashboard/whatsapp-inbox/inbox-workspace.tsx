@@ -133,13 +133,11 @@ export function InboxWorkspace({
           </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <SnapshotPanel
-            snapshot={selectedSnapshot}
-            isLoading={isGenerating}
-            onRefresh={handleGenerate}
-          />
-        </Card>
+        <SnapshotPanel
+          snapshot={selectedSnapshot}
+          isLoading={isGenerating}
+          onRefresh={handleGenerate}
+        />
       </div>
     </div>
   );

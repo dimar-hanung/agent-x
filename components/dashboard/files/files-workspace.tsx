@@ -535,7 +535,7 @@ export function FilesWorkspace({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="flex items-center gap-1 rounded-md border p-1">
+            <div className="bg-card flex items-center gap-1 rounded-md border p-1">
               <Button
                 type="button"
                 size="icon-sm"

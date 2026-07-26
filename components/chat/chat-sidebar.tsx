@@ -41,7 +41,7 @@ export function ChatSidebar({
   }
 
   return (
-    <aside className="bg-muted/40 flex h-full w-72 shrink-0 flex-col border-r">
+    <aside className="bg-sidebar surface-chrome flex h-full w-72 shrink-0 flex-col border-r">
       <div className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
         <IndonesianFlagIcon className="size-7" />
         <span className="font-semibold tracking-tight">{siteConfig.name}</span>
@@ -75,8 +75,9 @@ export function ChatSidebar({
               onClick={onNavigate}
               aria-current={activeChatId === mainChannel.id ? "page" : undefined}
               className={cn(
-                "hover:bg-muted relative flex items-center gap-3 rounded-lg px-3 py-3 text-base transition-colors",
-                activeChatId === mainChannel.id && "bg-muted"
+                "hover:bg-sidebar-accent relative flex items-center gap-3 rounded-lg px-3 py-3 text-base transition-colors",
+                activeChatId === mainChannel.id &&
+                  "bg-sidebar-accent text-sidebar-accent-foreground"
               )}
             >
               {activeChatId === mainChannel.id ? (
@@ -109,8 +110,8 @@ export function ChatSidebar({
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "hover:bg-muted relative flex items-center gap-3 rounded-lg px-3 py-3 text-base transition-colors",
-                  active && "bg-muted"
+                  "hover:bg-sidebar-accent relative flex items-center gap-3 rounded-lg px-3 py-3 text-base transition-colors",
+                  active && "bg-sidebar-accent text-sidebar-accent-foreground"
                 )}
               >
                 {active ? (

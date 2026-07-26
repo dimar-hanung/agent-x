@@ -16,7 +16,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="surface-chrome">
       <AppSidebar
         role={user.role}
         user={{

@@ -5,9 +5,8 @@ import { useEffect, useState } from "react";
 
 import { MicrosoftIcon } from "@/components/icons/microsoft-icon";
 import { DualProviderConnectWarningDialog } from "@/components/settings/dual-provider-connect-warning-dialog";
-import { IntegrationCardHeader } from "@/components/settings/integration-card-header";
+import { IntegrationRow } from "@/components/settings/integration-row";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import type { MicrosoftIntegrationStatus } from "@/lib/integrations/microsoft-repository";
 
 interface MicrosoftIntegrationCardProps {
@@ -51,7 +50,7 @@ export function MicrosoftIntegrationCard({
 
     setError(
       MICROSOFT_ERROR_MESSAGES[microsoftParam] ??
-        "Gagal menghubungkan Microsoft."
+        "Gagal menghubungkan Microsoft.",
     );
     router.replace("/dashboard/settings");
   }, [searchParams, router]);
@@ -89,63 +88,36 @@ export function MicrosoftIntegrationCard({
     window.location.href = AUTHORIZE_URL;
   }
 
-  if (status.connected) {
-    return (
-      <Card className="gap-0 py-0">
-        <IntegrationCardHeader
-          icon={<MicrosoftIcon className="size-6" />}
-          title="Microsoft"
-          description={status.email ?? ""}
-          statusTone="connected"
-          statusLabel="Terhubung"
-        />
-        <CardContent className="space-y-3 p-4">
-          <p className="text-muted-foreground text-xs">
-            Outlook, Calendar, dan OneDrive (baca + upload) siap dipakai di tool
-            chat.
-            {status.lastVerifiedAt
-              ? ` Terakhir diverifikasi: ${new Date(status.lastVerifiedAt).toLocaleString("id-ID", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                  timeZone: "Asia/Jakarta",
-                })}`
-              : null}
-          </p>
-          {error ? <p className="text-destructive text-xs">{error}</p> : null}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleDisconnect}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Memutuskan..." : "Putuskan"}
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <>
-      <Card className="gap-0 py-0">
-        <IntegrationCardHeader
-          icon={<MicrosoftIcon className="size-6" />}
-          title="Microsoft"
-          description="Outlook, Calendar, dan OneDrive dari chat."
-          statusTone="muted"
-          statusLabel="Belum terhubung"
-        />
-        <CardContent className="space-y-3 p-4">
-          <p className="text-muted-foreground text-xs">
-            Hubungkan satu akun Microsoft untuk email, jadwal, dan file
-            OneDrive.
-          </p>
-          {error ? <p className="text-destructive text-xs">{error}</p> : null}
-          <Button onClick={handleConnectClick} disabled={isSubmitting}>
-            Hubungkan Microsoft
-          </Button>
-        </CardContent>
-      </Card>
+      <IntegrationRow
+        icon={<MicrosoftIcon className="size-6" />}
+        title="Microsoft"
+        description={
+          status.connected
+            ? (status.email ?? "Terhubung")
+            : "Outlook, Calendar, dan OneDrive"
+        }
+        statusTone={status.connected ? "connected" : "muted"}
+        statusLabel={status.connected ? "Terhubung" : "Belum terhubung"}
+        actions={
+          status.connected ? (
+            <Button
+              variant="outline"
+              onClick={handleDisconnect}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Memutuskan..." : "Putuskan"}
+            </Button>
+          ) : (
+            <Button onClick={handleConnectClick} disabled={isSubmitting}>
+              Hubungkan
+            </Button>
+          )
+        }
+      >
+        {error ? <p className="text-destructive">{error}</p> : null}
+      </IntegrationRow>
 
       <DualProviderConnectWarningDialog
         open={warningOpen}

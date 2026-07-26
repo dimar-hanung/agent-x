@@ -158,7 +158,7 @@ export function ScheduleWorkspace({ initialSchedules }: ScheduleWorkspaceProps) 
           Tidak ada otomatisasi dengan filter ini.
         </p>
       ) : (
-        <div className="rounded-md border">
+        <div className="surface-panel overflow-hidden rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>

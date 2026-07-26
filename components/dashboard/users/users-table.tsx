@@ -122,7 +122,7 @@ export function UsersTable({ initialUsers }: UsersTableProps) {
           Belum ada user.
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="surface-panel overflow-hidden rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>

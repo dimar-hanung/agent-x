@@ -16,7 +16,7 @@ export function StorageMeter({ quota, className }: StorageMeterProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5",
+        "surface-panel flex items-center gap-3 rounded-lg border px-3 py-2.5",
         className
       )}
     >

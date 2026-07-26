@@ -4,7 +4,7 @@ import { KeyRound, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { IntegrationCardHeader } from "@/components/settings/integration-card-header";
+import { IntegrationRow } from "@/components/settings/integration-row";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -109,7 +108,7 @@ export function ApiKeyIntegrationCard({
     try {
       const response = await fetch(
         `/api/integrations/api-keys/${revokeTarget.id}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
 
       const data = (await response.json()) as { message?: string };
@@ -160,88 +159,17 @@ export function ApiKeyIntegrationCard({
 
   return (
     <>
-      <Card className="gap-0 py-0 md:col-span-2">
-        <IntegrationCardHeader
-          icon={<KeyRound className="size-6" />}
-          title="API Key / MCP"
-          description="Akses todo lewat MCP (Cursor, Claude, dll.)."
-          statusTone={hasKeys ? "connected" : "muted"}
-          statusLabel={hasKeys ? `${keys.length} key` : "Belum ada key"}
-        />
-        <CardContent className="space-y-4 p-4">
-          <div className="bg-muted space-y-2 rounded-lg p-3 text-xs">
-            <p className="text-muted-foreground">Endpoint MCP</p>
-            <div className="flex items-start gap-2">
-              <code className="bg-background flex-1 break-all rounded px-2 py-1 font-mono text-[11px]">
-                {mcpUrl}
-              </code>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0"
-                onClick={() => void copyText(mcpUrl)}
-                aria-label="Salin URL MCP"
-              >
-                {copied ? (
-                  <Check className="size-3.5" />
-                ) : (
-                  <Copy className="size-3.5" />
-                )}
-              </Button>
-            </div>
-            <p className="text-muted-foreground">
-              Header:{" "}
-              <code className="font-mono">Authorization: Bearer &lt;key&gt;</code>
-            </p>
-          </div>
-
-          {keys.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Belum ada API key. Buat key untuk menghubungkan client MCP.
-            </p>
-          ) : (
-            <ul className="divide-border divide-y rounded-lg border">
-              {keys.map((key) => (
-                <li
-                  key={key.id}
-                  className="flex items-center justify-between gap-3 px-3 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{key.name}</p>
-                    <p className="text-muted-foreground font-mono text-xs">
-                      {key.tokenPrefix}…
-                    </p>
-                    <p className="text-muted-foreground text-[11px]">
-                      Dibuat {formatDate(key.createdAt)}
-                      {key.lastUsedAt
-                        ? ` · Terakhir dipakai ${formatDate(key.lastUsedAt)}`
-                        : " · Belum dipakai"}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive shrink-0"
-                    onClick={() => {
-                      setRevokeError(null);
-                      setRevokeTarget(key);
-                    }}
-                  >
-                    Cabut
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {error ? (
-            <p className="text-destructive text-sm" role="alert">
-              {error}
-            </p>
-          ) : null}
-
+      <IntegrationRow
+        icon={<KeyRound className="size-6" />}
+        title="API Key / MCP"
+        description={
+          hasKeys
+            ? `${keys.length} key aktif · akses todo lewat MCP`
+            : "Akses todo lewat MCP (Cursor, Claude, dll.)"
+        }
+        statusTone={hasKeys ? "connected" : "muted"}
+        statusLabel={hasKeys ? `${keys.length} key` : "Belum ada key"}
+        actions={
           <Button
             type="button"
             onClick={() => {
@@ -253,8 +181,66 @@ export function ApiKeyIntegrationCard({
           >
             Buat API key
           </Button>
-        </CardContent>
-      </Card>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <code className="bg-muted flex-1 truncate rounded px-2 py-1.5 font-mono">
+              {mcpUrl}
+            </code>
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => void copyText(mcpUrl)}
+              aria-label="Salin URL MCP"
+            >
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </Button>
+          </div>
+
+          {keys.length > 0 ? (
+            <ul className="divide-border divide-y border-t">
+              {keys.map((key) => (
+                <li
+                  key={key.id}
+                  className="flex items-center justify-between gap-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{key.name}</p>
+                    <p className="text-muted-foreground font-mono">
+                      {key.tokenPrefix}…
+                    </p>
+                    <p className="text-muted-foreground">
+                      Dibuat {formatDate(key.createdAt)}
+                      {key.lastUsedAt
+                        ? ` · Terakhir dipakai ${formatDate(key.lastUsedAt)}`
+                        : " · Belum dipakai"}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-destructive shrink-0"
+                    onClick={() => {
+                      setRevokeError(null);
+                      setRevokeTarget(key);
+                    }}
+                  >
+                    Cabut
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {error ? (
+            <p className="text-destructive" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </IntegrationRow>
 
       <Dialog
         open={createOpen}
@@ -275,29 +261,26 @@ export function ApiKeyIntegrationCard({
               </DialogHeader>
               <div className="space-y-3">
                 <div className="bg-muted flex items-start gap-2 rounded-lg p-3">
-                  <code className="flex-1 break-all font-mono text-xs">
-                    {createdKey}
-                  </code>
+                  <code className="flex-1 break-all font-mono">{createdKey}</code>
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     className="shrink-0"
                     onClick={() => void copyText(createdKey)}
                     aria-label="Salin API key"
                   >
                     {copied ? (
-                      <Check className="size-3.5" />
+                      <Check className="size-4" />
                     ) : (
-                      <Copy className="size-3.5" />
+                      <Copy className="size-4" />
                     )}
                   </Button>
                 </div>
                 <div>
-                  <p className="text-muted-foreground mb-1 text-xs">
+                  <p className="text-muted-foreground mb-1">
                     Contoh konfigurasi client
                   </p>
-                  <pre className="bg-muted max-h-40 overflow-auto rounded-lg p-3 font-mono text-[11px] whitespace-pre-wrap">
+                  <pre className="bg-muted max-h-40 overflow-auto rounded-lg p-3 font-mono whitespace-pre-wrap">
                     {sampleConfig}
                   </pre>
                 </div>
@@ -331,7 +314,7 @@ export function ApiKeyIntegrationCard({
                 </Field>
               </FieldGroup>
               {error ? (
-                <p className="text-destructive mb-3 text-sm" role="alert">
+                <p className="text-destructive mb-3" role="alert">
                   {error}
                 </p>
               ) : null}
@@ -372,7 +355,7 @@ export function ApiKeyIntegrationCard({
             </AlertDialogDescription>
           </AlertDialogHeader>
           {revokeError ? (
-            <p className="text-destructive text-sm" role="alert">
+            <p className="text-destructive" role="alert">
               {revokeError}
             </p>
           ) : null}

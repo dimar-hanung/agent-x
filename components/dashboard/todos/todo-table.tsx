@@ -44,7 +44,7 @@ export function TodoTable({ todos, onOpen, onDelete }: TodoTableProps) {
   });
 
   return (
-    <div className="rounded-md border">
+    <div className="surface-panel overflow-hidden rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>

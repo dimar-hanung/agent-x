@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { IntegrationCardHeader } from "@/components/settings/integration-card-header";
+import { IntegrationRow } from "@/components/settings/integration-row";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import type { WhatsAppUserInstanceView } from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
 
 interface WhatsAppInboxConnectCardProps {
@@ -24,6 +23,7 @@ export function WhatsAppInboxConnectCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const connected = instance.status === "connected";
+  const pairing = instance.status === "pairing";
 
   const pollStatus = useCallback(async () => {
     try {
@@ -125,69 +125,58 @@ export function WhatsAppInboxConnectCard({
     }
   }
 
+  const description = connected
+    ? (instance.phoneE164 ?? "Ringkasan chat read-only")
+    : "Ringkasan chat dan grup (read-only)";
+
   return (
-    <Card>
-      <IntegrationCardHeader
-        icon={<WhatsAppIcon className="size-5" />}
-        title="WhatsApp pribadi"
-        description="Hubungkan akun WhatsApp kamu (read-only) untuk ringkasan chat dan grup."
-        statusTone={connected ? "connected" : instance.status === "pairing" ? "warning" : "muted"}
-        statusLabel={
-          connected
-            ? "Terhubung"
-            : instance.status === "pairing"
-              ? "Menunggu scan"
-              : "Belum terhubung"
-        }
-      />
-      <CardContent className="space-y-4">
-        <p className="text-muted-foreground text-sm">
-          AgentX hanya membaca pesan untuk membuat ringkasan eksekutif. Tidak
-          ada balasan otomatis dari akun pribadi kamu.
-        </p>
-
-        {connected ? (
-          <div className="space-y-3">
-            <p className="text-sm">
-              Terhubung
-              {instance.phoneE164 ? ` · ${instance.phoneE164}` : ""}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" asChild>
-                <Link href="/dashboard/whatsapp-inbox">Buka ringkasan</Link>
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDisconnect}
-                disabled={isSubmitting}
-              >
-                Putuskan
-              </Button>
-            </div>
+    <IntegrationRow
+      icon={<WhatsAppIcon className="size-6" />}
+      title="WhatsApp pribadi"
+      description={description}
+      statusTone={connected ? "connected" : pairing ? "warning" : "muted"}
+      statusLabel={
+        connected
+          ? "Terhubung"
+          : pairing
+            ? "Menunggu scan"
+            : "Belum terhubung"
+      }
+      actions={
+        connected ? (
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/whatsapp-inbox">Buka ringkasan</Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleDisconnect}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Memutuskan..." : "Putuskan"}
+            </Button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {instance.status === "pairing" && qrBase64 ? (
-              <div className="flex flex-col items-center gap-3">
-                <img
-                  src={qrBase64}
-                  alt="QR WhatsApp"
-                  className="size-48 rounded-lg border"
-                />
-                <p className="text-muted-foreground text-center text-sm">
-                  Scan QR dengan WhatsApp di ponsel kamu.
-                </p>
-              </div>
-            ) : (
-              <Button onClick={handleConnect} disabled={isSubmitting}>
-                Hubungkan WhatsApp
-              </Button>
-            )}
-          </div>
-        )}
+        ) : !pairing ? (
+          <Button onClick={handleConnect} disabled={isSubmitting}>
+            {isSubmitting ? "Menghubungkan..." : "Hubungkan"}
+          </Button>
+        ) : null
+      }
+    >
+      {pairing && qrBase64 ? (
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+          <img
+            src={qrBase64}
+            alt="QR WhatsApp"
+            className="size-40 rounded-lg border"
+          />
+          <p className="text-muted-foreground">
+            Scan QR dengan WhatsApp di ponsel kamu.
+          </p>
+        </div>
+      ) : null}
 
-        {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      </CardContent>
-    </Card>
+      {error ? <p className="text-destructive">{error}</p> : null}
+    </IntegrationRow>
   );
 }

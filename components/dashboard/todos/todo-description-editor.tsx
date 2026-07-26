@@ -70,7 +70,7 @@ export function TodoDescriptionEditor({
             "placeholder:text-muted-foreground flex w-full font-mono text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50",
             borderless
               ? "bg-transparent px-0 py-1 focus-visible:ring-0"
-              : "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 rounded-md border px-3 py-2 shadow-xs focus-visible:ring-[3px]"
+              : "border-input bg-card focus-visible:border-ring focus-visible:ring-ring/50 rounded-md border px-3 py-2 shadow-xs focus-visible:ring-[3px]"
           )}
         />
       ) : (
@@ -79,7 +79,7 @@ export function TodoDescriptionEditor({
             "min-h-40",
             borderless
               ? "bg-transparent px-0 py-1"
-              : "border-input bg-background rounded-md border px-3 py-2 shadow-xs",
+              : "border-input bg-card rounded-md border px-3 py-2 shadow-xs",
             !value.trim() && "flex items-center"
           )}
         >

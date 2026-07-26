@@ -80,7 +80,7 @@ export function FilesGridView({
                 onRename={onRename}
                 onDelete={onDelete}
                 className={cn(
-                  "absolute right-1 top-1 bg-background/80 backdrop-blur transition-opacity",
+                  "absolute right-1 top-1 bg-card/80 backdrop-blur transition-opacity",
                   "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100"
                 )}
               />

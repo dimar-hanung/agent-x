@@ -5,9 +5,8 @@ import { useEffect, useState } from "react";
 
 import { GoogleIcon } from "@/components/icons/google-icon";
 import { DualProviderConnectWarningDialog } from "@/components/settings/dual-provider-connect-warning-dialog";
-import { IntegrationCardHeader } from "@/components/settings/integration-card-header";
+import { IntegrationRow } from "@/components/settings/integration-row";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import type { GoogleIntegrationStatus } from "@/lib/integrations/google-repository";
 
 interface GoogleIntegrationCardProps {
@@ -86,61 +85,36 @@ export function GoogleIntegrationCard({
     window.location.href = AUTHORIZE_URL;
   }
 
-  if (status.connected) {
-    return (
-      <Card className="gap-0 py-0">
-        <IntegrationCardHeader
-          icon={<GoogleIcon className="size-6" />}
-          title="Google"
-          description={status.email ?? ""}
-          statusTone="connected"
-          statusLabel="Terhubung"
-        />
-        <CardContent className="space-y-3 p-4">
-          <p className="text-muted-foreground text-xs">
-            Calendar, Gmail, dan Drive (baca + upload) siap dipakai di tool chat.
-            {status.lastVerifiedAt
-              ? ` Terakhir diverifikasi: ${new Date(status.lastVerifiedAt).toLocaleString("id-ID", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                  timeZone: "Asia/Jakarta",
-                })}`
-              : null}
-          </p>
-          {error ? <p className="text-destructive text-xs">{error}</p> : null}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleDisconnect}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Memutuskan..." : "Putuskan"}
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <>
-      <Card className="gap-0 py-0">
-        <IntegrationCardHeader
-          icon={<GoogleIcon className="size-6" />}
-          title="Google"
-          description="Calendar, Gmail, dan Drive dari chat."
-          statusTone="muted"
-          statusLabel="Belum terhubung"
-        />
-        <CardContent className="space-y-3 p-4">
-          <p className="text-muted-foreground text-xs">
-            Hubungkan satu akun Google untuk jadwal, email, dan file Drive.
-          </p>
-          {error ? <p className="text-destructive text-xs">{error}</p> : null}
-          <Button onClick={handleConnectClick} disabled={isSubmitting}>
-            Hubungkan Google
-          </Button>
-        </CardContent>
-      </Card>
+      <IntegrationRow
+        icon={<GoogleIcon className="size-6" />}
+        title="Google"
+        description={
+          status.connected
+            ? (status.email ?? "Terhubung")
+            : "Calendar, Gmail, dan Drive"
+        }
+        statusTone={status.connected ? "connected" : "muted"}
+        statusLabel={status.connected ? "Terhubung" : "Belum terhubung"}
+        actions={
+          status.connected ? (
+            <Button
+              variant="outline"
+              onClick={handleDisconnect}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Memutuskan..." : "Putuskan"}
+            </Button>
+          ) : (
+            <Button onClick={handleConnectClick} disabled={isSubmitting}>
+              Hubungkan
+            </Button>
+          )
+        }
+      >
+        {error ? <p className="text-destructive">{error}</p> : null}
+      </IntegrationRow>
 
       <DualProviderConnectWarningDialog
         open={warningOpen}

@@ -61,13 +61,13 @@ export default async function SettingsPage() {
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div>
+        <div className="max-w-3xl">
           <h1 className="text-xl font-semibold tracking-tight">Integrations</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground">
             Hubungkan layanan eksternal untuk dipakai di tool chat dan MCP.
           </p>
         </div>
-        <div className="grid max-w-3xl gap-4 md:grid-cols-2">
+        <div className="divide-border surface-panel max-w-3xl divide-y overflow-hidden rounded-lg border">
           <Suspense fallback={null}>
             <GoogleIntegrationCard
               initialStatus={googleStatus}

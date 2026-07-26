@@ -4,9 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { IntegrationCardHeader } from "@/components/settings/integration-card-header";
+import { IntegrationRow } from "@/components/settings/integration-row";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -98,51 +97,53 @@ export function WhatsAppPairingCard({
       ? "Belum terhubung"
       : "Channel nonaktif";
 
+  const description = paired
+    ? (status.userPhoneE164 ?? "Chat ke kanal utama")
+    : channelReady
+      ? "Chat ke kanal utama lewat WhatsApp"
+      : "Channel belum aktif";
+
   return (
-    <Card className="gap-0 py-0">
-      <IntegrationCardHeader
-        icon={<WhatsAppIcon className="size-6" />}
-        title="WhatsApp"
-        description={
-          status.userPhoneE164 ?? "Chat ke kanal utama lewat WhatsApp."
-        }
-        statusTone={statusTone}
-        statusLabel={statusLabel}
-      />
-      <CardContent className="space-y-3 p-4">
-        {channelReady && status.channel.channelPhoneE164 ? (
-          <div className="bg-muted space-y-1 rounded-lg p-3 text-xs">
-            <p className="text-muted-foreground">Nomor channel</p>
-            <p className="font-medium">{status.channel.channelPhoneE164}</p>
-            <p className="text-muted-foreground">
-              Kirim pesan dari HP terdaftar ke nomor ini.
-            </p>
-          </div>
-        ) : null}
+    <IntegrationRow
+      icon={<WhatsAppIcon className="size-6" />}
+      title="WhatsApp channel"
+      description={description}
+      statusTone={statusTone}
+      statusLabel={statusLabel}
+      actions={
+        paired ? (
+          <Button
+            variant="outline"
+            onClick={handleRemove}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Menghapus..." : "Hapus pairing"}
+          </Button>
+        ) : null
+      }
+    >
+      {channelReady && status.channel.channelPhoneE164 ? (
+        <p className="text-muted-foreground">
+          Kirim pesan dari HP terdaftar ke{" "}
+          <span className="text-foreground font-medium">
+            {status.channel.channelPhoneE164}
+          </span>
+          .
+        </p>
+      ) : null}
 
-        {!channelReady ? (
-          <p className="text-muted-foreground text-xs">
-            Channel WhatsApp belum aktif. Hubungi admin untuk mengaktifkan.
-          </p>
-        ) : null}
+      {!channelReady ? (
+        <p className="text-muted-foreground">
+          Channel WhatsApp belum aktif. Hubungi admin untuk mengaktifkan.
+        </p>
+      ) : null}
 
-        {paired ? (
-          <>
-            {error ? <p className="text-destructive text-xs">{error}</p> : null}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRemove}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Menghapus..." : "Hapus pairing"}
-            </Button>
-          </>
-        ) : channelReady ? (
-          <form onSubmit={handleSave}>
-            <FieldGroup className="gap-4">
-              <Field>
-                <FieldLabel htmlFor="whatsapp-phone">Nomor HP</FieldLabel>
+      {!paired && channelReady ? (
+        <form onSubmit={handleSave} className="max-w-sm">
+          <FieldGroup className="gap-3">
+            <Field>
+              <FieldLabel htmlFor="whatsapp-phone">Nomor HP</FieldLabel>
+              <div className="flex gap-2">
                 <Input
                   id="whatsapp-phone"
                   type="tel"
@@ -153,20 +154,23 @@ export function WhatsAppPairingCard({
                   disabled={!channelReady}
                   autoComplete="tel"
                 />
-                <FieldDescription>
-                  Gunakan nomor yang sama dengan WhatsApp di HP kamu.
-                </FieldDescription>
-              </Field>
-              {error ? (
-                <p className="text-destructive text-xs">{error}</p>
-              ) : null}
-              <Button type="submit" disabled={isSubmitting || !channelReady}>
-                {isSubmitting ? "Menyimpan..." : "Simpan"}
-              </Button>
-            </FieldGroup>
-          </form>
-        ) : null}
-      </CardContent>
-    </Card>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !channelReady}
+                  className="shrink-0"
+                >
+                  {isSubmitting ? "Menyimpan..." : "Simpan"}
+                </Button>
+              </div>
+              <FieldDescription>
+                Gunakan nomor yang sama dengan WhatsApp di HP kamu.
+              </FieldDescription>
+            </Field>
+          </FieldGroup>
+        </form>
+      ) : null}
+
+      {error ? <p className="text-destructive">{error}</p> : null}
+    </IntegrationRow>
   );
 }
