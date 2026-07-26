@@ -52,6 +52,15 @@ const PROMPT_GOOGLE = `Google integrations (require Settings > Integrations > Co
 - Drive: use search_drive, read_drive_file, and upload_drive_file. Prefer text content for notes; set convert_to_google_doc when the user wants a Google Doc. Max upload 5 MB.
 - If a Google tool says the account is not connected, tell the user in Indonesian to connect Google in Settings.`;
 
+const PROMPT_MICROSOFT = `Microsoft integrations (require Settings > Integrations > Connect Microsoft):
+- Calendar: use list_microsoft_calendar_events and create_microsoft_calendar_event for agenda and meetings. Default timezone Asia/Jakarta.
+- When the user asks to check the calendar without a range, call list_microsoft_calendar_events without time_min/time_max (defaults to today → next 7 days). For "hari ini", set time_min/time_max to that local day.
+- If the tool returns an empty events array, say clearly in Indonesian that there are no events in that range (do not invent events).
+- Outlook: use search_microsoft_inbox, read_microsoft_email (by message_id), and send_microsoft_email for the connected Microsoft account.
+- OneDrive: use search_onedrive, read_onedrive_file, and upload_onedrive_file. Prefer text content for notes. Max upload 5 MB.
+- Do NOT use Google tools for Microsoft accounts or Microsoft tools for Google accounts. If the user has both connected, ask which provider they mean when ambiguous.
+- If a Microsoft tool says the account is not connected, tell the user in Indonesian to connect Microsoft in Settings.`;
+
 const PROMPT_FILES = `AgentX private file storage (Dashboard → File, SeaweedFS — NOT Google Drive):
 - Use list_files, upload_file, and read_file when the user talks about AgentX storage / "file saya" / "penyimpanan" / upload ke File di dashboard.
 - Do NOT use Google Drive tools (search_drive / read_drive_file / upload_drive_file) for AgentX storage.
@@ -114,6 +123,8 @@ ${PROMPT_FILES}
 
 ${PROMPT_GOOGLE}
 
+${PROMPT_MICROSOFT}
+
 ${PROMPT_WHATSAPP_INBOX}`;
 
 export const maxDuration = 30;
@@ -159,6 +170,8 @@ ${PROMPT_MEMORY.replace("{memoryConfirm}", memoryConfirm)}
 ${PROMPT_FILES}
 
 ${PROMPT_GOOGLE}
+
+${PROMPT_MICROSOFT}
 
 ${PROMPT_WHATSAPP_INBOX}`;
 

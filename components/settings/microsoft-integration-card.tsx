@@ -3,31 +3,31 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { GoogleIcon } from "@/components/icons/google-icon";
+import { MicrosoftIcon } from "@/components/icons/microsoft-icon";
 import { DualProviderConnectWarningDialog } from "@/components/settings/dual-provider-connect-warning-dialog";
 import { IntegrationCardHeader } from "@/components/settings/integration-card-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { GoogleIntegrationStatus } from "@/lib/integrations/google-repository";
+import type { MicrosoftIntegrationStatus } from "@/lib/integrations/microsoft-repository";
 
-interface GoogleIntegrationCardProps {
-  initialStatus: GoogleIntegrationStatus;
+interface MicrosoftIntegrationCardProps {
+  initialStatus: MicrosoftIntegrationStatus;
   otherProviderConnected: boolean;
 }
 
-const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
-  denied: "Koneksi Google dibatalkan.",
+const MICROSOFT_ERROR_MESSAGES: Record<string, string> = {
+  denied: "Koneksi Microsoft dibatalkan.",
   invalid_state: "Sesi OAuth tidak valid. Coba hubungkan lagi.",
-  unauthorized: "Login dulu sebelum menghubungkan Google.",
-  error: "Gagal menghubungkan Google. Coba lagi.",
+  unauthorized: "Login dulu sebelum menghubungkan Microsoft.",
+  error: "Gagal menghubungkan Microsoft. Coba lagi.",
 };
 
-const AUTHORIZE_URL = "/api/integrations/google/authorize";
+const AUTHORIZE_URL = "/api/integrations/microsoft/authorize";
 
-export function GoogleIntegrationCard({
+export function MicrosoftIntegrationCard({
   initialStatus,
   otherProviderConnected,
-}: GoogleIntegrationCardProps) {
+}: MicrosoftIntegrationCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState(initialStatus);
@@ -36,20 +36,23 @@ export function GoogleIntegrationCard({
   const [warningOpen, setWarningOpen] = useState(false);
 
   useEffect(() => {
-    const googleParam = searchParams.get("google");
+    const microsoftParam = searchParams.get("microsoft");
 
-    if (!googleParam) {
+    if (!microsoftParam) {
       return;
     }
 
-    if (googleParam === "connected") {
+    if (microsoftParam === "connected") {
       setError(null);
       router.replace("/dashboard/settings");
       router.refresh();
       return;
     }
 
-    setError(GOOGLE_ERROR_MESSAGES[googleParam] ?? "Gagal menghubungkan Google.");
+    setError(
+      MICROSOFT_ERROR_MESSAGES[microsoftParam] ??
+        "Gagal menghubungkan Microsoft."
+    );
     router.replace("/dashboard/settings");
   }, [searchParams, router]);
 
@@ -58,13 +61,13 @@ export function GoogleIntegrationCard({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/integrations/google", {
+      const response = await fetch("/api/integrations/microsoft", {
         method: "DELETE",
       });
 
       if (!response.ok) {
         const data = (await response.json()) as { message?: string };
-        setError(data.message ?? "Gagal memutuskan Google.");
+        setError(data.message ?? "Gagal memutuskan Microsoft.");
         return;
       }
 
@@ -90,15 +93,16 @@ export function GoogleIntegrationCard({
     return (
       <Card className="gap-0 py-0">
         <IntegrationCardHeader
-          icon={<GoogleIcon className="size-6" />}
-          title="Google"
+          icon={<MicrosoftIcon className="size-6" />}
+          title="Microsoft"
           description={status.email ?? ""}
           statusTone="connected"
           statusLabel="Terhubung"
         />
         <CardContent className="space-y-3 p-4">
           <p className="text-muted-foreground text-xs">
-            Calendar, Gmail, dan Drive (baca + upload) siap dipakai di tool chat.
+            Outlook, Calendar, dan OneDrive (baca + upload) siap dipakai di tool
+            chat.
             {status.lastVerifiedAt
               ? ` Terakhir diverifikasi: ${new Date(status.lastVerifiedAt).toLocaleString("id-ID", {
                   dateStyle: "medium",
@@ -125,19 +129,20 @@ export function GoogleIntegrationCard({
     <>
       <Card className="gap-0 py-0">
         <IntegrationCardHeader
-          icon={<GoogleIcon className="size-6" />}
-          title="Google"
-          description="Calendar, Gmail, dan Drive dari chat."
+          icon={<MicrosoftIcon className="size-6" />}
+          title="Microsoft"
+          description="Outlook, Calendar, dan OneDrive dari chat."
           statusTone="muted"
           statusLabel="Belum terhubung"
         />
         <CardContent className="space-y-3 p-4">
           <p className="text-muted-foreground text-xs">
-            Hubungkan satu akun Google untuk jadwal, email, dan file Drive.
+            Hubungkan satu akun Microsoft untuk email, jadwal, dan file
+            OneDrive.
           </p>
           {error ? <p className="text-destructive text-xs">{error}</p> : null}
           <Button onClick={handleConnectClick} disabled={isSubmitting}>
-            Hubungkan Google
+            Hubungkan Microsoft
           </Button>
         </CardContent>
       </Card>
@@ -145,8 +150,8 @@ export function GoogleIntegrationCard({
       <DualProviderConnectWarningDialog
         open={warningOpen}
         onOpenChange={setWarningOpen}
-        connectingProvider="google"
-        activeProvider="microsoft"
+        connectingProvider="microsoft"
+        activeProvider="google"
         authorizeUrl={AUTHORIZE_URL}
       />
     </>
