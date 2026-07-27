@@ -26,7 +26,7 @@ Two WhatsApp modes coexist:
 
 ## References
 
-- (none)
+- Planned redesign spec: `.scratch/whatsapp-inbox-evolution-source/spec.md`
 
 ## Learned user preferences
 
@@ -47,6 +47,12 @@ Two WhatsApp modes coexist:
 - **Agent catch-up:** call `summarize_whatsapp_digest` once for general summary asks; `summarize_whatsapp_chat` only when user names a specific chat/JID.
 - Single-chat `generateChatSummary` still exists for named-chat AI tool; writes `whatsapp_chat_summaries` (not used by digest path).
 - Evolution API required for `findChats` / `findMessages` on connect backfill.
+
+## Planned architecture update
+
+- The accepted redesign makes Evolution the source of truth for raw personal WhatsApp messages.
+- AgentX webhooks will retain lightweight chat activity metadata only; summary requests will fetch bounded message windows from Evolution on demand and persist derived summaries or snapshots.
+- This describes planned work, not current behavior. Until the linked spec is implemented, raw-message ingest and backfill remain active.
 
 ## Learned Workspace Facts
 
