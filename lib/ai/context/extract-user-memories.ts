@@ -1,30 +1,13 @@
 import { generateText } from "ai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 
-import { getSummarizeModelId } from "@/lib/ai/context/context-config";
-import { getChatModel } from "@/lib/ai/openrouter";
+import { getSummarizeModelInstance } from "@/lib/ai/context/resolve-summarize-model";
 import { MEMORY_CONTENT_MAX_LENGTH } from "@/lib/db/schema";
 import {
   createMemory,
   listMemories,
   normalizeMemoryContent,
 } from "@/lib/memory/repository";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY ?? "",
-});
-
-function getExtractModel() {
-  const modelId = getSummarizeModelId();
-  const defaultModel = process.env.OPENROUTER_MODEL?.trim();
-
-  if (defaultModel && modelId === defaultModel) {
-    return getChatModel();
-  }
-
-  return openrouter.chat(modelId);
-}
 
 const extractedPreferencesSchema = z.array(
   z.string().trim().min(1).max(MEMORY_CONTENT_MAX_LENGTH)
@@ -86,7 +69,7 @@ export async function extractAndPersistUserMemories(
   );
 
   const { text } = await generateText({
-    model: getExtractModel(),
+    model: await getSummarizeModelInstance(),
     prompt: buildExtractPrompt(summary, existing),
   });
 

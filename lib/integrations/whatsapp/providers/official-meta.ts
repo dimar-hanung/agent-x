@@ -65,6 +65,10 @@ export class OfficialMetaWhatsAppProvider implements WhatsAppProvider {
     notImplemented();
   }
 
+  async downloadMediaMessage(): Promise<null> {
+    notImplemented();
+  }
+
   async disconnect(): Promise<void> {
     notImplemented();
   }

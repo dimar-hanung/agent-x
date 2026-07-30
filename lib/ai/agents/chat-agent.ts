@@ -22,6 +22,7 @@ export interface ChatAgentRuntimeContext {
 export interface CreateChatAgentOptions {
   instructions?: string;
   maxSteps?: number;
+  modelId?: string;
   onToolExecutionStart?: OnToolExecutionStartCallback;
   onToolExecutionEnd?: OnToolExecutionEndCallback;
 }
@@ -36,7 +37,7 @@ export async function createChatAgent(
     (await createAllToolsForUser(user, { runtimeContext }))) as ToolSet;
 
   return new ToolLoopAgent({
-    model: getChatModel(),
+    model: getChatModel(options?.modelId),
     instructions: options?.instructions ?? buildSystemPrompt(user),
     tools,
     stopWhen: isStepCount(options?.maxSteps ?? MAX_AGENT_STEPS),
@@ -57,12 +58,14 @@ export async function createChatAgentForRun({
   user,
   chatId,
   instructions,
+  modelId,
   onToolExecutionStart,
   onToolExecutionEnd,
 }: {
   user: UserContext;
   chatId: string;
   instructions?: string;
+  modelId?: string;
   onToolExecutionStart?: OnToolExecutionStartCallback;
   onToolExecutionEnd?: OnToolExecutionEndCallback;
 }) {
@@ -73,6 +76,7 @@ export async function createChatAgentForRun({
 
   const agent = await createChatAgent(user, runtimeContext, undefined, {
     instructions,
+    modelId,
     onToolExecutionStart,
     onToolExecutionEnd,
   });

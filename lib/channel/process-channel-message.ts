@@ -4,6 +4,12 @@ import {
   type UIMessage,
 } from "ai";
 
+import { getModelSettings } from "@/lib/admin/model-settings/repository";
+import {
+  buildMultimodalUserParts,
+  resolveAgentModelId,
+  stripFilePartsFromMessage,
+} from "@/lib/ai/build-multimodal-parts";
 import { createChatAgent } from "@/lib/ai/agents/chat-agent";
 import { prepareModelContext } from "@/lib/ai/context/prepare-model-context";
 import { WHATSAPP_MAX_AGENT_STEPS } from "@/lib/ai/chat-config";
@@ -16,6 +22,7 @@ import {
 import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
 import { clearDigestInFlight } from "@/lib/integrations/whatsapp-inbox/summary/service";
 import { notifyWhatsAppToolError, notifyWhatsAppToolStart } from "@/lib/integrations/whatsapp/notify-tool-progress";
+import type { WhatsAppSavedAttachment } from "@/lib/integrations/whatsapp/types";
 import { createAllToolsForUser } from "@/lib/ai/tools/resolve-tools";
 import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
 
@@ -32,6 +39,7 @@ export interface ProcessChannelMessageInput {
   userId: string;
   text: string;
   source: ChannelMessageSource;
+  attachments?: WhatsAppSavedAttachment[];
   metadata?: Record<string, unknown>;
   replyViaWhatsApp?: boolean;
   abortSignal?: AbortSignal;
@@ -51,13 +59,29 @@ export async function processChannelMessage(
     throw new Error("User tidak ditemukan.");
   }
 
+  const modelSettings = await getModelSettings();
+  const attachments = input.attachments ?? [];
+  const { parts, requiresVision } = buildMultimodalUserParts(
+    input.text,
+    attachments
+  );
+  const modelId = resolveAgentModelId({
+    textModelId: modelSettings.textModelId,
+    visionModelId: modelSettings.visionModelId,
+    requiresVision,
+  });
+
   const chatId = await getOrCreateMainChannel(user.userId);
   const previousMessages = await loadStoredChatMessages(chatId, user.userId);
+  const historyWithoutFiles = previousMessages.map((message) => ({
+    ...message,
+    ...stripFilePartsFromMessage(message),
+  }));
 
   const userMessage: UIMessage = {
     id: generateId(),
     role: "user",
-    parts: [{ type: "text", text: input.text }],
+    parts,
     metadata: {
       source: input.source,
       ...input.metadata,
@@ -65,7 +89,7 @@ export async function processChannelMessage(
   };
 
   const storedWithNew = [
-    ...previousMessages,
+    ...historyWithoutFiles,
     { ...userMessage, sequence: previousMessages.length },
   ];
 
@@ -95,6 +119,7 @@ export async function processChannelMessage(
 
   const agent = await createChatAgent(user, { userId: user.userId, chatId }, tools, {
     instructions: systemPrompt,
+    modelId,
     maxSteps: input.source === "whatsapp" ? WHATSAPP_MAX_AGENT_STEPS : undefined,
     onToolExecutionStart: notifyToolProgress
       ? async ({ toolCall }) => {
@@ -168,8 +193,8 @@ export async function processChannelMessage(
   };
 
   const allInputMessages = [
-    ...previousMessages.map(({ sequence: _sequence, ...message }) => message),
-    userMessage,
+    ...historyWithoutFiles.map(({ sequence: _sequence, ...message }) => message),
+    stripFilePartsFromMessage(userMessage),
   ];
 
   await saveChat({

@@ -6,6 +6,16 @@ import { useEffect, useState } from "react";
 import { MicrosoftIcon } from "@/components/icons/microsoft-icon";
 import { DualProviderConnectWarningDialog } from "@/components/settings/dual-provider-connect-warning-dialog";
 import { IntegrationRow } from "@/components/settings/integration-row";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { MicrosoftIntegrationStatus } from "@/lib/integrations/microsoft-repository";
 
@@ -31,8 +41,10 @@ export function MicrosoftIntegrationCard({
   const searchParams = useSearchParams();
   const [status, setStatus] = useState(initialStatus);
   const [error, setError] = useState<string | null>(null);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [warningOpen, setWarningOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     const microsoftParam = searchParams.get("microsoft");
@@ -56,7 +68,7 @@ export function MicrosoftIntegrationCard({
   }, [searchParams, router]);
 
   async function handleDisconnect() {
-    setError(null);
+    setDisconnectError(null);
     setIsSubmitting(true);
 
     try {
@@ -66,14 +78,15 @@ export function MicrosoftIntegrationCard({
 
       if (!response.ok) {
         const data = (await response.json()) as { message?: string };
-        setError(data.message ?? "Gagal memutuskan Microsoft.");
+        setDisconnectError(data.message ?? "Gagal memutuskan Microsoft.");
         return;
       }
 
       setStatus({ connected: false });
+      setConfirmOpen(false);
       router.refresh();
     } catch {
-      setError("Terjadi kesalahan. Coba lagi.");
+      setDisconnectError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -104,10 +117,13 @@ export function MicrosoftIntegrationCard({
           status.connected ? (
             <Button
               variant="outline"
-              onClick={handleDisconnect}
+              onClick={() => {
+                setDisconnectError(null);
+                setConfirmOpen(true);
+              }}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Memutuskan..." : "Putuskan"}
+              Putuskan
             </Button>
           ) : (
             <Button onClick={handleConnectClick} disabled={isSubmitting}>
@@ -118,6 +134,44 @@ export function MicrosoftIntegrationCard({
       >
         {error ? <p className="text-destructive">{error}</p> : null}
       </IntegrationRow>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmOpen(false);
+            setDisconnectError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Putuskan Microsoft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {status.connected && status.email
+                ? `Koneksi ${status.email} akan diputus. Tool Outlook, Calendar, dan OneDrive di chat tidak bisa dipakai sampai dihubungkan lagi.`
+                : "Koneksi Microsoft akan diputus. Tool Outlook, Calendar, dan OneDrive di chat tidak bisa dipakai sampai dihubungkan lagi."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {disconnectError ? (
+            <p className="text-destructive" role="alert">
+              {disconnectError}
+            </p>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isSubmitting}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleDisconnect();
+              }}
+            >
+              {isSubmitting ? "Memutuskan…" : "Putuskan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <DualProviderConnectWarningDialog
         open={warningOpen}

@@ -1,9 +1,7 @@
 import { generateText } from "ai";
 import { and, desc, eq, gte } from "drizzle-orm";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
-import { getSummarizeModelId } from "@/lib/ai/context/context-config";
-import { getChatModel } from "@/lib/ai/openrouter";
+import { getSummarizeModelInstance } from "@/lib/ai/context/resolve-summarize-model";
 import { db } from "@/lib/db";
 import {
   whatsappChatSummaries,
@@ -31,22 +29,7 @@ import {
   type WhatsAppSummaryHighlights,
 } from "./prompt";
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY ?? "",
-});
-
 const CHUNK_OUTPUT_TOKENS = 6000;
-
-function getSummaryModel() {
-  const modelId = getSummarizeModelId();
-  const defaultModel = process.env.OPENROUTER_MODEL?.trim();
-
-  if (defaultModel && modelId === defaultModel) {
-    return getChatModel();
-  }
-
-  return openrouter.chat(modelId);
-}
 
 /**
  * DeepSeek V4 often puts the whole answer in reasoningText and leaves text empty,
@@ -58,7 +41,7 @@ async function generateSummaryText(options: {
   abortSignal?: AbortSignal;
 }): Promise<string> {
   const result = await generateText({
-    model: getSummaryModel(),
+    model: await getSummarizeModelInstance(),
     prompt: options.prompt,
     maxOutputTokens: options.maxOutputTokens,
     abortSignal: options.abortSignal,

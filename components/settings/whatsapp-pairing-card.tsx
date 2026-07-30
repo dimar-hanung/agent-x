@@ -5,6 +5,16 @@ import { useState } from "react";
 
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { IntegrationRow } from "@/components/settings/integration-row";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -26,7 +36,9 @@ export function WhatsAppPairingCard({
   const [status, setStatus] = useState(initialStatus);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const channelReady = status.channel.status === "connected";
   const paired = Boolean(status.userPhoneE164);
@@ -67,7 +79,7 @@ export function WhatsAppPairingCard({
   }
 
   async function handleRemove() {
-    setError(null);
+    setRemoveError(null);
     setIsSubmitting(true);
 
     try {
@@ -77,14 +89,15 @@ export function WhatsAppPairingCard({
 
       if (!response.ok) {
         const data = (await response.json()) as { message?: string };
-        setError(data.message ?? "Gagal menghapus pairing.");
+        setRemoveError(data.message ?? "Gagal menghapus pairing.");
         return;
       }
 
       setStatus((prev) => ({ ...prev, userPhoneE164: null }));
+      setConfirmOpen(false);
       router.refresh();
     } catch {
-      setError("Terjadi kesalahan. Coba lagi.");
+      setRemoveError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -104,73 +117,116 @@ export function WhatsAppPairingCard({
       : "Channel belum aktif";
 
   return (
-    <IntegrationRow
-      icon={<WhatsAppIcon className="size-6" />}
-      title="WhatsApp channel"
-      description={description}
-      statusTone={statusTone}
-      statusLabel={statusLabel}
-      actions={
-        paired ? (
-          <Button
-            variant="outline"
-            onClick={handleRemove}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Menghapus..." : "Hapus pairing"}
-          </Button>
-        ) : null
-      }
-    >
-      {channelReady && status.channel.channelPhoneE164 ? (
-        <p className="text-muted-foreground">
-          Kirim pesan dari HP terdaftar ke{" "}
-          <span className="text-foreground font-medium">
-            {status.channel.channelPhoneE164}
-          </span>
-          .
-        </p>
-      ) : null}
+    <>
+      <IntegrationRow
+        icon={<WhatsAppIcon className="size-6" />}
+        title="WhatsApp channel"
+        description={description}
+        statusTone={statusTone}
+        statusLabel={statusLabel}
+        actions={
+          paired ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRemoveError(null);
+                setConfirmOpen(true);
+              }}
+              disabled={isSubmitting}
+            >
+              Hapus pairing
+            </Button>
+          ) : null
+        }
+      >
+        {channelReady && status.channel.channelPhoneE164 ? (
+          <p className="text-muted-foreground">
+            Kirim pesan dari HP terdaftar ke{" "}
+            <span className="text-foreground font-medium">
+              {status.channel.channelPhoneE164}
+            </span>
+            .
+          </p>
+        ) : null}
 
-      {!channelReady ? (
-        <p className="text-muted-foreground">
-          Channel WhatsApp belum aktif. Hubungi admin untuk mengaktifkan.
-        </p>
-      ) : null}
+        {!channelReady ? (
+          <p className="text-muted-foreground">
+            Channel WhatsApp belum aktif. Hubungi admin untuk mengaktifkan.
+          </p>
+        ) : null}
 
-      {!paired && channelReady ? (
-        <form onSubmit={handleSave} className="max-w-sm">
-          <FieldGroup className="gap-3">
-            <Field>
-              <FieldLabel htmlFor="whatsapp-phone">Nomor HP</FieldLabel>
-              <div className="flex gap-2">
-                <Input
-                  id="whatsapp-phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  placeholder="08123456789"
-                  required
-                  disabled={!channelReady}
-                  autoComplete="tel"
-                />
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || !channelReady}
-                  className="shrink-0"
-                >
-                  {isSubmitting ? "Menyimpan..." : "Simpan"}
-                </Button>
-              </div>
-              <FieldDescription>
-                Gunakan nomor yang sama dengan WhatsApp di HP kamu.
-              </FieldDescription>
-            </Field>
-          </FieldGroup>
-        </form>
-      ) : null}
+        {!paired && channelReady ? (
+          <form onSubmit={handleSave} className="max-w-sm">
+            <FieldGroup className="gap-3">
+              <Field>
+                <FieldLabel htmlFor="whatsapp-phone">Nomor HP</FieldLabel>
+                <div className="flex gap-2">
+                  <Input
+                    id="whatsapp-phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder="08123456789"
+                    required
+                    disabled={!channelReady}
+                    autoComplete="tel"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !channelReady}
+                    className="shrink-0"
+                  >
+                    {isSubmitting ? "Menyimpan..." : "Simpan"}
+                  </Button>
+                </div>
+                <FieldDescription>
+                  Gunakan nomor yang sama dengan WhatsApp di HP kamu.
+                </FieldDescription>
+              </Field>
+            </FieldGroup>
+          </form>
+        ) : null}
 
-      {error ? <p className="text-destructive">{error}</p> : null}
-    </IntegrationRow>
+        {error ? <p className="text-destructive">{error}</p> : null}
+      </IntegrationRow>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmOpen(false);
+            setRemoveError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus pairing WhatsApp?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {status.userPhoneE164
+                ? `Nomor ${status.userPhoneE164} tidak bisa lagi chat ke kanal utama sampai dipairing ulang.`
+                : "Pairing akan dihapus. Nomor ini tidak bisa lagi chat ke kanal utama sampai dipairing ulang."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {removeError ? (
+            <p className="text-destructive" role="alert">
+              {removeError}
+            </p>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isSubmitting}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleRemove();
+              }}
+            >
+              {isSubmitting ? "Menghapus…" : "Hapus pairing"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

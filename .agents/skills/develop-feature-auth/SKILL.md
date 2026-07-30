@@ -41,5 +41,6 @@ There is **no public Sign Up** — new users are created only by an admin from t
 - Creatable roles: `admin` | `client` | `guest` (`adminUserRoles` in `lib/admin/users/schemas.ts`)
 - Existing `admin` users cannot be edited or deleted from the dashboard (repo guards)
 - Login form is login-only; copy notes that accounts are admin-provisioned
+- After successful login, default redirect is `/dashboard` (`appRoutes.dashboard`); `?next=` still wins when present
 - User-facing auth strings: Bahasa Indonesia
 - Protected routes (`/chat`, `/dashboard`) gated in `middleware.ts`

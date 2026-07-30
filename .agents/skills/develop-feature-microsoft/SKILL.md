@@ -31,9 +31,10 @@ Users may connect both Google and Microsoft; Settings shows a warning modal when
 - **State cookie**: `agentx_microsoft_oauth_state` (10 min, httpOnly)
 - **Callback redirect**: `/dashboard/settings?microsoft=connected|denied|invalid_state|unauthorized|error`
 - **Token refresh**: `getValidMicrosoftAccessToken` in `lib/microsoft/token.ts` — 60s skew before expiry
-- **Disconnect**: `DELETE /api/integrations/microsoft` — hard delete row; no Microsoft revoke endpoint
+- **Disconnect**: `DELETE /api/integrations/microsoft` — hard delete row; no Microsoft revoke endpoint. UI opens `AlertDialog` before DELETE (same pattern as Google / WhatsApp Putuskan).
 - **Google vs Microsoft tools**: Google tools (`send_email`, etc.) only use Google; Microsoft tools (`send_microsoft_email`, etc.) only use Microsoft. System prompt instructs model to pick the right set.
 - **Dual-provider warning**: When connecting Google while Microsoft is active (or vice versa), `DualProviderConnectWarningDialog` warns but allows continue.
+- Settings disconnect confirms: see `develop-feature-integrations`.
 - **Azure prerequisite**: App Registration in Microsoft Entra → Web redirect URI = `MICROSOFT_REDIRECT_URI` → delegated permissions above → client secret → env vars `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_REDIRECT_URI`
 - **Env**: Reuse `INTEGRATIONS_ENCRYPTION_KEY` and `AGENTX_PUBLIC_URL`
 - **No schema migration**: Reuses `user_integrations` table (same as Google)

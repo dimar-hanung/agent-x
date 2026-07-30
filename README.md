@@ -21,7 +21,7 @@ cp .env.example .env.local
 | Variable | Description |
 |----------|-------------|
 | `OPENROUTER_API_KEY` | OpenRouter API key for the chat model |
-| `OPENROUTER_MODEL` | Model id (default: `deepseek/deepseek-v4-pro`) |
+| `OPENROUTER_MODEL` | Bootstrap fallback model id when DB settings are empty (default: `deepseek/deepseek-v4-pro`). Runtime text/vision models are configured by admin at **Dashboard → Pengaturan Model**. |
 | `DATABASE_URL` | PostgreSQL connection string (`127.0.0.1:5432/agentx`) |
 | `SESSION_SECRET` | Random string (32+ chars) for session cookies |
 | `INTEGRATIONS_ENCRYPTION_KEY` | 32-byte key (hex or base64) for encrypting integration secrets at rest. Generate with `openssl rand -hex 32` |

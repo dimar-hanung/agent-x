@@ -3,6 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,7 +35,9 @@ export function WhatsAppChannelCard({
   const [config, setConfig] = useState(initialConfig);
   const [qrBase64, setQrBase64] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const pollStatus = useCallback(async () => {
     try {
@@ -102,7 +114,7 @@ export function WhatsAppChannelCard({
   }
 
   async function handleDisconnect() {
-    setError(null);
+    setDisconnectError(null);
     setIsSubmitting(true);
 
     try {
@@ -114,15 +126,16 @@ export function WhatsAppChannelCard({
       };
 
       if (!response.ok) {
-        setError(data.message ?? "Gagal memutuskan channel.");
+        setDisconnectError(data.message ?? "Gagal memutuskan channel.");
         return;
       }
 
       setConfig(data);
       setQrBase64(null);
+      setConfirmOpen(false);
       router.refresh();
     } catch {
-      setError("Terjadi kesalahan. Coba lagi.");
+      setDisconnectError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -130,37 +143,80 @@ export function WhatsAppChannelCard({
 
   if (config.status === "connected") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Channel WhatsApp</CardTitle>
-          <CardDescription>
-            Nomor channel global untuk semua user. User mendaftarkan HP mereka di
-            Integrations.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm">
-            <span className="text-muted-foreground">Status: </span>
-            <span className="font-medium text-green-600">Terhubung</span>
-          </p>
-          {config.channelPhoneE164 ? (
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Channel WhatsApp</CardTitle>
+            <CardDescription>
+              Nomor channel global untuk semua user. User mendaftarkan HP mereka di
+              Integrations.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
             <p className="text-sm">
-              <span className="text-muted-foreground">Nomor channel: </span>
-              <span className="font-medium">{config.channelPhoneE164}</span>
+              <span className="text-muted-foreground">Status: </span>
+              <span className="font-medium text-green-600">Terhubung</span>
             </p>
-          ) : null}
-          {error ? <p className="text-destructive text-sm">{error}</p> : null}
-        </CardContent>
-        <CardFooter>
-          <Button
-            variant="outline"
-            onClick={handleDisconnect}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Memutuskan..." : "Putuskan"}
-          </Button>
-        </CardFooter>
-      </Card>
+            {config.channelPhoneE164 ? (
+              <p className="text-sm">
+                <span className="text-muted-foreground">Nomor channel: </span>
+                <span className="font-medium">{config.channelPhoneE164}</span>
+              </p>
+            ) : null}
+            {error ? <p className="text-destructive text-sm">{error}</p> : null}
+          </CardContent>
+          <CardFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDisconnectError(null);
+                setConfirmOpen(true);
+              }}
+              disabled={isSubmitting}
+            >
+              Putuskan
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <AlertDialog
+          open={confirmOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setConfirmOpen(false);
+              setDisconnectError(null);
+            }
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Putuskan channel WhatsApp?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {config.channelPhoneE164
+                  ? `Channel ${config.channelPhoneE164} akan diputus. Semua user tidak bisa chat lewat kanal utama sampai channel dihubungkan lagi.`
+                  : "Channel WhatsApp akan diputus. Semua user tidak bisa chat lewat kanal utama sampai channel dihubungkan lagi."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {disconnectError ? (
+              <p className="text-destructive" role="alert">
+                {disconnectError}
+              </p>
+            ) : null}
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={isSubmitting}
+                onClick={(event) => {
+                  event.preventDefault();
+                  void handleDisconnect();
+                }}
+              >
+                {isSubmitting ? "Memutuskan…" : "Putuskan"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     );
   }
 

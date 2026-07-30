@@ -52,7 +52,7 @@ export function LoginForm({
         return;
       }
 
-      const next = searchParams.get("next") || appRoutes.chat;
+      const next = searchParams.get("next") || appRoutes.dashboard;
       router.push(next);
       router.refresh();
     } catch {

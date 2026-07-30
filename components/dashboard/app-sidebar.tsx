@@ -6,6 +6,7 @@ import {
   Brain,
   CalendarClock,
   CheckSquare,
+  Cpu,
   FolderOpen,
   MessageSquare,
   MessagesSquare,
@@ -60,6 +61,11 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
             title: "Channel WhatsApp",
             url: "/dashboard/whatsapp-channel",
             icon: Radio,
+          },
+          {
+            title: "Pengaturan Model",
+            url: "/dashboard/model-settings",
+            icon: Cpu,
           },
         ]
       : [];

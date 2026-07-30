@@ -20,7 +20,10 @@ import { getSessionUser } from "@/lib/auth/get-session-user";
 import { getGoogleIntegrationStatus } from "@/lib/integrations/google-repository";
 import { getMicrosoftIntegrationStatus } from "@/lib/integrations/microsoft-repository";
 import { getUserPairingStatus } from "@/lib/integrations/whatsapp-channel-repository";
-import { getUserInstance } from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
+import {
+  getUserInstance,
+  syncUserConnectionStatus,
+} from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
 
 export default async function SettingsPage() {
   const user = await getSessionUser();
@@ -31,12 +34,18 @@ export default async function SettingsPage() {
 
   const [googleStatus, microsoftStatus, whatsappStatus, whatsappInboxInstance, apiKeys] =
     await Promise.all([
-    getGoogleIntegrationStatus(user.userId),
-    getMicrosoftIntegrationStatus(user.userId),
-    getUserPairingStatus(user.userId),
-    getUserInstance(user.userId),
-    listApiKeys(user.userId),
-  ]);
+      getGoogleIntegrationStatus(user.userId),
+      getMicrosoftIntegrationStatus(user.userId),
+      getUserPairingStatus(user.userId),
+      (async () => {
+        try {
+          return await syncUserConnectionStatus(user.userId);
+        } catch {
+          return await getUserInstance(user.userId);
+        }
+      })(),
+      listApiKeys(user.userId),
+    ]);
 
   return (
     <>

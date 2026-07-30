@@ -13,11 +13,24 @@ export function stripMessagesForSummary(messages: UIMessage[]): string {
       .map((part) => part.text.trim())
       .filter(Boolean);
 
-    if (textParts.length === 0) {
+    const fileLabels = message.parts
+      .filter((part) => part.type === "file")
+      .map((part) => {
+        if (part.type !== "file") {
+          return "";
+        }
+
+        return `[file: ${part.filename ?? part.mediaType}]`;
+      })
+      .filter(Boolean);
+
+    const combined = [...textParts, ...fileLabels];
+
+    if (combined.length === 0) {
       continue;
     }
 
-    lines.push(`${message.role}: ${textParts.join("\n")}`);
+    lines.push(`${message.role}: ${combined.join("\n")}`);
   }
 
   return lines.join("\n\n");

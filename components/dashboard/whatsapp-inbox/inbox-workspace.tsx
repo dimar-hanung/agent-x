@@ -103,8 +103,8 @@ export function InboxWorkspace({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <p className="text-muted-foreground text-sm">
           Terhubung{instance.phoneE164 ? ` · ${instance.phoneE164}` : ""}
         </p>
@@ -117,14 +117,16 @@ export function InboxWorkspace({
         </Button>
       </div>
 
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+      {error ? (
+        <p className="text-destructive shrink-0 text-sm">{error}</p>
+      ) : null}
 
-      <div className="grid min-h-[560px] gap-4 lg:grid-cols-[280px_1fr]">
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b py-4">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_1fr] lg:grid-rows-1">
+        <Card className="flex max-h-[40vh] min-h-0 flex-col gap-0 overflow-hidden py-0 lg:max-h-none">
+          <CardHeader className="shrink-0 border-b py-4">
             <CardTitle className="text-base">Snapshot</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="min-h-0 flex-1 overflow-y-auto p-0">
             <SnapshotList
               snapshots={snapshots}
               selectedId={selectedId}

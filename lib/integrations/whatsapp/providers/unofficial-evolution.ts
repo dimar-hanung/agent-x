@@ -8,6 +8,7 @@ import type {
   WhatsAppInboundMessage,
   WhatsAppIngestMessage,
   WhatsAppMediaMessage,
+  WhatsAppMediaMessageKey,
   WhatsAppParsedWebhook,
   WhatsAppPresence,
   WhatsAppQrCode,
@@ -16,6 +17,8 @@ import type {
   WhatsAppStoredMessage,
   WhatsAppTextOptions,
   WhatsAppWebhookPayload,
+  WhatsAppDownloadedMedia,
+  WhatsAppInboundAttachmentMeta,
 } from "../types";
 
 /** Short Evolution-managed typing pulse; the endpoint clears it after delay. */
@@ -100,6 +103,77 @@ function extractOwnerPhone(owner: string | undefined): string | undefined {
   return normalizePhoneE164(digits);
 }
 
+function instanceNameFromRecord(
+  record: Record<string, unknown>
+): string | undefined {
+  const nested = record.instance;
+  const nestedRecord =
+    nested && typeof nested === "object"
+      ? (nested as Record<string, unknown>)
+      : undefined;
+
+  const name =
+    nestedRecord?.instanceName ?? record.instanceName ?? record.name;
+
+  return typeof name === "string" ? name : undefined;
+}
+
+function phoneFromInstanceRecord(
+  record: Record<string, unknown>
+): string | undefined {
+  const nested = record.instance;
+  const nestedRecord =
+    nested && typeof nested === "object"
+      ? (nested as Record<string, unknown>)
+      : undefined;
+
+  const candidates = [
+    nestedRecord?.owner,
+    nestedRecord?.ownerJid,
+    nestedRecord?.number,
+    record.owner,
+    record.ownerJid,
+    record.number,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string" || !candidate.trim()) {
+      continue;
+    }
+
+    const phone = extractOwnerPhone(candidate);
+    if (phone) {
+      return phone;
+    }
+  }
+
+  return undefined;
+}
+
+function recordsFromFetchInstances(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) {
+    return data.filter(
+      (item): item is Record<string, unknown> =>
+        item !== null && typeof item === "object"
+    );
+  }
+
+  if (!data || typeof data !== "object") {
+    return [];
+  }
+
+  const record = data as Record<string, unknown>;
+
+  if (Array.isArray(record.instances)) {
+    return record.instances.filter(
+      (item): item is Record<string, unknown> =>
+        item !== null && typeof item === "object"
+    );
+  }
+
+  return [record];
+}
+
 function extractMessageText(data: Record<string, unknown>): string | null {
   const message = data.message as Record<string, unknown> | undefined;
 
@@ -128,6 +202,166 @@ function extractMessageText(data: Record<string, unknown>): string | null {
   }
 
   return null;
+}
+
+function extractMediaCaption(message: Record<string, unknown>): string | null {
+  const image = message.imageMessage as { caption?: string } | undefined;
+  if (image?.caption?.trim()) {
+    return image.caption.trim();
+  }
+
+  const document = message.documentMessage as { caption?: string } | undefined;
+  if (document?.caption?.trim()) {
+    return document.caption.trim();
+  }
+
+  const video = message.videoMessage as { caption?: string } | undefined;
+  if (video?.caption?.trim()) {
+    return video.caption.trim();
+  }
+
+  return null;
+}
+
+function extractMediaAttachments(
+  data: Record<string, unknown>
+): WhatsAppInboundAttachmentMeta[] {
+  const message = data.message as Record<string, unknown> | undefined;
+  const key = data.key as
+    | { id?: string; remoteJid?: string; fromMe?: boolean }
+    | undefined;
+
+  if (!message || !key?.id || !key.remoteJid) {
+    return [];
+  }
+
+  const messageKey: WhatsAppMediaMessageKey = {
+    id: key.id,
+    remoteJid: key.remoteJid,
+    fromMe: Boolean(key.fromMe),
+  };
+
+  const attachments: WhatsAppInboundAttachmentMeta[] = [];
+
+  const image = message.imageMessage as
+    | { mimetype?: string; fileName?: string; caption?: string }
+    | undefined;
+
+  if (image) {
+    attachments.push({
+      mediaType: "image",
+      mimeType: image.mimetype ?? "image/jpeg",
+      fileName: image.fileName?.trim() || "image.jpg",
+      caption: image.caption?.trim(),
+      messageKey,
+    });
+  }
+
+  const document = message.documentMessage as
+    | {
+        mimetype?: string;
+        fileName?: string;
+        title?: string;
+        caption?: string;
+      }
+    | undefined;
+
+  if (document) {
+    attachments.push({
+      mediaType: "document",
+      mimeType: document.mimetype ?? "application/octet-stream",
+      fileName:
+        document.fileName?.trim() ||
+        document.title?.trim() ||
+        "document",
+      caption: document.caption?.trim(),
+      messageKey,
+    });
+  }
+
+  const video = message.videoMessage as
+    | { mimetype?: string; fileName?: string; caption?: string }
+    | undefined;
+
+  if (video) {
+    attachments.push({
+      mediaType: "video",
+      mimeType: video.mimetype ?? "video/mp4",
+      fileName: video.fileName?.trim() || "video.mp4",
+      caption: video.caption?.trim(),
+      messageKey,
+    });
+  }
+
+  return attachments;
+}
+
+function sanitizeFolderSegment(value: string): string {
+  const sanitized = value
+    .replace(/[/\\]/g, "_")
+    .replace(/[^\w.-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100);
+
+  return sanitized || "kontak";
+}
+
+function buildGroupFolderSlug(remoteJid: string): string {
+  return sanitizeFolderSegment(remoteJid.replace(/@.*$/, ""));
+}
+
+function parseInboundRecord(
+  data: Record<string, unknown>
+): WhatsAppInboundMessage | null {
+  const remoteJid = extractRemoteJid(data);
+
+  if (!remoteJid) {
+    return null;
+  }
+
+  const key = data.key as
+    | {
+        id?: string;
+        remoteJid?: string;
+        fromMe?: boolean;
+      }
+    | undefined;
+
+  const fromMe = Boolean(key?.fromMe);
+  const isGroup = isGroupJid(remoteJid);
+
+  if (fromMe || isGroup) {
+    return null;
+  }
+
+  const participantJid = extractParticipantJid(data);
+  const senderJid = isGroup ? participantJid : remoteJid;
+  const senderDigits = senderJid?.replace(/@.*$/, "").replace(/\D/g, "");
+
+  if (!senderDigits) {
+    return null;
+  }
+
+  const conversationText = extractMessageText(data);
+  const mediaCaption = extractMediaCaption(
+    (data.message as Record<string, unknown> | undefined) ?? {}
+  );
+  const text = (conversationText ?? mediaCaption ?? "").trim();
+  const attachments = extractMediaAttachments(data);
+
+  if (!text && attachments.length === 0) {
+    return null;
+  }
+
+  return {
+    senderPhoneE164: normalizePhoneE164(senderDigits),
+    text,
+    messageId: key?.id,
+    remoteJid,
+    isGroup,
+    groupFolderSlug: isGroup ? buildGroupFolderSlug(remoteJid) : undefined,
+    attachments: attachments.length > 0 ? attachments : undefined,
+  };
 }
 
 function extractRemoteJid(data: Record<string, unknown>): string | null {
@@ -463,6 +697,38 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
     }
   }
 
+  private async fetchInstancePhone(instanceName: string): Promise<string | undefined> {
+    try {
+      const data = await this.request<unknown>(
+        `/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`
+      );
+      const rows = recordsFromFetchInstances(data);
+
+      for (const row of rows) {
+        const name = instanceNameFromRecord(row);
+        if (name && name !== instanceName) {
+          continue;
+        }
+
+        const phone = phoneFromInstanceRecord(row);
+        if (phone) {
+          return phone;
+        }
+      }
+
+      for (const row of rows) {
+        const phone = phoneFromInstanceRecord(row);
+        if (phone) {
+          return phone;
+        }
+      }
+    } catch {
+      // Best-effort — connection state is still valid without phone.
+    }
+
+    return undefined;
+  }
+
   async getConnectionStatus(
     instanceName: string
   ): Promise<WhatsAppConnectionStatus> {
@@ -473,9 +739,15 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
       const state = data.instance?.state ?? data.state;
       const status = mapConnectionState(state);
 
+      let phoneE164 = extractOwnerPhone(data.instance?.owner);
+
+      if (status === "connected" && !phoneE164) {
+        phoneE164 = await this.fetchInstancePhone(instanceName);
+      }
+
       return {
         status,
-        phoneE164: extractOwnerPhone(data.instance?.owner),
+        phoneE164,
       };
     } catch {
       return { status: "disconnected" };
@@ -597,6 +869,49 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
     });
   }
 
+  async downloadMediaMessage(
+    instanceName: string,
+    messageKey: WhatsAppMediaMessageKey
+  ): Promise<WhatsAppDownloadedMedia | null> {
+    try {
+      const data = await this.request<Record<string, unknown>>(
+        `/chat/getBase64FromMediaMessage/${instanceName}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            message: { key: messageKey },
+            convertToMp4: false,
+          }),
+        }
+      );
+
+      const base64 =
+        (typeof data.base64 === "string" && data.base64) ||
+        (typeof data.media === "string" && data.media) ||
+        null;
+
+      if (!base64) {
+        return null;
+      }
+
+      const mimeType =
+        (typeof data.mimetype === "string" && data.mimetype) ||
+        (typeof data.mimeType === "string" && data.mimeType) ||
+        "application/octet-stream";
+
+      const buffer = Buffer.from(base64, "base64");
+
+      return {
+        base64,
+        mimeType,
+        buffer,
+      };
+    } catch (error) {
+      console.error("WhatsApp media download gagal:", error);
+      return null;
+    }
+  }
+
   async disconnect(instanceName: string): Promise<void> {
     await this.request(`/instance/logout/${instanceName}`, {
       method: "DELETE",
@@ -652,18 +967,16 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
   parseInboundMessage(
     payload: WhatsAppWebhookPayload
   ): WhatsAppInboundMessage | null {
-    const ingest = this.parseIngestMessage(payload);
+    const records = extractIngestDataRecords(payload);
 
-    if (!ingest || ingest.isGroup || ingest.fromMe || !ingest.senderPhoneE164) {
-      return null;
+    for (const record of records) {
+      const message = parseInboundRecord(record);
+      if (message) {
+        return message;
+      }
     }
 
-    return {
-      senderPhoneE164: ingest.senderPhoneE164,
-      text: ingest.text,
-      messageId: ingest.messageId,
-      remoteJid: ingest.remoteJid,
-    };
+    return null;
   }
 
   parseIngestMessage(payload: WhatsAppWebhookPayload): WhatsAppIngestMessage | null {

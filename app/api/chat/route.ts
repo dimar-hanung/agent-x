@@ -7,6 +7,7 @@ import {
 import { NextResponse } from "next/server";
 
 import { createChatAgentForRun } from "@/lib/ai/agents/chat-agent";
+import { getModelSettings } from "@/lib/admin/model-settings/repository";
 import { prepareModelContext } from "@/lib/ai/context/prepare-model-context";
 import { maxDuration } from "@/lib/ai/chat-config";
 import { chatRequestSchema } from "@/lib/ai/chat-schema";
@@ -106,6 +107,7 @@ export async function POST(req: Request) {
       user,
       chatId,
       instructions: systemPrompt,
+      modelId: (await getModelSettings()).textModelId,
       onToolExecutionStart: whatsappOutput
         ? async ({ toolCall }) => {
             await notifyWhatsAppToolStart(user.userId, toolCall.toolName);

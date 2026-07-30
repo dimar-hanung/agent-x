@@ -1,24 +1,7 @@
 import { generateText, type UIMessage } from "ai";
 
-import { getSummarizeModelId } from "@/lib/ai/context/context-config";
+import { getSummarizeModelInstance } from "@/lib/ai/context/resolve-summarize-model";
 import { stripMessagesForSummary } from "@/lib/ai/context/strip-messages-for-summary";
-import { getChatModel } from "@/lib/ai/openrouter";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY ?? "",
-});
-
-function getSummarizeModel() {
-  const modelId = getSummarizeModelId();
-  const defaultModel = process.env.OPENROUTER_MODEL?.trim();
-
-  if (defaultModel && modelId === defaultModel) {
-    return getChatModel();
-  }
-
-  return openrouter.chat(modelId);
-}
 
 function buildSummarizePrompt(
   existingSummary: string | null,
@@ -75,7 +58,7 @@ export async function summarizeMessages(
   }
 
   const { text } = await generateText({
-    model: getSummarizeModel(),
+    model: await getSummarizeModelInstance(),
     prompt: buildSummarizePrompt(existingSummary, transcript, options.maxTokens),
   });
 

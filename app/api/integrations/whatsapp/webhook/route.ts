@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isVisionModelEnabled } from "@/lib/admin/model-settings/constants";
+import { getModelSettings } from "@/lib/admin/model-settings/repository";
 import { processChannelMessage } from "@/lib/channel/process-channel-message";
 import {
   getChannelConfig,
@@ -11,6 +13,14 @@ import {
   resolveUserIdByInstanceName,
 } from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
 import {
+  inboundHasVisionOnlyAttachments,
+  inboundRequiresVisionModel,
+  saveInboundWhatsAppAttachments,
+  WA_MEDIA_DOWNLOAD_FAILED_REPLY,
+  WA_STORAGE_NOT_CONFIGURED_REPLY,
+  WA_VISION_DISABLED_REPLY,
+} from "@/lib/integrations/whatsapp/save-inbound-media";
+import {
   isDuplicateWhatsAppInboundContent,
   isDuplicateWhatsAppInboundMessage,
   withWhatsAppUserProcessingLock,
@@ -21,6 +31,7 @@ import type {
   WhatsAppInboundMessage,
   WhatsAppWebhookPayload,
 } from "@/lib/integrations/whatsapp/types";
+import { isSeaweedfsConfigured } from "@/lib/files/s3-client";
 
 const UNREGISTERED_REPLY =
   "Nomor belum terdaftar. Daftarkan nomor HP kamu di AgentX → Settings → Integrations.";
@@ -56,6 +67,30 @@ async function signalProcessingState(
   }
 
   await Promise.all(tasks);
+}
+
+async function downloadInboundAttachments(
+  provider: WhatsAppProvider,
+  instanceName: string,
+  inbound: WhatsAppInboundMessage
+) {
+  const attachments = inbound.attachments ?? [];
+  const downloaded = [];
+
+  for (const meta of attachments) {
+    const media = await provider.downloadMediaMessage(
+      instanceName,
+      meta.messageKey
+    );
+
+    if (!media) {
+      return null;
+    }
+
+    downloaded.push({ meta, media });
+  }
+
+  return downloaded;
 }
 
 export async function POST(req: Request) {
@@ -128,12 +163,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, duplicate: true });
   }
 
-  if (
-    isDuplicateWhatsAppInboundContent(
-      inbound.senderPhoneE164,
-      inbound.text
-    )
-  ) {
+  const dedupeText =
+    inbound.text ||
+    inbound.attachments?.map((item) => item.fileName).join("|") ||
+    "";
+
+  if (isDuplicateWhatsAppInboundContent(inbound.senderPhoneE164, dedupeText)) {
     return NextResponse.json({ ok: true, duplicate: true });
   }
 
@@ -146,6 +181,111 @@ export async function POST(req: Request) {
       UNREGISTERED_REPLY
     );
     return NextResponse.json({ ok: true, unregistered: true });
+  }
+
+  const modelSettings = await getModelSettings();
+  const hasAttachments = Boolean(inbound.attachments?.length);
+
+  if (hasAttachments) {
+    if (!isSeaweedfsConfigured()) {
+      await provider.sendText(
+        config.instanceName,
+        inbound.senderPhoneE164,
+        WA_STORAGE_NOT_CONFIGURED_REPLY
+      );
+      return NextResponse.json({ ok: true, storageUnavailable: true });
+    }
+
+    const downloaded = await downloadInboundAttachments(
+      provider,
+      config.instanceName,
+      inbound
+    );
+
+    if (!downloaded) {
+      await provider.sendText(
+        config.instanceName,
+        inbound.senderPhoneE164,
+        WA_MEDIA_DOWNLOAD_FAILED_REPLY
+      );
+      return NextResponse.json({ ok: true, mediaDownloadFailed: true });
+    }
+
+    let savedAttachments;
+    try {
+      savedAttachments = await saveInboundWhatsAppAttachments(
+        userId,
+        inbound,
+        downloaded
+      );
+    } catch (error) {
+      console.error("WhatsApp save attachment error:", error);
+      await provider.sendText(
+        config.instanceName,
+        inbound.senderPhoneE164,
+        WA_STORAGE_NOT_CONFIGURED_REPLY
+      );
+      return NextResponse.json({ ok: true, storageUnavailable: true });
+    }
+
+    const visionRequired = inboundRequiresVisionModel(savedAttachments);
+    const visionOnly = inboundHasVisionOnlyAttachments(
+      savedAttachments,
+      inbound.text
+    );
+
+    if (
+      visionRequired &&
+      !isVisionModelEnabled(modelSettings.visionModelId)
+    ) {
+      await provider.sendText(
+        config.instanceName,
+        inbound.senderPhoneE164,
+        WA_VISION_DISABLED_REPLY
+      );
+      return NextResponse.json({ ok: true, visionDisabled: true });
+    }
+
+    if (visionOnly && !isVisionModelEnabled(modelSettings.visionModelId)) {
+      await provider.sendText(
+        config.instanceName,
+        inbound.senderPhoneE164,
+        WA_VISION_DISABLED_REPLY
+      );
+      return NextResponse.json({ ok: true, visionDisabled: true });
+    }
+
+    try {
+      void signalProcessingState(
+        provider,
+        config.instanceName,
+        inbound
+      ).catch((error) => {
+        console.error("WhatsApp read/typing signal gagal:", error);
+      });
+
+      await withWhatsAppUserProcessingLock(userId, (signal) =>
+        processChannelMessage({
+          userId,
+          text: inbound.text,
+          attachments: savedAttachments,
+          source: "whatsapp",
+          replyViaWhatsApp: true,
+          abortSignal: signal,
+          metadata: { messageId: inbound.messageId },
+        })
+      );
+    } catch (error) {
+      console.error("WhatsApp webhook process error:", error);
+
+      await provider.sendText(
+        config.instanceName,
+        inbound.senderPhoneE164,
+        "Terjadi kesalahan saat memproses pesan. Coba lagi nanti."
+      );
+    }
+
+    return NextResponse.json({ ok: true });
   }
 
   try {

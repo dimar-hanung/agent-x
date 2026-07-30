@@ -33,7 +33,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@modelcontextprotocol/sdk": "1.26.0",
-    "@openrouter/ai-sdk-provider": "^6.0.0-alpha.1",
+    "@openrouter/ai-sdk-provider": "^3.0.0",
     "@radix-ui/react-alert-dialog": "^1.1.19",
     "@radix-ui/react-avatar": "^1.2.0",
     "@radix-ui/react-collapsible": "^1.1.14",

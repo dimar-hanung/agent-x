@@ -1,8 +1,10 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
-const DEFAULT_MODEL = "deepseek/deepseek-v4-pro";
+import { DEFAULT_TEXT_MODEL_ID } from "@/lib/admin/model-settings/constants";
 
-function getModelId(): string {
+const DEFAULT_MODEL = DEFAULT_TEXT_MODEL_ID;
+
+function getEnvModelId(): string {
   return process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
 }
 
@@ -14,10 +16,15 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY ?? "",
 });
 
-export function getChatModel() {
+export function getChatModel(modelId?: string) {
   if (!isOpenRouterConfigured()) {
     throw new Error("OpenRouter API key is not configured.");
   }
 
-  return openrouter.chat(getModelId());
+  const resolvedModelId = modelId?.trim() || getEnvModelId();
+  return openrouter.chat(resolvedModelId);
+}
+
+export function getEnvFallbackModelId(): string {
+  return getEnvModelId();
 }

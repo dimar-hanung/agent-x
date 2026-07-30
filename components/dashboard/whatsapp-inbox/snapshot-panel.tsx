@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageMarkdown } from "@/components/chat/message-markdown";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -28,7 +29,7 @@ export function SnapshotPanel({
 }: SnapshotPanelProps) {
   if (!snapshot) {
     return (
-      <Card>
+      <Card className="min-h-0">
         <CardContent className="space-y-4 p-6">
           <div>
             <h2 className="text-base font-semibold">Belum ada ringkasan</h2>
@@ -46,8 +47,8 @@ export function SnapshotPanel({
   }
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Snapshot semua chat</h2>
           <p className="text-muted-foreground text-sm">
@@ -60,14 +61,12 @@ export function SnapshotPanel({
         </Button>
       </div>
 
-      <Card className="flex-1">
-        <CardHeader>
+      <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0">
+        <CardHeader className="shrink-0 border-b py-4">
           <CardTitle className="text-base">Ringkasan eksekutif</CardTitle>
         </CardHeader>
-        <CardContent>
-          <pre className="font-sans text-sm whitespace-pre-wrap">
-            {snapshot.digestText}
-          </pre>
+        <CardContent className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+          <MessageMarkdown content={snapshot.digestText} />
         </CardContent>
       </Card>
     </div>

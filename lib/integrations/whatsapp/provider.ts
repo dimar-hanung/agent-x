@@ -1,10 +1,12 @@
 import type {
   WhatsAppChatInfo,
   WhatsAppConnectionStatus,
+  WhatsAppDownloadedMedia,
   WhatsAppFetchMessagesOptions,
   WhatsAppInboundMessage,
   WhatsAppIngestMessage,
   WhatsAppMediaMessage,
+  WhatsAppMediaMessageKey,
   WhatsAppParsedWebhook,
   WhatsAppPresence,
   WhatsAppQrCode,
@@ -56,6 +58,11 @@ export interface WhatsAppProvider {
     presence: WhatsAppPresence,
     delayMs?: number
   ): Promise<void>;
+
+  downloadMediaMessage(
+    instanceName: string,
+    messageKey: WhatsAppMediaMessageKey
+  ): Promise<WhatsAppDownloadedMedia | null>;
 
   disconnect(instanceName: string): Promise<void>;
 

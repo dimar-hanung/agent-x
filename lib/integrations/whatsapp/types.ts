@@ -29,12 +29,47 @@ export interface WhatsAppReadMessage {
   id: string;
 }
 
+export type WhatsAppInboundMediaType = "image" | "document" | "video";
+
+export interface WhatsAppMediaMessageKey {
+  remoteJid: string;
+  fromMe: boolean;
+  id: string;
+}
+
+export interface WhatsAppInboundAttachmentMeta {
+  mediaType: WhatsAppInboundMediaType;
+  mimeType: string;
+  fileName: string;
+  caption?: string;
+  messageKey: WhatsAppMediaMessageKey;
+}
+
+export interface WhatsAppDownloadedMedia {
+  base64: string;
+  mimeType: string;
+  buffer: Buffer;
+}
+
+export interface WhatsAppSavedAttachment {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  mediaType: WhatsAppInboundMediaType;
+  requiresVision: boolean;
+  textContent?: string;
+  dataUrl?: string;
+}
+
 export interface WhatsAppInboundMessage {
   senderPhoneE164: string;
   text: string;
   messageId?: string;
   /** Original WhatsApp key.remoteJid — required for mark-as-read. */
   remoteJid?: string;
+  isGroup?: boolean;
+  groupFolderSlug?: string;
+  attachments?: WhatsAppInboundAttachmentMeta[];
 }
 
 export type WhatsAppChatType = "dm" | "group";

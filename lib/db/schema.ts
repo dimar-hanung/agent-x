@@ -274,6 +274,19 @@ export const whatsappDigestSnapshots = pgTable(
   ]
 );
 
+export const APP_SETTINGS_VISION_DISABLED = "disabled" as const;
+
+export const appSettings = pgTable("app_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  textModelId: varchar("text_model_id", { length: 128 }).notNull(),
+  visionModelId: varchar("vision_model_id", { length: 128 })
+    .notNull()
+    .default(APP_SETTINGS_VISION_DISABLED),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const whatsappChannelConfig = pgTable("whatsapp_channel_config", {
   id: uuid("id").primaryKey().defaultRandom(),
   channelPhoneE164: varchar("channel_phone_e164", { length: 20 }),
@@ -565,3 +578,5 @@ export type ApiKey = typeof apiKeys.$inferSelect;
 export type UserMemory = typeof userMemories.$inferSelect;
 export type ApifySocialSnapshot = typeof apifySocialSnapshots.$inferSelect;
 export type UserFile = typeof userFiles.$inferSelect;
+export type AppSettings = typeof appSettings.$inferSelect;
+export type NewAppSettings = typeof appSettings.$inferInsert;

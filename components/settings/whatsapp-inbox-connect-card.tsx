@@ -6,6 +6,16 @@ import { useCallback, useEffect, useState } from "react";
 
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { IntegrationRow } from "@/components/settings/integration-row";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { WhatsAppUserInstanceView } from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
 
@@ -20,7 +30,9 @@ export function WhatsAppInboxConnectCard({
   const [instance, setInstance] = useState(initialInstance);
   const [qrBase64, setQrBase64] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const connected = instance.status === "connected";
   const pairing = instance.status === "pairing";
@@ -46,7 +58,9 @@ export function WhatsAppInboxConnectCard({
 
       if (data.connected) {
         setQrBase64(null);
-        router.refresh();
+        if (data.instance?.phoneE164) {
+          router.refresh();
+        }
         return;
       }
 
@@ -57,6 +71,14 @@ export function WhatsAppInboxConnectCard({
       // Ignore transient polling errors.
     }
   }, [router]);
+
+  useEffect(() => {
+    if (instance.status !== "connected" || instance.phoneE164) {
+      return;
+    }
+
+    void pollStatus();
+  }, [instance.status, instance.phoneE164, pollStatus]);
 
   useEffect(() => {
     if (instance.status !== "pairing") {
@@ -99,7 +121,7 @@ export function WhatsAppInboxConnectCard({
   }
 
   async function handleDisconnect() {
-    setError(null);
+    setDisconnectError(null);
     setIsSubmitting(true);
 
     try {
@@ -111,72 +133,116 @@ export function WhatsAppInboxConnectCard({
       };
 
       if (!response.ok) {
-        setError(data.message ?? "Gagal memutus koneksi.");
+        setDisconnectError(data.message ?? "Gagal memutus koneksi.");
         return;
       }
 
       setInstance(data);
       setQrBase64(null);
+      setConfirmOpen(false);
       router.refresh();
     } catch {
-      setError("Terjadi kesalahan. Coba lagi.");
+      setDisconnectError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
   const description = connected
-    ? (instance.phoneE164 ?? "Ringkasan chat read-only")
+    ? (instance.phoneE164 ?? "Terhubung")
     : "Ringkasan chat dan grup (read-only)";
 
   return (
-    <IntegrationRow
-      icon={<WhatsAppIcon className="size-6" />}
-      title="WhatsApp pribadi"
-      description={description}
-      statusTone={connected ? "connected" : pairing ? "warning" : "muted"}
-      statusLabel={
-        connected
-          ? "Terhubung"
-          : pairing
-            ? "Menunggu scan"
-            : "Belum terhubung"
-      }
-      actions={
-        connected ? (
-          <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/whatsapp-inbox">Buka ringkasan</Link>
+    <>
+      <IntegrationRow
+        icon={<WhatsAppIcon className="size-6" />}
+        title="WhatsApp pribadi"
+        description={description}
+        statusTone={connected ? "connected" : pairing ? "warning" : "muted"}
+        statusLabel={
+          connected
+            ? "Terhubung"
+            : pairing
+              ? "Menunggu scan"
+              : "Belum terhubung"
+        }
+        actions={
+          connected ? (
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/whatsapp-inbox">Buka ringkasan</Link>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDisconnectError(null);
+                  setConfirmOpen(true);
+                }}
+                disabled={isSubmitting}
+              >
+                Putuskan
+              </Button>
+            </div>
+          ) : !pairing ? (
+            <Button onClick={handleConnect} disabled={isSubmitting}>
+              {isSubmitting ? "Menghubungkan..." : "Hubungkan"}
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleDisconnect}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Memutuskan..." : "Putuskan"}
-            </Button>
+          ) : null
+        }
+      >
+        {pairing && qrBase64 ? (
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <img
+              src={qrBase64}
+              alt="QR WhatsApp"
+              className="size-40 rounded-lg border"
+            />
+            <p className="text-muted-foreground">
+              Scan QR dengan WhatsApp di ponsel kamu.
+            </p>
           </div>
-        ) : !pairing ? (
-          <Button onClick={handleConnect} disabled={isSubmitting}>
-            {isSubmitting ? "Menghubungkan..." : "Hubungkan"}
-          </Button>
-        ) : null
-      }
-    >
-      {pairing && qrBase64 ? (
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-          <img
-            src={qrBase64}
-            alt="QR WhatsApp"
-            className="size-40 rounded-lg border"
-          />
-          <p className="text-muted-foreground">
-            Scan QR dengan WhatsApp di ponsel kamu.
-          </p>
-        </div>
-      ) : null}
+        ) : null}
 
-      {error ? <p className="text-destructive">{error}</p> : null}
-    </IntegrationRow>
+        {error ? <p className="text-destructive">{error}</p> : null}
+      </IntegrationRow>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmOpen(false);
+            setDisconnectError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Putuskan WhatsApp pribadi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {instance.phoneE164
+                ? `Koneksi ${instance.phoneE164} akan diputus. Ringkasan chat tidak tersedia sampai dihubungkan lagi.`
+                : "Koneksi WhatsApp pribadi akan diputus. Ringkasan chat tidak tersedia sampai dihubungkan lagi."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {disconnectError ? (
+            <p className="text-destructive" role="alert">
+              {disconnectError}
+            </p>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isSubmitting}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleDisconnect();
+              }}
+            >
+              {isSubmitting ? "Memutuskan…" : "Putuskan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
