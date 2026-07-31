@@ -7,7 +7,7 @@ import {
   getChannelConfig,
   resolveUserIdByPhone,
 } from "@/lib/integrations/whatsapp-channel-repository";
-import { ingestWhatsAppMessage } from "@/lib/integrations/whatsapp-inbox/ingest/service";
+import { enqueueWhatsAppInboxEvents } from "@/lib/integrations/whatsapp-inbox/ingest/event-repository";
 import {
   isUserInstanceName,
   resolveUserIdByInstanceName,
@@ -118,26 +118,25 @@ export async function POST(req: Request) {
       ? await resolveUserIdByInstanceName(instanceName)
       : null;
 
-  if (personalUserId) {
+  if (personalUserId && instanceName) {
     const messages =
       parsed.messages && parsed.messages.length > 0
         ? parsed.messages
         : parsed.message
           ? [parsed.message]
           : [];
+    const queued = await enqueueWhatsAppInboxEvents({
+      userId: personalUserId,
+      instanceName,
+      messages,
+    });
 
-    let ingested = 0;
-    for (const message of messages) {
-      const saved = await ingestWhatsAppMessage({
-        userId: personalUserId,
-        message,
-      });
-      if (saved) {
-        ingested += 1;
-      }
-    }
-
-    return NextResponse.json({ ok: true, ingested, total: messages.length });
+    return NextResponse.json({
+      ok: true,
+      queued,
+      duplicates: messages.length - queued,
+      total: messages.length,
+    });
   }
 
   // Only the currently paired global channel may auto-reply. Personal inboxes

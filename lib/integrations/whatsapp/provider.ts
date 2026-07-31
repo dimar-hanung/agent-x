@@ -1,8 +1,6 @@
 import type {
-  WhatsAppChatInfo,
   WhatsAppConnectionStatus,
   WhatsAppDownloadedMedia,
-  WhatsAppFetchMessagesOptions,
   WhatsAppInboundMessage,
   WhatsAppIngestMessage,
   WhatsAppMediaMessage,
@@ -12,7 +10,6 @@ import type {
   WhatsAppQrCode,
   WhatsAppReadMessage,
   WhatsAppSendResult,
-  WhatsAppStoredMessage,
   WhatsAppTextOptions,
   WhatsAppWebhookPayload,
 } from "./types";
@@ -82,11 +79,4 @@ export interface WhatsAppProvider {
     payload: WhatsAppWebhookPayload
   ): WhatsAppParsedWebhook;
 
-  findChats(instanceName: string): Promise<WhatsAppChatInfo[]>;
-
-  findMessages(
-    instanceName: string,
-    remoteJid: string,
-    options?: WhatsAppFetchMessagesOptions
-  ): Promise<WhatsAppStoredMessage[]>;
 }

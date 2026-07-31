@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  bigserial,
   boolean,
   index,
   integer,
@@ -37,6 +38,27 @@ export type WhatsAppChatType = (typeof WHATSAPP_CHAT_TYPES)[number];
 export const WHATSAPP_MESSAGE_DIRECTIONS = ["inbound", "outbound"] as const;
 export type WhatsAppMessageDirection =
   (typeof WHATSAPP_MESSAGE_DIRECTIONS)[number];
+
+export const WHATSAPP_INBOX_EVENT_STATUSES = [
+  "queued",
+  "processing",
+  "completed",
+  "deferred",
+  "failed",
+] as const;
+export type WhatsAppInboxEventStatus =
+  (typeof WHATSAPP_INBOX_EVENT_STATUSES)[number];
+
+export const WHATSAPP_INBOX_MESSAGE_TYPES = [
+  "text",
+  "audio",
+  "image",
+  "video",
+  "document",
+  "unknown",
+] as const;
+export type WhatsAppInboxMessageType =
+  (typeof WHATSAPP_INBOX_MESSAGE_TYPES)[number];
 
 export const USER_GENDERS = ["laki_laki", "perempuan"] as const;
 export type UserGender = (typeof USER_GENDERS)[number];
@@ -204,6 +226,7 @@ export const whatsappMessages = pgTable(
       .notNull()
       .references(() => whatsappChats.id, { onDelete: "cascade" }),
     waMessageId: varchar("wa_message_id", { length: 128 }).notNull(),
+    sourceEventSequence: bigint("source_event_sequence", { mode: "number" }),
     senderJid: varchar("sender_jid", { length: 128 }),
     senderName: varchar("sender_name", { length: 255 }),
     direction: varchar("direction", { length: 16 }).notNull(),
@@ -219,9 +242,66 @@ export const whatsappMessages = pgTable(
       table.waMessageId
     ),
     index("whatsapp_messages_chat_sent_at_idx").on(table.chatId, table.sentAt),
+    index("whatsapp_messages_chat_event_sequence_idx").on(
+      table.chatId,
+      table.sourceEventSequence,
+      table.sentAt
+    ),
   ]
 );
 
+export const whatsappInboxEvents = pgTable(
+  "whatsapp_inbox_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sequence: bigserial("sequence", { mode: "number" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    instanceName: varchar("instance_name", { length: 128 }).notNull(),
+    waMessageId: varchar("wa_message_id", { length: 128 }).notNull(),
+    remoteJid: varchar("remote_jid", { length: 128 }).notNull(),
+    chatType: varchar("chat_type", { length: 16 }).notNull(),
+    senderJid: varchar("sender_jid", { length: 128 }),
+    senderName: varchar("sender_name", { length: 255 }),
+    direction: varchar("direction", { length: 16 }).notNull(),
+    messageType: varchar("message_type", { length: 32 }).notNull(),
+    text: text("text").notNull().default(""),
+    mediaMetadata: jsonb("media_metadata").$type<Record<string, unknown> | null>(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("queued"),
+    attempts: integer("attempts").notNull().default(0),
+    availableAt: timestamp("available_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_inbox_events_user_message_idx").on(
+      table.userId,
+      table.waMessageId
+    ),
+    index("whatsapp_inbox_events_queue_idx").on(
+      table.status,
+      table.availableAt,
+      table.sequence
+    ),
+    index("whatsapp_inbox_events_partition_idx").on(
+      table.userId,
+      table.remoteJid,
+      table.status,
+      table.sequence
+    ),
+  ]
+);
 export const whatsappChatSummaries = pgTable(
   "whatsapp_chat_summaries",
   {
@@ -570,6 +650,7 @@ export type WhatsAppChannelConfig = typeof whatsappChannelConfig.$inferSelect;
 export type WhatsAppUserInstance = typeof whatsappUserInstances.$inferSelect;
 export type WhatsAppChat = typeof whatsappChats.$inferSelect;
 export type WhatsAppMessage = typeof whatsappMessages.$inferSelect;
+export type WhatsAppInboxEvent = typeof whatsappInboxEvents.$inferSelect;
 export type WhatsAppChatSummary = typeof whatsappChatSummaries.$inferSelect;
 export type WhatsAppDigestSnapshot = typeof whatsappDigestSnapshots.$inferSelect;
 export type NewWhatsAppDigestSnapshot = typeof whatsappDigestSnapshots.$inferInsert;

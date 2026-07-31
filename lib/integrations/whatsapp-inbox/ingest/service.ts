@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -11,6 +11,7 @@ import type { WhatsAppIngestMessage } from "@/lib/integrations/whatsapp/types";
 
 export interface IngestMessageInput {
   userId: string;
+  eventSequence: number;
   message: WhatsAppIngestMessage;
 }
 
@@ -22,95 +23,70 @@ function resolveDisplayName(message: WhatsAppIngestMessage): string {
   return message.senderName ?? message.senderPhoneE164 ?? message.remoteJid;
 }
 
-async function upsertChat(
-  userId: string,
-  message: WhatsAppIngestMessage
-): Promise<string> {
+export async function ingestWhatsAppMessage(
+  input: IngestMessageInput
+): Promise<boolean> {
+  const { userId, eventSequence, message } = input;
+
+  if (!message.messageId || message.messageType !== "text") {
+    return false;
+  }
+
+  const messageId = message.messageId;
   const sentAt = message.sentAt ?? new Date();
   const chatType: WhatsAppChatType = message.isGroup ? "group" : "dm";
   const displayName = resolveDisplayName(message);
 
-  const [existing] = await db
-    .select({ id: whatsappChats.id })
-    .from(whatsappChats)
-    .where(
-      and(
-        eq(whatsappChats.userId, userId),
-        eq(whatsappChats.remoteJid, message.remoteJid)
-      )
-    )
-    .limit(1);
-
-  if (existing) {
-    await db
-      .update(whatsappChats)
-      .set({
-        displayName,
+  return db.transaction(async (tx) => {
+    const [chat] = await tx
+      .insert(whatsappChats)
+      .values({
+        userId,
+        remoteJid: message.remoteJid,
         chatType,
+        displayName,
         lastMessageAt: sentAt,
-        updatedAt: new Date(),
       })
-      .where(eq(whatsappChats.id, existing.id));
+      .onConflictDoUpdate({
+        target: [whatsappChats.userId, whatsappChats.remoteJid],
+        set: {
+          displayName,
+          chatType,
+          lastMessageAt: sql`greatest(
+            coalesce(${whatsappChats.lastMessageAt}, excluded.last_message_at),
+            excluded.last_message_at
+          )`,
+          updatedAt: new Date(),
+        },
+      })
+      .returning({ id: whatsappChats.id });
 
-    return existing.id;
-  }
+    if (!chat) {
+      throw new Error("WhatsApp chat could not be upserted.");
+    }
 
-  const [created] = await db
-    .insert(whatsappChats)
-    .values({
-      userId,
-      remoteJid: message.remoteJid,
-      chatType,
-      displayName,
-      lastMessageAt: sentAt,
-    })
-    .returning({ id: whatsappChats.id });
+    const direction: WhatsAppMessageDirection = message.direction;
+    const inserted = await tx
+      .insert(whatsappMessages)
+      .values({
+        userId,
+        chatId: chat.id,
+        waMessageId: messageId,
+        sourceEventSequence: eventSequence,
+        senderJid: message.senderJid,
+        senderName: message.senderName,
+        direction,
+        text: message.text,
+        sentAt,
+      })
+      .onConflictDoNothing({
+        target: [whatsappMessages.userId, whatsappMessages.waMessageId],
+      })
+      .returning({ id: whatsappMessages.id });
 
-  return created.id;
-}
-
-export async function ingestWhatsAppMessage(
-  input: IngestMessageInput
-): Promise<boolean> {
-  const { userId, message } = input;
-
-  if (!message.messageId) {
-    return false;
-  }
-
-  const [existing] = await db
-    .select({ id: whatsappMessages.id })
-    .from(whatsappMessages)
-    .where(
-      and(
-        eq(whatsappMessages.userId, userId),
-        eq(whatsappMessages.waMessageId, message.messageId)
-      )
-    )
-    .limit(1);
-
-  if (existing) {
-    return false;
-  }
-
-  const chatId = await upsertChat(userId, message);
-  const direction: WhatsAppMessageDirection = message.direction;
-  const sentAt = message.sentAt ?? new Date();
-
-  await db.insert(whatsappMessages).values({
-    userId,
-    chatId,
-    waMessageId: message.messageId,
-    senderJid: message.senderJid,
-    senderName: message.senderName,
-    direction,
-    text: message.text,
-    sentAt,
+    return inserted.length > 0;
   });
-
-  return true;
 }
-
 export async function listUserWhatsAppChats(userId: string) {
   return db
     .select()
@@ -180,31 +156,52 @@ export async function getRecentMessagesForChat(
     .limit(limit);
 }
 
+export interface WhatsAppMessageWindowOptions {
+  until?: Date;
+  limit?: number;
+  maxEventSequence?: number | null;
+}
+
 export async function getMessagesForChatInWindow(
   userId: string,
   chatId: string,
   since: Date,
-  until?: Date
+  options?: WhatsAppMessageWindowOptions
 ) {
-  const rows = await db
+  const sourceSequenceCondition =
+    options?.maxEventSequence === undefined
+      ? undefined
+      : options.maxEventSequence === null
+        ? isNull(whatsappMessages.sourceEventSequence)
+        : or(
+            isNull(whatsappMessages.sourceEventSequence),
+            lte(
+              whatsappMessages.sourceEventSequence,
+              options.maxEventSequence
+            )
+          );
+  const where = and(
+    eq(whatsappMessages.userId, userId),
+    eq(whatsappMessages.chatId, chatId),
+    gte(whatsappMessages.sentAt, since),
+    options?.until ? lte(whatsappMessages.sentAt, options.until) : undefined,
+    sourceSequenceCondition
+  );
+
+  if (options?.limit && options.limit > 0) {
+    const rows = await db
+      .select()
+      .from(whatsappMessages)
+      .where(where)
+      .orderBy(desc(whatsappMessages.sentAt))
+      .limit(options.limit);
+
+    return rows.reverse();
+  }
+
+  return db
     .select()
     .from(whatsappMessages)
-    .where(
-      and(
-        eq(whatsappMessages.userId, userId),
-        eq(whatsappMessages.chatId, chatId)
-      )
-    )
+    .where(where)
     .orderBy(whatsappMessages.sentAt);
-
-  return rows.filter((row) => {
-    const sentAt = row.sentAt.getTime();
-    if (sentAt < since.getTime()) {
-      return false;
-    }
-    if (until && sentAt > until.getTime()) {
-      return false;
-    }
-    return true;
-  });
 }

@@ -1,8 +1,6 @@
 import type { WhatsAppProvider } from "../provider";
 import type {
-  WhatsAppChatInfo,
   WhatsAppConnectionStatus,
-  WhatsAppFetchMessagesOptions,
   WhatsAppInboundMessage,
   WhatsAppIngestMessage,
   WhatsAppParsedWebhook,
@@ -10,7 +8,6 @@ import type {
   WhatsAppQrCode,
   WhatsAppReadMessage,
   WhatsAppSendResult,
-  WhatsAppStoredMessage,
   WhatsAppWebhookPayload,
 } from "../types";
 
@@ -101,15 +98,4 @@ export class OfficialMetaWhatsAppProvider implements WhatsAppProvider {
     notImplemented();
   }
 
-  async findChats(_instanceName: string): Promise<WhatsAppChatInfo[]> {
-    notImplemented();
-  }
-
-  async findMessages(
-    _instanceName: string,
-    _remoteJid: string,
-    _options?: WhatsAppFetchMessagesOptions
-  ): Promise<WhatsAppStoredMessage[]> {
-    notImplemented();
-  }
 }
