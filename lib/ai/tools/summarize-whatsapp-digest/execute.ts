@@ -6,10 +6,13 @@ import type { SummarizeWhatsappDigestToolResult } from "./types";
 
 export async function executeSummarizeWhatsappDigest(
   input: SummarizeWhatsappDigestInput,
-  ctx: { user: UserContext }
+  ctx: { user: UserContext; abortSignal?: AbortSignal }
 ): Promise<SummarizeWhatsappDigestToolResult> {
   const since = input.since ? new Date(input.since) : undefined;
-  const result = await generateDigest(ctx.user.userId, { since });
+  const result = await generateDigest(ctx.user.userId, {
+    since,
+    abortSignal: ctx.abortSignal,
+  });
 
   if ("success" in result && result.success === false) {
     return { success: false, message: result.message };

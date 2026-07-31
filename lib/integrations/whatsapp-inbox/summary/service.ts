@@ -7,9 +7,11 @@ import {
   whatsappChatSummaries,
   whatsappChats,
   whatsappDigestSnapshots,
+  type WhatsAppChat,
 } from "@/lib/db/schema";
 import {
   getDefaultDigestSince,
+  getWhatsAppDigestCatchUpPollIntervalMs,
   getWhatsAppDigestChunkSize,
   getWhatsAppDigestMaxCharsPerChat,
   getWhatsAppDigestMaxMessagesPerChat,
@@ -20,6 +22,10 @@ import {
   getWhatsAppChatForUser,
   listUserWhatsAppChats,
 } from "@/lib/integrations/whatsapp-inbox/ingest/service";
+import {
+  getWhatsAppInboxCatchUpWatermark,
+  hasUnfinishedWhatsAppInboxEventsThrough,
+} from "@/lib/integrations/whatsapp-inbox/ingest/event-repository";
 import { isUserInstanceConnected } from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
 
 import {
@@ -30,6 +36,61 @@ import {
 } from "./prompt";
 
 const CHUNK_OUTPUT_TOKENS = 6000;
+function waitForCatchUpPoll(
+  intervalMs: number,
+  abortSignal?: AbortSignal
+): Promise<void> {
+  if (abortSignal?.aborted) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      abortSignal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, intervalMs);
+
+    abortSignal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+interface WhatsAppInboxCatchUpResult {
+  caughtUp: boolean;
+  watermark: number | null;
+}
+
+async function waitForWhatsAppInboxCatchUp(
+  userId: string,
+  abortSignal?: AbortSignal
+): Promise<WhatsAppInboxCatchUpResult> {
+  const watermark = await getWhatsAppInboxCatchUpWatermark(userId);
+
+  if (watermark === null) {
+    return { caughtUp: !abortSignal?.aborted, watermark };
+  }
+
+  const pollIntervalMs = getWhatsAppDigestCatchUpPollIntervalMs();
+  while (!abortSignal?.aborted) {
+    const hasUnfinished = await hasUnfinishedWhatsAppInboxEventsThrough(
+      userId,
+      watermark
+    );
+
+
+    console.log(hasUnfinished)
+    if (!hasUnfinished) {
+      return { caughtUp: true, watermark };
+    }
+
+    await waitForCatchUpPoll(pollIntervalMs, abortSignal);
+  }
+
+  return { caughtUp: false, watermark };
+}
 
 /**
  * DeepSeek V4 often puts the whole answer in reasoningText and leaves text empty,
@@ -229,22 +290,30 @@ async function loadChatDigestInputs(
     displayName: string;
     chatType: string;
   }>,
-  since: Date
+  since: Date,
+  watermark: number | null
 ): Promise<ChatDigestInput[]> {
   const maxMessages = getWhatsAppDigestMaxMessagesPerChat();
   const maxChars = getWhatsAppDigestMaxCharsPerChat();
   const inputs: ChatDigestInput[] = [];
 
   for (const chat of activeChats) {
-    const messages = await getMessagesForChatInWindow(userId, chat.id, since);
+    const messages = await getMessagesForChatInWindow(
+      userId,
+      chat.id,
+      since,
+      {
+        limit: maxMessages,
+        maxEventSequence: watermark,
+      }
+    );
 
     if (messages.length === 0) {
       continue;
     }
 
-    const cappedMessages = messages.slice(-maxMessages);
     const transcript = capTranscript(
-      formatTranscript(cappedMessages),
+      formatTranscript(messages),
       maxChars
     );
 
@@ -262,28 +331,44 @@ async function loadChatDigestInputs(
   return inputs;
 }
 
-export async function generateChatSummary(
+interface ChatSummaryOptions {
+  since?: Date;
+  abortSignal?: AbortSignal;
+}
+
+type ChatSummaryReadiness =
+  | { ready: true; watermark: number | null }
+  | { ready: false; message: string };
+
+async function getChatSummaryReadiness(
   userId: string,
-  chatId: string,
-  options?: { since?: Date }
-): Promise<WhatsAppChatSummaryResult | { success: false; message: string }> {
+  abortSignal?: AbortSignal
+): Promise<ChatSummaryReadiness> {
   const connected = await isUserInstanceConnected(userId);
 
   if (!connected) {
     return {
-      success: false,
+      ready: false,
       message: "WhatsApp pribadi belum terhubung. Hubungkan di Settings → Integrations.",
     };
   }
 
-  const chat = await getWhatsAppChatForUser(userId, chatId);
+  const catchUp = await waitForWhatsAppInboxCatchUp(userId, abortSignal);
+  return catchUp.caughtUp
+    ? { ready: true, watermark: catchUp.watermark }
+    : { ready: false, message: "Pembuatan ringkasan dibatalkan." };
+}
 
-  if (!chat) {
-    return { success: false, message: "Chat tidak ditemukan." };
-  }
-
+async function generateChatSummaryForChat(
+  userId: string,
+  chat: WhatsAppChat,
+  watermark: number | null,
+  options?: ChatSummaryOptions
+): Promise<WhatsAppChatSummaryResult | { success: false; message: string }> {
   const since = options?.since ?? getDefaultDigestSince();
-  const messages = await getMessagesForChatInWindow(userId, chatId, since);
+  const messages = await getMessagesForChatInWindow(userId, chat.id, since, {
+    maxEventSequence: watermark,
+  });
 
   if (messages.length === 0) {
     return {
@@ -301,6 +386,7 @@ export async function generateChatSummary(
       1500
     ),
     maxOutputTokens: 1500,
+    abortSignal: options?.abortSignal,
   });
 
   if (!text) {
@@ -316,7 +402,7 @@ export async function generateChatSummary(
 
   await persistSummary(
     userId,
-    chatId,
+    chat.id,
     text,
     highlights,
     coversFrom,
@@ -325,7 +411,7 @@ export async function generateChatSummary(
   );
 
   return {
-    chatId,
+    chatId: chat.id,
     chatName: chat.displayName,
     chatType: chat.chatType as "dm" | "group",
     summaryText: text,
@@ -337,24 +423,50 @@ export async function generateChatSummary(
   };
 }
 
+export async function generateChatSummary(
+  userId: string,
+  chatId: string,
+  options?: ChatSummaryOptions
+): Promise<WhatsAppChatSummaryResult | { success: false; message: string }> {
+  const readiness = await getChatSummaryReadiness(userId, options?.abortSignal);
+  if (!readiness.ready) {
+    return { success: false, message: readiness.message };
+  }
+
+  const chat = await getWhatsAppChatForUser(userId, chatId);
+  if (!chat) {
+    return { success: false, message: "Chat tidak ditemukan." };
+  }
+
+  return generateChatSummaryForChat(
+    userId,
+    chat,
+    readiness.watermark,
+    options
+  );
+}
+
 export async function generateChatSummaryByQuery(
   userId: string,
   query: string,
-  options?: { since?: Date }
+  options?: ChatSummaryOptions
 ) {
-  const chat = await findWhatsAppChatByQuery(userId, query);
+  const readiness = await getChatSummaryReadiness(userId, options?.abortSignal);
+  if (!readiness.ready) {
+    return { success: false as const, message: readiness.message };
+  }
 
+  const chat = await findWhatsAppChatByQuery(userId, query);
   if (!chat) {
     return { success: false as const, message: "Chat tidak ditemukan." };
   }
 
-  const result = await generateChatSummary(userId, chat.id, options);
-
-  if ("success" in result && result.success === false) {
-    return result;
-  }
-
-  return result;
+  return generateChatSummaryForChat(
+    userId,
+    chat,
+    readiness.watermark,
+    options
+  );
 }
 
 type DigestResult =
@@ -435,6 +547,14 @@ async function generateDigestInternal(
     };
   }
 
+  const catchUp = await waitForWhatsAppInboxCatchUp(userId, abortSignal);
+  if (!catchUp.caughtUp) {
+    return {
+      success: false,
+      message: "Pembuatan ringkasan dibatalkan.",
+    };
+  }
+
   const since = options?.since ?? getDefaultDigestSince();
   const chats = await listUserWhatsAppChats(userId);
   const activeChats = chats.filter(
@@ -448,7 +568,12 @@ async function generateDigestInternal(
     };
   }
 
-  const chatInputs = await loadChatDigestInputs(userId, activeChats, since);
+  const chatInputs = await loadChatDigestInputs(
+    userId,
+    activeChats,
+    since,
+    catchUp.watermark
+  );
 
   if (chatInputs.length === 0) {
     return {
