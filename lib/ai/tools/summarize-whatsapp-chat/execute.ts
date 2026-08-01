@@ -6,13 +6,13 @@ import type { SummarizeWhatsappChatToolResult } from "./types";
 
 export async function executeSummarizeWhatsappChat(
   input: SummarizeWhatsappChatInput,
-  ctx: { user: UserContext }
+  ctx: { user: UserContext; abortSignal?: AbortSignal }
 ): Promise<SummarizeWhatsappChatToolResult> {
   const since = input.since ? new Date(input.since) : undefined;
   const result = await generateChatSummaryByQuery(
     ctx.user.userId,
     input.chat_name_or_jid,
-    { since }
+    { since, abortSignal: ctx.abortSignal }
   );
 
   if ("success" in result && result.success === false) {

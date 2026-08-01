@@ -128,7 +128,6 @@ export async function syncUserConnectionStatus(
   const provider = getWhatsAppProvider();
   const remote = await provider.getConnectionStatus(row.instanceName);
   const now = new Date();
-  const wasConnected = row.status === "connected";
   const isNowConnected = remote.status === "connected";
 
   if (isNowConnected) {
@@ -168,14 +167,6 @@ export async function syncUserConnectionStatus(
     .where(eq(whatsappUserInstances.id, row.id))
     .returning();
 
-  if (!wasConnected && isNowConnected) {
-    const { backfillUserWhatsAppInbox } = await import(
-      "@/lib/integrations/whatsapp-inbox/ingest/backfill"
-    );
-    void backfillUserWhatsAppInbox(userId).catch((error) => {
-      console.error("WhatsApp inbox backfill gagal:", error);
-    });
-  }
 
   return toView(updated);
 }

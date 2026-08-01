@@ -81,6 +81,7 @@ cp .env.local .env
 pm2 start npm --name agentx -- start
 pm2 start npm --name agentx-scheduler -- run scheduler:worker
 pm2 start npm --name agentx-apify -- run apify:worker
+pm2 start npm --name agentx-whatsapp-inbox -- run whatsapp-inbox:worker
 
 # Persist process list across reboots
 pm2 save
@@ -129,6 +130,7 @@ Run the app and scheduler worker in **separate terminals**:
 npm run dev
 npm run scheduler:worker
 npm run apify:worker
+npm run whatsapp-inbox:worker
 ```
 
 Optional env: `SCHEDULER_POLL_INTERVAL_MS` (default `15000`) — how often the worker syncs jobs from PostgreSQL.
@@ -161,6 +163,7 @@ Each user has one pinned **Kanal utama** at `/chat` (cron output and default cha
 
 1. **Users** — open [Settings → Integrations](http://localhost:3000/dashboard/settings), connect **WhatsApp pribadi** (scan QR).
 2. Browse summaries at [Dashboard → Ringkasan WhatsApp](http://localhost:3000/dashboard/whatsapp-inbox) or ask in chat: *"Rangkum grup Marketing hari ini"*.
+3. Apply database migrations, then keep `npm run whatsapp-inbox:worker` running. The webhook only appends durable events; the worker promotes text events into the inbox tables.
 
 **Full setup guide:** [docs/evolution-api-setup.md](docs/evolution-api-setup.md)
 

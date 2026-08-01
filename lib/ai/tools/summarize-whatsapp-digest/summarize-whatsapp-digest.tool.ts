@@ -10,6 +10,10 @@ export function createSummarizeWhatsappDigestTool(user: UserContext) {
     description:
       "Generate one all-chat executive digest snapshot across active personal WhatsApp chats. Internally batches up to 100 chats per LLM request.",
     inputSchema: summarizeWhatsappDigestInputSchema,
-    execute: (input) => executeSummarizeWhatsappDigest(input, { user }),
+    execute: (input, options) =>
+      executeSummarizeWhatsappDigest(input, {
+        user,
+        abortSignal: options.abortSignal,
+      }),
   });
 }

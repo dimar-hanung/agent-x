@@ -83,7 +83,10 @@ export async function POST(req: Request) {
     // Empty body is fine.
   }
 
-  const result = await generateDigest(user.userId, { since });
+  const result = await generateDigest(user.userId, {
+    since,
+    abortSignal: req.signal,
+  });
 
   if ("success" in result && result.success === false) {
     return NextResponse.json({ message: result.message }, { status: 400 });

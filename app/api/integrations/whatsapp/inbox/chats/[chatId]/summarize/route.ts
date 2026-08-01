@@ -33,7 +33,10 @@ export async function POST(
     // Empty body is fine.
   }
 
-  const result = await generateChatSummary(user.userId, chatId, { since });
+  const result = await generateChatSummary(user.userId, chatId, {
+    since,
+    abortSignal: req.signal,
+  });
 
   if ("success" in result && result.success === false) {
     return NextResponse.json({ message: result.message }, { status: 400 });

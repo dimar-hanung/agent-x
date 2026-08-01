@@ -74,29 +74,21 @@ export interface WhatsAppInboundMessage {
 
 export type WhatsAppChatType = "dm" | "group";
 
-export interface WhatsAppChatInfo {
-  remoteJid: string;
-  chatType: WhatsAppChatType;
-  displayName: string;
-  lastMessageAt?: Date;
-}
 
-export interface WhatsAppStoredMessage {
-  waMessageId: string;
-  remoteJid: string;
-  chatType: WhatsAppChatType;
-  senderJid?: string;
-  senderName?: string;
-  direction: "inbound" | "outbound";
-  text: string;
-  sentAt: Date;
-}
+export type WhatsAppIngestMessageType =
+  | "text"
+  | "audio"
+  | "image"
+  | "video"
+  | "document"
+  | "unknown";
 
-export interface WhatsAppFetchMessagesOptions {
-  since?: Date;
-  limit?: number;
+export interface WhatsAppIngestMediaPlaceholder {
+  mimeType?: string;
+  fileName?: string;
+  caption?: string;
+  durationSeconds?: number;
 }
-
 export interface WhatsAppIngestMessage {
   remoteJid: string;
   chatType: WhatsAppChatType;
@@ -104,7 +96,9 @@ export interface WhatsAppIngestMessage {
   senderName?: string;
   senderPhoneE164?: string;
   direction: "inbound" | "outbound";
+  messageType: WhatsAppIngestMessageType;
   text: string;
+  mediaPlaceholder?: WhatsAppIngestMediaPlaceholder;
   messageId?: string;
   sentAt?: Date;
   fromMe: boolean;

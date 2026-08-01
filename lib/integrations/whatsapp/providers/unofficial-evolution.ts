@@ -2,11 +2,11 @@ import { getEvolutionConfig } from "../env";
 import type { WhatsAppProvider } from "../provider";
 import { normalizePhoneE164 } from "../phone";
 import type {
-  WhatsAppChatInfo,
   WhatsAppConnectionStatus,
-  WhatsAppFetchMessagesOptions,
   WhatsAppInboundMessage,
+  WhatsAppIngestMediaPlaceholder,
   WhatsAppIngestMessage,
+  WhatsAppIngestMessageType,
   WhatsAppMediaMessage,
   WhatsAppMediaMessageKey,
   WhatsAppParsedWebhook,
@@ -14,7 +14,6 @@ import type {
   WhatsAppQrCode,
   WhatsAppReadMessage,
   WhatsAppSendResult,
-  WhatsAppStoredMessage,
   WhatsAppTextOptions,
   WhatsAppWebhookPayload,
   WhatsAppDownloadedMedia,
@@ -458,6 +457,64 @@ function extractIngestDataRecords(
   return [];
 }
 
+function extractIngestMediaPlaceholder(
+  data: Record<string, unknown>
+): {
+  messageType: WhatsAppIngestMessageType;
+  mediaPlaceholder: WhatsAppIngestMediaPlaceholder;
+} | null {
+  const message = data.message as Record<string, unknown> | undefined;
+
+  if (!message) {
+    return null;
+  }
+
+  const ephemeral = message.ephemeralMessage as
+    | { message?: Record<string, unknown> }
+    | undefined;
+  if (ephemeral?.message) {
+    return extractIngestMediaPlaceholder({ message: ephemeral.message });
+  }
+
+  const candidates: Array<{
+    key: string;
+    messageType: WhatsAppIngestMessageType;
+  }> = [
+    { key: "audioMessage", messageType: "audio" },
+    { key: "imageMessage", messageType: "image" },
+    { key: "videoMessage", messageType: "video" },
+    { key: "documentMessage", messageType: "document" },
+  ];
+
+  for (const candidate of candidates) {
+    const value = message[candidate.key];
+    if (!value || typeof value !== "object") {
+      continue;
+    }
+
+    const metadata = value as Record<string, unknown>;
+    return {
+      messageType: candidate.messageType,
+      mediaPlaceholder: {
+        mimeType:
+          typeof metadata.mimetype === "string" ? metadata.mimetype : undefined,
+        fileName:
+          typeof metadata.fileName === "string"
+            ? metadata.fileName
+            : typeof metadata.title === "string"
+              ? metadata.title
+              : undefined,
+        caption:
+          typeof metadata.caption === "string" ? metadata.caption : undefined,
+        durationSeconds:
+          typeof metadata.seconds === "number" ? metadata.seconds : undefined,
+      },
+    };
+  }
+
+  return null;
+}
+
 function buildIngestMessage(
   data: Record<string, unknown>
 ): WhatsAppIngestMessage | null {
@@ -467,9 +524,10 @@ function buildIngestMessage(
     return null;
   }
 
-  const text = extractMessageText(data);
+  const text = extractMessageText(data)?.trim() ?? "";
+  const media = extractIngestMediaPlaceholder(data);
 
-  if (!text?.trim()) {
+  if (!text && !media) {
     return null;
   }
 
@@ -496,14 +554,15 @@ function buildIngestMessage(
       ? normalizePhoneE164(senderDigits)
       : undefined,
     direction: fromMe ? "outbound" : "inbound",
-    text: text.trim(),
+    messageType: media?.messageType ?? (text ? "text" : "unknown"),
+    text,
+    mediaPlaceholder: media?.mediaPlaceholder,
     messageId: key?.id,
     sentAt: parseMessageTimestamp(data),
     fromMe,
     isGroup,
   };
 }
-
 function extractSenderJid(
   data: Record<string, unknown>,
   payload: WhatsAppWebhookPayload
@@ -1008,105 +1067,4 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
     };
   }
 
-  async findChats(instanceName: string): Promise<WhatsAppChatInfo[]> {
-    const data = await this.request<unknown[]>(
-      `/chat/findChats/${instanceName}`,
-      {
-        method: "POST",
-        body: JSON.stringify({}),
-      }
-    );
-
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    return data
-      .map((item): WhatsAppChatInfo | null => {
-        const record = item as Record<string, unknown>;
-        const remoteJid =
-          (typeof record.id === "string" ? record.id : null) ??
-          (typeof record.remoteJid === "string" ? record.remoteJid : null);
-
-        if (!remoteJid || remoteJid.includes("@broadcast")) {
-          return null;
-        }
-
-        const name =
-          (typeof record.name === "string" && record.name.trim()) ||
-          (typeof record.pushName === "string" && record.pushName.trim()) ||
-          remoteJid.replace(/@.*$/, "");
-
-        const updatedAt =
-          typeof record.updatedAt === "string"
-            ? new Date(record.updatedAt)
-            : typeof record.conversationTimestamp === "number"
-              ? new Date(record.conversationTimestamp * 1000)
-              : undefined;
-
-        return {
-          remoteJid,
-          chatType: isGroupJid(remoteJid) ? "group" : "dm",
-          displayName: name,
-          lastMessageAt: updatedAt,
-        };
-      })
-      .filter((chat): chat is WhatsAppChatInfo => chat !== null);
-  }
-
-  async findMessages(
-    instanceName: string,
-    remoteJid: string,
-    options?: WhatsAppFetchMessagesOptions
-  ): Promise<WhatsAppStoredMessage[]> {
-    const limit = options?.limit ?? 50;
-
-    const data = await this.request<unknown[]>(
-      `/chat/findMessages/${instanceName}`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          where: {
-            key: {
-              remoteJid,
-            },
-          },
-          page: 1,
-          offset: limit,
-        }),
-      }
-    );
-
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    const messages: WhatsAppStoredMessage[] = [];
-
-    for (const item of data) {
-      const record = item as Record<string, unknown>;
-      const ingest = buildIngestMessage(record);
-
-      if (!ingest) {
-        continue;
-      }
-
-      if (options?.since && ingest.sentAt && ingest.sentAt < options.since) {
-        continue;
-      }
-
-      messages.push({
-        waMessageId: ingest.messageId ?? `${remoteJid}-${messages.length}`,
-        remoteJid: ingest.remoteJid,
-        chatType: ingest.chatType,
-        senderJid: ingest.senderJid,
-        senderName: ingest.senderName,
-        direction: ingest.direction,
-        text: ingest.text,
-        sentAt: ingest.sentAt ?? new Date(),
-      });
-    }
-
-    return messages.sort((a, b) => a.sentAt.getTime() - b.sentAt.getTime());
-  }
 }

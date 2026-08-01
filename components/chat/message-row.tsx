@@ -96,7 +96,15 @@ function ToolChip({ part }: { part: UIMessage["parts"][number] }) {
     : null;
 
   const Icon = hasFailed ? AlertCircle : isRunning ? Loader2 : CheckCircle2;
-  const label = hasFailed ? "Gagal" : isRunning ? "Berjalan…" : "Selesai";
+  const label = hasFailed
+    ? "Gagal"
+    : isRunning &&
+        (toolName === "summarize_whatsapp_chat" ||
+          toolName === "summarize_whatsapp_digest")
+      ? "Menyinkronkan dan merangkum data WhatsApp…"
+      : isRunning
+        ? "Berjalan…"
+        : "Selesai";
 
   return (
     <div className="flex flex-col gap-1">

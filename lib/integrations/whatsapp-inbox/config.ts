@@ -1,23 +1,5 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function getWhatsAppBackfillDays(): number {
-  const raw = process.env.WHATSAPP_BACKFILL_DAYS?.trim();
-  const parsed = raw ? Number(raw) : 7;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 7;
-}
-
-export function getWhatsAppBackfillMaxMessagesPerChat(): number {
-  const raw = process.env.WHATSAPP_BACKFILL_MAX_MESSAGES?.trim();
-  const parsed = raw ? Number(raw) : 200;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 200;
-}
-
-export function getWhatsAppBackfillMaxChats(): number {
-  const raw = process.env.WHATSAPP_BACKFILL_MAX_CHATS?.trim();
-  const parsed = raw ? Number(raw) : 50;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 50;
-}
-
 export function getDefaultDigestSince(): Date {
   return new Date(Date.now() - DAY_MS);
 }
@@ -38,4 +20,41 @@ export function getWhatsAppDigestMaxCharsPerChat(): number {
   const raw = process.env.WHATSAPP_DIGEST_MAX_CHARS_PER_CHAT?.trim();
   const parsed = raw ? Number(raw) : 2500;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 2500;
+}
+
+function positiveIntegerEnv(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  const parsed = raw ? Number(raw) : fallback;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export function getWhatsAppDigestCatchUpPollIntervalMs(): number {
+  return positiveIntegerEnv("WHATSAPP_DIGEST_CATCH_UP_POLL_INTERVAL_MS", 1_000);
+}
+export function getWhatsAppInboxWorkerPollIntervalMs(): number {
+  return positiveIntegerEnv("WHATSAPP_INBOX_WORKER_POLL_INTERVAL_MS", 1_000);
+}
+
+export function getWhatsAppInboxWorkerBatchSize(): number {
+  return positiveIntegerEnv("WHATSAPP_INBOX_WORKER_BATCH_SIZE", 25);
+}
+
+export function getWhatsAppInboxWorkerConcurrency(): number {
+  return positiveIntegerEnv("WHATSAPP_INBOX_WORKER_CONCURRENCY", 5);
+}
+
+export function getWhatsAppInboxWorkerMaxAttempts(): number {
+  return positiveIntegerEnv("WHATSAPP_INBOX_WORKER_MAX_ATTEMPTS", 5);
+}
+
+export function getWhatsAppInboxWorkerLockTimeoutMs(): number {
+  return positiveIntegerEnv("WHATSAPP_INBOX_WORKER_LOCK_TIMEOUT_MS", 300_000);
+}
+
+export function getWhatsAppInboxWorkerRetryBaseMs(): number {
+  return positiveIntegerEnv("WHATSAPP_INBOX_WORKER_RETRY_BASE_MS", 1_000);
+}
+
+export function getWhatsAppInboxWorkerRetryMaxMs(): number {
+  return positiveIntegerEnv("WHATSAPP_INBOX_WORKER_RETRY_MAX_MS", 60_000);
 }

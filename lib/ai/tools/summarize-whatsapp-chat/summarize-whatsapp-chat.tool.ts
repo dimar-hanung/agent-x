@@ -10,6 +10,10 @@ export function createSummarizeWhatsappChatTool(user: UserContext) {
     description:
       "Generate an executive summary for a specific personal WhatsApp chat (DM or group) by name or JID.",
     inputSchema: summarizeWhatsappChatInputSchema,
-    execute: (input) => executeSummarizeWhatsappChat(input, { user }),
+    execute: (input, options) =>
+      executeSummarizeWhatsappChat(input, {
+        user,
+        abortSignal: options.abortSignal,
+      }),
   });
 }
