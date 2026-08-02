@@ -5,8 +5,14 @@ import { getModelSettings } from "@/lib/admin/model-settings/repository";
 import { processChannelMessage } from "@/lib/channel/process-channel-message";
 import {
   getChannelConfig,
+  getUserWhatsAppPhone,
   resolveUserIdByPhone,
 } from "@/lib/integrations/whatsapp-channel-repository";
+import {
+  findPersonalOutboundToGlobalBot,
+  personalOutboundToChannelInbound,
+} from "@/lib/integrations/whatsapp/personal-bot-bridge";
+import { isAgentGeneratedWhatsAppText } from "@/lib/integrations/whatsapp/bot-echo-filter";
 import { enqueueWhatsAppInboxEvents } from "@/lib/integrations/whatsapp-inbox/ingest/event-repository";
 import {
   isUserInstanceName,
@@ -131,6 +137,69 @@ export async function POST(req: Request) {
       messages,
     });
 
+    const botOutbound = findPersonalOutboundToGlobalBot(
+      messages,
+      config.channelPhoneE164
+    );
+
+    if (botOutbound && config.status === "connected") {
+      const registeredPhone = await getUserWhatsAppPhone(personalUserId);
+
+      if (registeredPhone) {
+        const bridgedInbound = personalOutboundToChannelInbound(
+          botOutbound,
+          registeredPhone
+        );
+
+        if (isAgentGeneratedWhatsAppText(bridgedInbound.text)) {
+          return NextResponse.json({
+            ok: true,
+            queued,
+            duplicates: messages.length - queued,
+            total: messages.length,
+            ignoredBotEcho: true,
+          });
+        }
+
+        if (
+          !isDuplicateWhatsAppInboundMessage(bridgedInbound.messageId) &&
+          !isDuplicateWhatsAppInboundContent(
+            bridgedInbound.senderPhoneE164,
+            bridgedInbound.text
+          )
+        ) {
+          try {
+            void signalProcessingState(
+              provider,
+              config.instanceName,
+              bridgedInbound
+            ).catch((error) => {
+              console.error("WhatsApp read/typing signal gagal:", error);
+            });
+
+            await withWhatsAppUserProcessingLock(personalUserId, (signal) =>
+              processChannelMessage({
+                userId: personalUserId,
+                text: bridgedInbound.text,
+                source: "whatsapp",
+                replyViaWhatsApp: true,
+                abortSignal: signal,
+                metadata: { messageId: bridgedInbound.messageId },
+              })
+            );
+          } catch (error) {
+            console.error("WhatsApp personal bot bridge error:", error);
+
+            await provider.sendText(
+              config.instanceName,
+              registeredPhone,
+              "Terjadi kesalahan saat memproses pesan. Coba lagi nanti."
+            );
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       queued,
@@ -156,6 +225,10 @@ export async function POST(req: Request) {
 
   if (!inbound) {
     return NextResponse.json({ ok: true, ignored: true });
+  }
+
+  if (isAgentGeneratedWhatsAppText(inbound.text)) {
+    return NextResponse.json({ ok: true, ignored: true, botEcho: true });
   }
 
   if (isDuplicateWhatsAppInboundMessage(inbound.messageId)) {

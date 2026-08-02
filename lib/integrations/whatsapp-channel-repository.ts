@@ -15,6 +15,7 @@ import type {
 import {
   normalizePhoneE164,
 } from "@/lib/integrations/whatsapp/phone";
+import { markWhatsAppOutboundContent } from "@/lib/integrations/whatsapp/webhook-dedup";
 
 const SINGLETON_CONFIG_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -264,6 +265,7 @@ export async function sendWhatsAppToUser(
 
   const provider = getWhatsAppProvider();
   await provider.sendText(config.instanceName, phone, text, options);
+  markWhatsAppOutboundContent(phone, text);
 }
 
 export async function sendWhatsAppMediaToUser(

@@ -43,6 +43,14 @@ const TOOL_PROGRESS_LABELS = {
   summarize_whatsapp_digest: "Menyinkronkan dan merangkum data WhatsApp…",
 } as const satisfies Record<NativeToolKey, string>;
 
+const TOOL_PROGRESS_LABEL_SET = new Set<string>(
+  Object.values(TOOL_PROGRESS_LABELS)
+);
+
+export function isToolProgressLabel(text: string): boolean {
+  return TOOL_PROGRESS_LABEL_SET.has(text.trim());
+}
+
 export function getToolProgressLabel(toolName: string): string {
   if (Object.hasOwn(TOOL_PROGRESS_LABELS, toolName)) {
     return TOOL_PROGRESS_LABELS[toolName as NativeToolKey];

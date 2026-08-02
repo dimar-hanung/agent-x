@@ -176,6 +176,10 @@ export async function processChannelMessage(
       : result.text.trim();
 
   if (replyViaWhatsApp && finalAssistantText) {
+    if (input.abortSignal?.aborted) {
+      return { assistantText: "", chatId };
+    }
+
     await sendWhatsAppToUser(user.userId, finalAssistantText);
   }
 

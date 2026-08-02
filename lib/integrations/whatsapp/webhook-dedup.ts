@@ -1,7 +1,15 @@
 import { clearDigestInFlight } from "@/lib/integrations/whatsapp-inbox/summary/service";
 
-const DEDUP_TTL_MS = 5 * 60 * 1000;
-const CONTENT_DEDUP_TTL_MS = 60 * 1000;
+/** Evolution replays messages.upsert for hours; keep dedup long enough to block re-runs. */
+const DEDUP_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Short window for same sender+text — blocks webhook retries, allows repeat user commands. */
+function getContentDedupTtlMs(): number {
+  const raw = process.env.WHATSAPP_WEBHOOK_CONTENT_DEDUP_TTL_MS?.trim();
+  const fallback = 5 * 60 * 1000;
+  const parsed = raw ? Number(raw) : fallback;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
 
 const processedMessageIds = new Map<string, number>();
 const processedContentKeys = new Map<string, number>();
@@ -63,8 +71,26 @@ export function isDuplicateWhatsAppInboundContent(
     return true;
   }
 
-  processedContentKeys.set(key, now + CONTENT_DEDUP_TTL_MS);
+  processedContentKeys.set(key, now + getContentDedupTtlMs());
   return false;
+}
+
+/** Pre-register bot outbound text so echoed webhooks are ignored as inbound. */
+export function markWhatsAppOutboundContent(
+  senderPhoneE164: string,
+  text: string
+): void {
+  const normalizedText = text.trim().toLowerCase();
+  if (!senderPhoneE164 || !normalizedText) {
+    return;
+  }
+
+  const now = Date.now();
+  pruneExpired(processedContentKeys, now);
+  processedContentKeys.set(
+    `${senderPhoneE164}:${normalizedText}`,
+    now + getContentDedupTtlMs()
+  );
 }
 
 /** Abort any in-flight run and start a new one for the same user. */

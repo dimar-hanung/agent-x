@@ -18,6 +18,7 @@ Two WhatsApp modes coexist:
   - `ingest/` — durable event enqueue, worker processing, and atomic text promotion
   - `summary/` — executive summaries + digest snapshots
 - Shared WhatsApp provider: `lib/integrations/whatsapp/` (factory, Evolution/Meta providers, webhook dedup)
+- Personal→bot bridge: `lib/integrations/whatsapp/personal-bot-bridge.ts`
 - Webhook routing: `app/api/integrations/whatsapp/webhook/route.ts` (routes by `instance` name)
 - API: `app/api/integrations/whatsapp/inbox/` — digest snapshots via `GET/POST .../digest`
 - AI tools: `list_whatsapp_chats`, `summarize_whatsapp_chat`, `summarize_whatsapp_digest`
@@ -36,7 +37,9 @@ Two WhatsApp modes coexist:
 
 ## Behavior agents must know
 
-- Personal instance webhooks: ingest only — no `processChannelMessage`, no outbound signals (reply, typing, read receipts).
+- Personal instance webhooks: ingest only for normal contacts — no bot reply to the user's personal chats.
+- **Personal→bot bridge (exception):** when a personal instance receives an *outbound* DM to the global channel phone (`whatsapp_channel_config.channel_phone_e164`), bridge it through `lib/integrations/whatsapp/personal-bot-bridge.ts` into the global auto-reply path (`processChannelMessage` + `sendWhatsAppToUser` on the global instance). Needed because with a connected personal inbox, messages the user sends to the bot often never arrive as `messages.upsert` on the global instance.
+- Bridged inbound for `markAsRead` / typing must use the *sender* JID (`{senderDigits}@s.whatsapp.net`), not the personal outbound `remoteJid` (which is the bot number).
 - Personal webhooks bulk-insert provider events into `whatsapp_inbox_events` and acknowledge after that durable write; they do not synchronously update chats/messages.
 - Run `npm run whatsapp-inbox:worker` as a separate process. It atomically claims only the oldest queued event per `userId + remoteJid`, orders by the database-generated enqueue sequence, and processes different chats with bounded concurrency.
 - Text promotion uses transactional `ON CONFLICT` writes and a monotonic `lastMessageAt`. A crash after message insertion is safe to retry.
@@ -49,6 +52,7 @@ Two WhatsApp modes coexist:
 - **Reply allowlist (critical):** the webhook may auto-reply *only* when `payload.instance === whatsapp_channel_config.instance_name`. Every other instance returns `{ ok: true, ignored: true }`. Never fall through to the bot path on an unrecognized instance — Evolution keeps zombie/rotated instances alive and a fall-through sends `UNREGISTERED_REPLY` to the user's personal contacts.
 - `isUserInstanceName()` (`agentx-u-` prefix) is the second guard, so a personal instance stays silent even if its DB row was rotated or deleted.
 - Global channel webhook path: AI auto-reply to registered phones. Inbound images/documents are downloaded from Evolution, saved to the user's File storage under `wa/<phone>/` (or `wa/<group>/`), and answered with the admin-configured vision model when needed.
+- **Webhook dedup / echo:** Evolution replays `messages.upsert` for the same message (often minutes later). In-memory dedup in `lib/integrations/whatsapp/webhook-dedup.ts` uses 24h TTL for messageId + sender/content. `markWhatsAppOutboundContent` registers bot-sent text so echoes are ignored; `isAgentGeneratedWhatsAppText` filters tool progress / `❌` errors on global + personal bridge paths.
 - Instance naming: `agentx-u-{shortUserId}-{ts}` with rotation on re-pair. `discardInstance` is best-effort, so Evolution can hold **multiple open instances for the same phone**; only the one in `whatsapp_user_instances` ingests, the rest are ignored. Audit with `GET /instance/fetchInstances` when the inbox looks empty.
 - Webhooks target one AgentX origin (`AGENTX_WEBHOOK_URL`, prod `127.0.0.1:3000`). Inbox changes have no effect until that server is rebuilt and restarted — `next dev` on 3001 does not receive them.
 - There is no connect-time history backfill and no provider `findChats` / `findMessages` API. Only durable webhook events become personal-inbox history.

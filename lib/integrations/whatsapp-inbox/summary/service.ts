@@ -80,8 +80,6 @@ async function waitForWhatsAppInboxCatchUp(
       watermark
     );
 
-
-    console.log(hasUnfinished)
     if (!hasUnfinished) {
       return { caughtUp: true, watermark };
     }
