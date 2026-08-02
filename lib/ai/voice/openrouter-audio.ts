@@ -52,6 +52,10 @@ function resolveAudioFormat(mimeType: string, fileName?: string): string {
     return "aac";
   }
 
+  if (mime.includes("webm") || extension === "webm") {
+    return "webm";
+  }
+
   throw new Error("Format pesan suara tidak didukung.");
 }
 
@@ -142,6 +146,7 @@ export async function transcribeAudio(
       },
       body: JSON.stringify({
         model: config.sttModel,
+        language: "id",
         input_audio: {
           data: input.base64,
           format: resolveAudioFormat(input.mimeType, input.fileName),

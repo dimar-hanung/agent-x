@@ -240,4 +240,41 @@
   .animate-chat-typing {
     animation: chat-typing 1.2s ease-in-out infinite;
   }
+
+  /* Rotating conic gradient border for the active voice mic. */
+  @keyframes mic-gradient-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .mic-recording-border {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    box-shadow:
+      0 0 16px -2px color-mix(in oklab, var(--primary) 55%, transparent),
+      0 0 6px -1px color-mix(in oklab, var(--destructive) 50%, transparent);
+  }
+
+  .mic-recording-border::before {
+    content: "";
+    position: absolute;
+    inset: -150%;
+    z-index: -1;
+    background: conic-gradient(
+      from 0deg,
+      var(--destructive),
+      var(--primary),
+      var(--chart-5),
+      var(--destructive)
+    );
+    animation: mic-gradient-spin 2s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mic-recording-border::before {
+      animation-duration: 6s;
+    }
+  }
 }

@@ -3,7 +3,9 @@
 import {
   AlertCircle,
   ArrowUp,
+  Loader2,
   Menu,
+  Mic,
   Square,
   SquarePen,
 } from "lucide-react";
@@ -29,6 +31,7 @@ import {
 } from "@/lib/scheduler/schedule-run-events";
 import { cn } from "@/lib/utils";
 import { AssistantAvatar } from "@/components/chat/message-row";
+import { useChatVoiceInput } from "@/components/chat/use-chat-voice-input";
 
 interface ChatPanelProps {
   id?: string;
@@ -38,6 +41,8 @@ interface ChatPanelProps {
   initialSequences?: Array<{ id: string; sequence: number }>;
   exaConfigured?: boolean;
   hasExaTools?: boolean;
+  voiceInputEnabled?: boolean;
+  voiceInputMaxSeconds?: number;
 }
 
 const BASE_SUGGESTIONS = [
@@ -64,6 +69,8 @@ export function ChatPanel({
   initialSequences = [],
   exaConfigured = false,
   hasExaTools = false,
+  voiceInputEnabled = false,
+  voiceInputMaxSeconds = 120,
 }: ChatPanelProps) {
   const router = useRouter();
   const { setMobileOpen } = useChatSidebar();
@@ -292,6 +299,29 @@ export function ChatPanel({
     el.style.height = `${Math.min(el.scrollHeight, 192)}px`;
   }, []);
 
+  const appendTranscript = React.useCallback(
+    (text: string) => {
+      setInput((current) => {
+        const trimmedCurrent = current.trim();
+        return trimmedCurrent ? `${trimmedCurrent} ${text}` : text;
+      });
+      requestAnimationFrame(adjustTextarea);
+    },
+    [adjustTextarea]
+  );
+
+  const {
+    error: voiceError,
+    isRecording,
+    isTranscribing,
+    clearError: clearVoiceError,
+    toggleRecording,
+  } = useChatVoiceInput({
+    enabled: voiceInputEnabled && isReady && !isBusy,
+    maxSeconds: voiceInputMaxSeconds,
+    onTranscript: appendTranscript,
+  });
+
   function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || !isReady) return;
@@ -401,21 +431,74 @@ export function ChatPanel({
             </p>
           ) : null}
 
-          <div className="bg-card focus-within:border-ring/40 focus-within:ring-ring/30 flex items-end gap-2 rounded-2xl border px-3 py-2 shadow-xs transition focus-within:ring-2">
+          {voiceError ? (
+            <p className="text-destructive mb-2 flex items-center gap-2 text-sm">
+              <span className="bg-destructive/10 text-destructive flex size-5 items-center justify-center rounded-full">
+                <AlertCircle className="size-3.5" />
+              </span>
+              {voiceError}
+            </p>
+          ) : null}
+
+          {isRecording ? (
+            <p className="text-muted-foreground mb-2 text-center text-xs">
+              Merekam… ketuk mikrofon untuk berhenti
+            </p>
+          ) : null}
+
+          {isTranscribing ? (
+            <p className="text-muted-foreground mb-2 flex items-center justify-center gap-2 text-xs">
+              <Loader2 className="size-3.5 animate-spin" />
+              Mentranskripsi…
+            </p>
+          ) : null}
+
+          <div
+            className={cn(
+              "rounded-[18px]",
+              isRecording && "mic-recording-border p-[2px]"
+            )}
+          >
+            <div className="bg-card focus-within:border-ring/40 focus-within:ring-ring/30 flex items-end gap-2 rounded-2xl border px-3 py-2 shadow-xs transition focus-within:ring-2">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(event) => {
                 setInput(event.target.value);
                 adjustTextarea();
+                if (voiceError) {
+                  clearVoiceError();
+                }
               }}
               onKeyDown={handleKeyDown}
               placeholder="Type your message..."
               rows={1}
-              disabled={!isReady}
+              disabled={!isReady || isRecording || isTranscribing}
               autoComplete="off"
               className="text-foreground placeholder:text-muted-foreground max-h-48 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none disabled:opacity-50"
             />
+            {voiceInputEnabled && !isBusy ? (
+              <div
+                className={cn(
+                  "shrink-0 rounded-full",
+                  isRecording && "mic-recording-border p-[3px]"
+                )}
+              >
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isRecording ? "destructive" : "secondary"}
+                  className="rounded-full"
+                  onClick={() => void toggleRecording()}
+                  disabled={!isReady || isTranscribing}
+                  aria-label={
+                    isRecording ? "Berhenti merekam" : "Rekam pesan suara"
+                  }
+                >
+                  <Mic className="size-4" />
+                </Button>
+              </div>
+            ) : null}
             {isBusy ? (
               <Button
                 type="button"
@@ -439,6 +522,7 @@ export function ChatPanel({
                 <ArrowUp className="size-4" />
               </Button>
             )}
+            </div>
           </div>
 
           <p className="text-muted-foreground mt-1.5 text-center text-xs">

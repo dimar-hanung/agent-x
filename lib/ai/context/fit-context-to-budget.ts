@@ -1,3 +1,4 @@
+import { wrapArchivedContextBlock } from "@/lib/ai/context/archived-context-block";
 import {
   CONTEXT_TARGET_TOKENS,
   SYSTEM_PROMPT_OVERHEAD,
@@ -31,7 +32,7 @@ export function fitContextToBudget({
   targetTokens = CONTEXT_TARGET_TOKENS,
 }: FitContextInput): FitContextResult {
   const summaryBlock = contextSummary
-    ? `\n\n[Conversation summary]\n${contextSummary}`
+    ? wrapArchivedContextBlock(contextSummary)
     : "";
   const fullSystemPrompt = `${systemPrompt}${summaryBlock}`;
 

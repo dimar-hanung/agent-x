@@ -10,7 +10,7 @@ description: >-
 
 ## When to Use
 
-- Changing the chat composer (textarea, send/stop button)
+- Changing the chat composer (textarea, send/stop button, mic voice input)
 - Wiring `useChat` status, transport, or abort behavior
 - New-chat URL navigation after the first reply finishes or is stopped
 - Passing server `abortSignal` for cancelled generations
@@ -24,6 +24,8 @@ description: >-
 | Area | Path |
 |------|------|
 | Chat composer + `useChat` | `components/chat/chat-panel.tsx` |
+| Voice input hook (MediaRecorder + STT) | `components/chat/use-chat-voice-input.ts` |
+| Voice transcribe API | `app/api/voice/transcribe/route.ts` |
 | Message list / typing indicator | `components/chat/chat-message-list.tsx` |
 | Chat API stream | `app/api/chat/route.ts` — `createAgentUIStreamResponse` |
 | Chat pages | `app/chat/page.tsx`, `app/chat/[id]/page.tsx` |
@@ -34,4 +36,5 @@ description: >-
 - Replace the send button with a stop (filled square) while busy — do not keep a spinner-only disabled send.
 - Pass `abortSignal: req.signal` into `createAgentUIStreamResponse` so server work cancels with the client abort.
 - After a new (unsaved URL) chat becomes `ready` from a busy state with messages, navigate to `/chat/{chatId}` — treat both `streaming` and `submitted` as prior busy statuses (covers stop before first token).
-- User-facing labels in this UI should be Bahasa Indonesia (e.g. aria-label **Hentikan**, **Kirim pesan**).
+- User-facing labels in this UI should be Bahasa Indonesia (e.g. aria-label **Hentikan**, **Kirim pesan**, **Rekam pesan suara**).
+- When voice input is enabled (Admin model settings), show a mic beside send. Record → transcribe via `POST /api/voice/transcribe` → append text to composer. Hide mic when voice input is disabled or chat is busy (`submitted` / `streaming`).

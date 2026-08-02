@@ -200,9 +200,10 @@ export function ModelSettingsCard({
 
         <div className="space-y-5 border-t pt-6">
           <div>
-            <h3 className="font-medium">Voice WhatsApp</h3>
+            <h3 className="font-medium">Voice</h3>
             <p className="text-muted-foreground text-xs">
-              Atur transkripsi pesan suara dan balasan suara pada kanal utama.
+              Atur transkripsi pesan suara di chat web dan kanal utama
+              WhatsApp.
             </p>
           </div>
 
@@ -224,8 +225,8 @@ export function ModelSettingsCard({
               </SelectContent>
             </Select>
             <p className="text-muted-foreground text-xs">
-              Pilih Disabled untuk menolak pesan suara tanpa menjalankan
-              transkripsi.
+              Pilih Disabled untuk menolak input suara di chat web dan WhatsApp
+              tanpa menjalankan transkripsi.
             </p>
           </div>
 

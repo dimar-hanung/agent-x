@@ -1,6 +1,6 @@
 ## When to Use
 
-Develop or extend AgentX voice-note input, speech transcription, conditional voice replies, WhatsApp PTT delivery, or Admin-managed voice settings on the main/global WhatsApp agent channel.
+Develop or extend AgentX voice-note input, speech transcription, conditional voice replies, WhatsApp PTT delivery, web chat mic STT, or Admin-managed voice settings on the main/global WhatsApp agent channel.
 
 ## Overview
 
@@ -13,6 +13,8 @@ Voice is a transport around the existing canonical text conversation: transcribe
 - Admin settings UI and API: components/dashboard/model-settings-card.tsx, app/api/admin/model-settings/route.ts
 - Database schema and migration: lib/db/schema.ts, drizzle/0016_voice_model_settings.sql
 - Speech config mapping, policy, and OpenRouter client: lib/ai/voice/
+- Web chat STT API and request schema: app/api/voice/transcribe/route.ts, lib/ai/voice/transcribe-request-schema.ts
+- Web chat mic hook and composer wiring: components/chat/use-chat-voice-input.ts, components/chat/chat-panel.tsx
 - Webhook routing and STT orchestration: app/api/integrations/whatsapp/webhook/route.ts
 - Shared generation, persistence, and final delivery: lib/channel/process-channel-message.ts
 - Provider contract and Evolution implementation: lib/integrations/whatsapp/provider.ts, lib/integrations/whatsapp/providers/unofficial-evolution.ts
@@ -28,7 +30,8 @@ Voice is a transport around the existing canonical text conversation: transcribe
 - The personal-to-bot bridge handles an outbound voice note only when its DM remoteJid exactly matches the configured global bot number; the reply is sent from the global instance.
 - Keep webhookBase64 false; dedupe and authorize from audio metadata before downloading or calling STT.
 - Do not persist or log raw audio/base64. Persist the transcript, minimal input metadata, canonical assistant text, and sampled delivery decision.
-- OpenRouter STT and TTS use dedicated /audio/transcriptions and /audio/speech endpoints through lib/ai/voice/openrouter-audio.ts.
+- OpenRouter STT and TTS use dedicated /audio/transcriptions and /audio/speech endpoints through lib/ai/voice/openrouter-audio.ts. Browser MediaRecorder blobs are usually audio/webm; resolveAudioFormat must accept webm. STT requests pass language: "id" so transcripts prefer Bahasa Indonesia.
+- Web chat mic records in the browser, POSTs ephemeral base64 to /api/voice/transcribe, and inserts the transcript into the composer draft (append with space). User edits then presses Kirim — do not auto-send. Mic is hidden when Admin voice input is disabled.
 - Voice input and reply models have independent Admin allowlists. Selecting disabled is the feature switch, matching Vision. Do not add non-secret voice env overrides.
 - Resolve one app-settings snapshot per request and pass the derived VoiceConfig through input validation, STT, reply policy, metadata, and TTS.
 - OPENROUTER_API_KEY remains in env because it is secret.
