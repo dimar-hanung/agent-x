@@ -61,10 +61,11 @@ export default async function ModelSettingsPage() {
             Pengaturan Model
           </h1>
           <p className="text-muted-foreground text-sm">
-            Kelola model teks dan vision untuk seluruh jalur chat AgentX.
+            Kelola model teks, vision, dan voice untuk seluruh jalur chat
+            AgentX.
           </p>
         </div>
-        <div className="max-w-xl">
+        <div className="max-w-2xl">
           <ModelSettingsCard
             initialSettings={settings}
             initialOptions={options}

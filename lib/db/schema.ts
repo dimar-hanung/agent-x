@@ -362,6 +362,32 @@ export const appSettings = pgTable("app_settings", {
   visionModelId: varchar("vision_model_id", { length: 128 })
     .notNull()
     .default(APP_SETTINGS_VISION_DISABLED),
+  voiceInputModelId: varchar("voice_input_model_id", {
+    length: 128,
+  })
+    .notNull()
+    .default("openai/whisper-large-v3"),
+  voiceReplyModelId: varchar("voice_reply_model_id", {
+    length: 128,
+  })
+    .notNull()
+    .default("openai/gpt-4o-mini-tts-2025-12-15"),
+  voiceReplyVoice: varchar("voice_reply_voice", { length: 64 })
+    .notNull()
+    .default("nova"),
+  voiceReplyPercent: integer("voice_reply_percent").notNull().default(35),
+  voiceInputMaxSeconds: integer("voice_input_max_seconds")
+    .notNull()
+    .default(120),
+  voiceInputMaxBytes: integer("voice_input_max_bytes")
+    .notNull()
+    .default(10_485_760),
+  voiceReplyMaxChars: integer("voice_reply_max_chars")
+    .notNull()
+    .default(600),
+  voiceReplyMaxWords: integer("voice_reply_max_words")
+    .notNull()
+    .default(80),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

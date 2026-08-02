@@ -46,6 +46,10 @@ export class OfficialMetaWhatsAppProvider implements WhatsAppProvider {
     notImplemented();
   }
 
+  async sendAudio(): Promise<WhatsAppSendResult> {
+    notImplemented();
+  }
+
   async markAsRead(
     _instanceName: string,
     _messages: WhatsAppReadMessage[]

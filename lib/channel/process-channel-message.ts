@@ -5,6 +5,7 @@ import {
 } from "ai";
 
 import { getModelSettings } from "@/lib/admin/model-settings/repository";
+import type { ModelSettingsView } from "@/lib/admin/model-settings/schemas";
 import {
   buildMultimodalUserParts,
   resolveAgentModelId,
@@ -13,13 +14,22 @@ import {
 import { createChatAgent } from "@/lib/ai/agents/chat-agent";
 import { prepareModelContext } from "@/lib/ai/context/prepare-model-context";
 import { WHATSAPP_MAX_AGENT_STEPS } from "@/lib/ai/chat-config";
+import {
+  decideWhatsAppVoiceReply,
+  getVoiceConfig,
+  synthesizeSpeech,
+  type WhatsAppReplyMode,
+} from "@/lib/ai/voice";
 import { getUserById } from "@/lib/auth/get-user-by-id";
 import { getOrCreateMainChannel } from "@/lib/db/repositories/channel-repository";
 import {
   loadStoredChatMessages,
   saveChat,
 } from "@/lib/db/repositories/chat-repository";
-import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
+import {
+  sendWhatsAppAudioToUser,
+  sendWhatsAppToUser,
+} from "@/lib/integrations/whatsapp-channel-repository";
 import { clearDigestInFlight } from "@/lib/integrations/whatsapp-inbox/summary/service";
 import { notifyWhatsAppToolError, notifyWhatsAppToolStart } from "@/lib/integrations/whatsapp/notify-tool-progress";
 import type { WhatsAppSavedAttachment } from "@/lib/integrations/whatsapp/types";
@@ -27,6 +37,9 @@ import { createAllToolsForUser } from "@/lib/ai/tools/resolve-tools";
 import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
 
 export type ChannelMessageSource = "web" | "whatsapp" | "scheduler";
+
+const EMPTY_WHATSAPP_REPLY =
+  "Maaf, saya tidak dapat menghasilkan jawaban. Coba kirim ulang.";
 
 const EXCLUDED_SCHEDULER_TOOL_KEYS: NativeToolKey[] = ["create_schedule"];
 
@@ -42,12 +55,15 @@ export interface ProcessChannelMessageInput {
   attachments?: WhatsAppSavedAttachment[];
   metadata?: Record<string, unknown>;
   replyViaWhatsApp?: boolean;
+  whatsappInputMode?: "text" | "voice";
+  modelSettings?: ModelSettingsView;
   abortSignal?: AbortSignal;
 }
 
 export interface ProcessChannelMessageResult {
   assistantText: string;
   chatId: string;
+  whatsappReplyMode?: WhatsAppReplyMode;
 }
 
 export async function processChannelMessage(
@@ -59,7 +75,8 @@ export async function processChannelMessage(
     throw new Error("User tidak ditemukan.");
   }
 
-  const modelSettings = await getModelSettings();
+  const modelSettings = input.modelSettings ?? (await getModelSettings());
+  const voiceConfig = getVoiceConfig(modelSettings);
   const attachments = input.attachments ?? [];
   const { parts, requiresVision } = buildMultimodalUserParts(
     input.text,
@@ -121,6 +138,7 @@ export async function processChannelMessage(
     instructions: systemPrompt,
     modelId,
     maxSteps: input.source === "whatsapp" ? WHATSAPP_MAX_AGENT_STEPS : undefined,
+    reasoning: input.source === "whatsapp" ? "none" : undefined,
     onToolExecutionStart: notifyToolProgress
       ? async ({ toolCall }) => {
           await notifyWhatsAppToolStart(user.userId, toolCall.toolName);
@@ -170,18 +188,28 @@ export async function processChannelMessage(
     .map((step) => step.text.trim())
     .filter((text) => text.length > 0);
 
-  const finalAssistantText =
+  const generatedAssistantText =
     assistantTextParts.length > 0
       ? assistantTextParts.join("\n\n")
       : result.text.trim();
+  const finalAssistantText =
+    generatedAssistantText ||
+    (replyViaWhatsApp ? EMPTY_WHATSAPP_REPLY : "");
 
-  if (replyViaWhatsApp && finalAssistantText) {
-    if (input.abortSignal?.aborted) {
-      return { assistantText: "", chatId };
-    }
-
-    await sendWhatsAppToUser(user.userId, finalAssistantText);
-  }
+  const toolNames = result.steps.flatMap((step) =>
+    step.toolCalls.map((toolCall) => toolCall.toolName)
+  );
+  const voiceReplyDecision = replyViaWhatsApp
+    ? decideWhatsAppVoiceReply(
+        {
+          inputWasVoice: input.whatsappInputMode === "voice",
+          userText: input.text,
+          assistantText: finalAssistantText,
+          toolNames,
+        },
+        voiceConfig
+      )
+    : undefined;
 
   const assistantMessage: UIMessage = {
     id: generateId(),
@@ -189,10 +217,19 @@ export async function processChannelMessage(
     parts:
       assistantTextParts.length > 0
         ? assistantTextParts.map((text) => ({ type: "text" as const, text }))
-        : [{ type: "text", text: result.text }],
+        : [{ type: "text", text: finalAssistantText }],
     metadata: {
       source: input.source,
       ...input.metadata,
+      ...(voiceReplyDecision
+        ? {
+            deliveryMode: voiceReplyDecision.mode,
+            voicePolicyReason: voiceReplyDecision.reason,
+            voiceProbabilityPercent: Math.round(
+              voiceConfig.replyProbability * 100
+            ),
+          }
+        : {}),
     },
   };
 
@@ -207,8 +244,42 @@ export async function processChannelMessage(
     allMessages: [...allInputMessages, assistantMessage],
   });
 
+  let whatsappReplyMode = voiceReplyDecision?.mode;
+
+  if (replyViaWhatsApp && finalAssistantText) {
+    if (input.abortSignal?.aborted) {
+      return { assistantText: "", chatId };
+    }
+
+    if (voiceReplyDecision?.mode === "voice") {
+      try {
+        const audio = await synthesizeSpeech(
+          finalAssistantText,
+          voiceConfig,
+          input.abortSignal
+        );
+
+        await sendWhatsAppAudioToUser(user.userId, {
+          base64: audio.base64,
+          encoding: true,
+        });
+      } catch (error) {
+        if (input.abortSignal?.aborted) {
+          return { assistantText: "", chatId };
+        }
+
+        console.error("Balasan suara WhatsApp gagal:", error);
+        whatsappReplyMode = "text";
+        await sendWhatsAppToUser(user.userId, finalAssistantText);
+      }
+    } else {
+      await sendWhatsAppToUser(user.userId, finalAssistantText);
+    }
+  }
+
   return {
     assistantText: finalAssistantText,
     chatId,
+    whatsappReplyMode,
   };
 }

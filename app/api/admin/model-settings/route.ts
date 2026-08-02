@@ -38,7 +38,7 @@ export async function PATCH(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ message: "Invalid JSON body." }, { status: 400 });
+    return NextResponse.json({ message: "Body JSON tidak valid." }, { status: 400 });
   }
 
   const parsed = updateModelSettingsSchema.safeParse(body);

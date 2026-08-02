@@ -2,6 +2,7 @@ import { getEvolutionConfig } from "../env";
 import type { WhatsAppProvider } from "../provider";
 import { normalizePhoneE164 } from "../phone";
 import type {
+  WhatsAppAudioMessage,
   WhatsAppConnectionStatus,
   WhatsAppInboundMessage,
   WhatsAppIngestMediaPlaceholder,
@@ -234,6 +235,17 @@ function extractMediaAttachments(
     return [];
   }
 
+  const ephemeral = message.ephemeralMessage as
+    | { message?: Record<string, unknown> }
+    | undefined;
+
+  if (ephemeral?.message) {
+    return extractMediaAttachments({
+      ...data,
+      message: ephemeral.message,
+    });
+  }
+
   const messageKey: WhatsAppMediaMessageKey = {
     id: key.id,
     remoteJid: key.remoteJid,
@@ -241,6 +253,26 @@ function extractMediaAttachments(
   };
 
   const attachments: WhatsAppInboundAttachmentMeta[] = [];
+
+  const audio = message.audioMessage as
+    | {
+        mimetype?: string;
+        fileName?: string;
+        seconds?: number;
+        ptt?: boolean;
+      }
+    | undefined;
+
+  if (audio) {
+    attachments.push({
+      mediaType: "audio",
+      mimeType: audio.mimetype ?? "audio/ogg; codecs=opus",
+      fileName: audio.fileName?.trim() || "voice-note.ogg",
+      durationSeconds: audio.seconds,
+      ptt: audio.ptt,
+      messageKey,
+    });
+  }
 
   const image = message.imageMessage as
     | { mimetype?: string; fileName?: string; caption?: string }
@@ -508,6 +540,8 @@ function extractIngestMediaPlaceholder(
           typeof metadata.caption === "string" ? metadata.caption : undefined,
         durationSeconds:
           typeof metadata.seconds === "number" ? metadata.seconds : undefined,
+        ptt:
+          typeof metadata.ptt === "boolean" ? metadata.ptt : undefined,
       },
     };
   }
@@ -890,6 +924,36 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
           error instanceof Error
             ? error.message
             : "Gagal mengirim media WhatsApp.",
+      };
+    }
+  }
+
+  async sendAudio(
+    instanceName: string,
+    toPhoneE164: string,
+    audio: WhatsAppAudioMessage
+  ): Promise<WhatsAppSendResult> {
+    const digits = toPhoneE164.replace(/\D/g, "");
+
+    try {
+      await this.request("/message/sendWhatsAppAudio/" + instanceName, {
+        method: "POST",
+        body: JSON.stringify({
+          number: digits,
+          audio: audio.base64,
+          encoding: audio.encoding ?? true,
+          delay: audio.delayMs,
+        }),
+      });
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Gagal mengirim audio WhatsApp.",
       };
     }
   }
