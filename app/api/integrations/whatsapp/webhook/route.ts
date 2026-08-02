@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 
 import { isVisionModelEnabled } from "@/lib/admin/model-settings/constants";
 import { getModelSettings } from "@/lib/admin/model-settings/repository";
+import {
+  getVoiceConfig,
+  transcribeAudio,
+  type VoiceConfig,
+} from "@/lib/ai/voice";
 import { processChannelMessage } from "@/lib/channel/process-channel-message";
 import {
   getChannelConfig,
@@ -34,13 +39,19 @@ import {
 import { getWhatsAppProvider } from "@/lib/integrations/whatsapp/factory";
 import type { WhatsAppProvider } from "@/lib/integrations/whatsapp/provider";
 import type {
+  WhatsAppDownloadedMedia,
+  WhatsAppInboundAttachmentMeta,
   WhatsAppInboundMessage,
+  WhatsAppSavedAttachment,
   WhatsAppWebhookPayload,
 } from "@/lib/integrations/whatsapp/types";
 import { isSeaweedfsConfigured } from "@/lib/files/s3-client";
 
 const UNREGISTERED_REPLY =
   "Nomor belum terdaftar. Daftarkan nomor HP kamu di AgentX → Settings → Integrations.";
+
+const VOICE_TRANSCRIPTION_FAILED_REPLY =
+  "Gagal memahami pesan suara. Coba kirim ulang dengan suara yang lebih jelas.";
 
 /** Best-effort read receipt + typing while the AI processes the inbound message. */
 async function signalProcessingState(
@@ -75,13 +86,18 @@ async function signalProcessingState(
   await Promise.all(tasks);
 }
 
+interface DownloadedInboundAttachment {
+  meta: WhatsAppInboundAttachmentMeta;
+  media: WhatsAppDownloadedMedia;
+}
+
 async function downloadInboundAttachments(
   provider: WhatsAppProvider,
   instanceName: string,
   inbound: WhatsAppInboundMessage
-) {
+): Promise<DownloadedInboundAttachment[] | null> {
   const attachments = inbound.attachments ?? [];
-  const downloaded = [];
+  const downloaded: DownloadedInboundAttachment[] = [];
 
   for (const meta of attachments) {
     const media = await provider.downloadMediaMessage(
@@ -97,6 +113,83 @@ async function downloadInboundAttachments(
   }
 
   return downloaded;
+}
+
+async function transcribeVoiceAttachments(
+  downloaded: DownloadedInboundAttachment[],
+  voiceConfig: VoiceConfig
+): Promise<string[]> {
+  const voiceItems = downloaded.filter(
+    (item) => item.meta.mediaType === "audio"
+  );
+  const transcripts: string[] = [];
+
+  for (const item of voiceItems) {
+    transcripts.push(
+      await transcribeAudio(
+        {
+          base64: item.media.base64,
+          mimeType: item.media.mimeType || item.meta.mimeType,
+          fileName: item.meta.fileName,
+          byteLength: item.media.buffer.length,
+        },
+        voiceConfig
+      )
+    );
+  }
+
+  return transcripts;
+}
+
+function combineInboundText(
+  originalText: string,
+  transcripts: string[]
+): string {
+  return [originalText.trim(), ...transcripts]
+    .filter((value) => value.length > 0)
+    .join("\n\n");
+}
+
+function getVoiceInputRejection(
+  inbound: WhatsAppInboundMessage,
+  voiceConfig: VoiceConfig
+): string | null {
+  const voiceAttachments =
+    inbound.attachments?.filter(
+      (attachment) => attachment.mediaType === "audio"
+    ) ?? [];
+
+  if (voiceAttachments.length === 0) {
+    return null;
+  }
+
+  if (!voiceConfig.inputEnabled) {
+    return "Fitur pesan suara belum diaktifkan.";
+  }
+
+  if (
+    voiceAttachments.some(
+      (attachment) => attachment.ptt === false
+    )
+  ) {
+    return "Kirim rekaman sebagai pesan suara WhatsApp, bukan file audio.";
+  }
+
+  if (
+    voiceAttachments.some(
+      (attachment) =>
+        typeof attachment.durationSeconds === "number" &&
+        attachment.durationSeconds > voiceConfig.inputMaxSeconds
+    )
+  ) {
+    return (
+      "Pesan suara terlalu panjang. Kirim maksimal " +
+      voiceConfig.inputMaxSeconds +
+      " detik."
+    );
+  }
+
+  return null;
 }
 
 export async function POST(req: Request) {
@@ -161,14 +254,71 @@ export async function POST(req: Request) {
           });
         }
 
+        const bridgedDedupeText =
+          bridgedInbound.text ||
+          bridgedInbound.attachments
+            ?.map(
+              (item) =>
+                item.mediaType + ":" + item.messageKey.id
+            )
+            .join("|") ||
+          "";
+
         if (
           !isDuplicateWhatsAppInboundMessage(bridgedInbound.messageId) &&
           !isDuplicateWhatsAppInboundContent(
             bridgedInbound.senderPhoneE164,
-            bridgedInbound.text
+            bridgedDedupeText
           )
         ) {
           try {
+            const voiceInput = Boolean(
+              bridgedInbound.attachments?.some(
+                (item) => item.mediaType === "audio"
+              )
+            );
+            let bridgedText = bridgedInbound.text;
+            let requestModelSettings:
+              | Awaited<ReturnType<typeof getModelSettings>>
+              | undefined;
+
+            if (voiceInput) {
+              requestModelSettings = await getModelSettings();
+              const voiceConfig = getVoiceConfig(requestModelSettings);
+              const voiceRejection = getVoiceInputRejection(
+                bridgedInbound,
+                voiceConfig
+              );
+
+              if (voiceRejection) {
+                await provider.sendText(
+                  config.instanceName,
+                  registeredPhone,
+                  voiceRejection
+                );
+                return NextResponse.json({
+                  ok: true,
+                  queued,
+                  voiceRejected: true,
+                });
+              }
+
+              const downloaded = await downloadInboundAttachments(
+                provider,
+                instanceName,
+                bridgedInbound
+              );
+
+              if (!downloaded) {
+                throw new Error("Gagal mengunduh pesan suara WhatsApp.");
+              }
+
+              bridgedText = combineInboundText(
+                bridgedText,
+                await transcribeVoiceAttachments(downloaded, voiceConfig)
+              );
+            }
+
             void signalProcessingState(
               provider,
               config.instanceName,
@@ -180,11 +330,16 @@ export async function POST(req: Request) {
             await withWhatsAppUserProcessingLock(personalUserId, (signal) =>
               processChannelMessage({
                 userId: personalUserId,
-                text: bridgedInbound.text,
+                text: bridgedText,
                 source: "whatsapp",
                 replyViaWhatsApp: true,
+                whatsappInputMode: voiceInput ? "voice" : "text",
+                modelSettings: requestModelSettings,
                 abortSignal: signal,
-                metadata: { messageId: bridgedInbound.messageId },
+                metadata: {
+                  messageId: bridgedInbound.messageId,
+                  inputMode: voiceInput ? "voice" : "text",
+                },
               })
             );
           } catch (error) {
@@ -237,7 +392,9 @@ export async function POST(req: Request) {
 
   const dedupeText =
     inbound.text ||
-    inbound.attachments?.map((item) => item.fileName).join("|") ||
+    inbound.attachments
+      ?.map((item) => item.mediaType + ":" + item.messageKey.id)
+      .join("|") ||
     "";
 
   if (isDuplicateWhatsAppInboundContent(inbound.senderPhoneE164, dedupeText)) {
@@ -256,10 +413,31 @@ export async function POST(req: Request) {
   }
 
   const modelSettings = await getModelSettings();
+  const voiceConfig = getVoiceConfig(modelSettings);
   const hasAttachments = Boolean(inbound.attachments?.length);
 
   if (hasAttachments) {
-    if (!isSeaweedfsConfigured()) {
+    const voiceRejection = getVoiceInputRejection(inbound, voiceConfig);
+
+    if (voiceRejection) {
+      await provider.sendText(
+        config.instanceName,
+        inbound.senderPhoneE164,
+        voiceRejection
+      );
+      return NextResponse.json({
+        ok: true,
+        voiceRejected: true,
+      });
+    }
+
+    const needsFileStorage = Boolean(
+      inbound.attachments?.some(
+        (attachment) => attachment.mediaType !== "audio"
+      )
+    );
+
+    if (needsFileStorage && !isSeaweedfsConfigured()) {
       await provider.sendText(
         config.instanceName,
         inbound.senderPhoneE164,
@@ -283,27 +461,58 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, mediaDownloadFailed: true });
     }
 
-    let savedAttachments;
-    try {
-      savedAttachments = await saveInboundWhatsAppAttachments(
-        userId,
-        inbound,
-        downloaded
-      );
-    } catch (error) {
-      console.error("WhatsApp save attachment error:", error);
-      await provider.sendText(
-        config.instanceName,
-        inbound.senderPhoneE164,
-        WA_STORAGE_NOT_CONFIGURED_REPLY
-      );
-      return NextResponse.json({ ok: true, storageUnavailable: true });
+    const voiceInput = downloaded.some(
+      (item) => item.meta.mediaType === "audio"
+    );
+    let agentText = inbound.text;
+
+    if (voiceInput) {
+      try {
+        agentText = combineInboundText(
+          agentText,
+          await transcribeVoiceAttachments(downloaded, voiceConfig)
+        );
+      } catch (error) {
+        console.error("WhatsApp voice transcription error:", error);
+        await provider.sendText(
+          config.instanceName,
+          inbound.senderPhoneE164,
+          VOICE_TRANSCRIPTION_FAILED_REPLY
+        );
+        return NextResponse.json({
+          ok: true,
+          voiceTranscriptionFailed: true,
+        });
+      }
+    }
+
+    const downloadedFiles = downloaded.filter(
+      (item) => item.meta.mediaType !== "audio"
+    );
+    let savedAttachments: WhatsAppSavedAttachment[] = [];
+
+    if (downloadedFiles.length > 0) {
+      try {
+        savedAttachments = await saveInboundWhatsAppAttachments(
+          userId,
+          inbound,
+          downloadedFiles
+        );
+      } catch (error) {
+        console.error("WhatsApp save attachment error:", error);
+        await provider.sendText(
+          config.instanceName,
+          inbound.senderPhoneE164,
+          WA_STORAGE_NOT_CONFIGURED_REPLY
+        );
+        return NextResponse.json({ ok: true, storageUnavailable: true });
+      }
     }
 
     const visionRequired = inboundRequiresVisionModel(savedAttachments);
     const visionOnly = inboundHasVisionOnlyAttachments(
       savedAttachments,
-      inbound.text
+      agentText
     );
 
     if (
@@ -339,12 +548,17 @@ export async function POST(req: Request) {
       await withWhatsAppUserProcessingLock(userId, (signal) =>
         processChannelMessage({
           userId,
-          text: inbound.text,
+          text: agentText,
           attachments: savedAttachments,
           source: "whatsapp",
           replyViaWhatsApp: true,
+          whatsappInputMode: voiceInput ? "voice" : "text",
+          modelSettings,
           abortSignal: signal,
-          metadata: { messageId: inbound.messageId },
+          metadata: {
+            messageId: inbound.messageId,
+            inputMode: voiceInput ? "voice" : "text",
+          },
         })
       );
     } catch (error) {
@@ -375,6 +589,7 @@ export async function POST(req: Request) {
         text: inbound.text,
         source: "whatsapp",
         replyViaWhatsApp: true,
+        modelSettings,
         abortSignal: signal,
         metadata: { messageId: inbound.messageId },
       })

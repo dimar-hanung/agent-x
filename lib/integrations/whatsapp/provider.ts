@@ -1,4 +1,5 @@
 import type {
+  WhatsAppAudioMessage,
   WhatsAppConnectionStatus,
   WhatsAppDownloadedMedia,
   WhatsAppInboundMessage,
@@ -40,6 +41,12 @@ export interface WhatsAppProvider {
     instanceName: string,
     toPhoneE164: string,
     media: WhatsAppMediaMessage
+  ): Promise<WhatsAppSendResult>;
+
+  sendAudio(
+    instanceName: string,
+    toPhoneE164: string,
+    audio: WhatsAppAudioMessage
   ): Promise<WhatsAppSendResult>;
 
   /** Mark inbound messages as read (blue ticks). */

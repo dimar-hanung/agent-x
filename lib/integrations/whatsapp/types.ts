@@ -12,6 +12,12 @@ export interface WhatsAppMediaMessage {
   caption?: string;
 }
 
+export interface WhatsAppAudioMessage {
+  base64: string;
+  encoding?: boolean;
+  delayMs?: number;
+}
+
 export interface WhatsAppTextOptions {
   linkPreview?: boolean;
 }
@@ -29,7 +35,11 @@ export interface WhatsAppReadMessage {
   id: string;
 }
 
-export type WhatsAppInboundMediaType = "image" | "document" | "video";
+export type WhatsAppInboundMediaType =
+  | "audio"
+  | "image"
+  | "document"
+  | "video";
 
 export interface WhatsAppMediaMessageKey {
   remoteJid: string;
@@ -42,6 +52,8 @@ export interface WhatsAppInboundAttachmentMeta {
   mimeType: string;
   fileName: string;
   caption?: string;
+  durationSeconds?: number;
+  ptt?: boolean;
   messageKey: WhatsAppMediaMessageKey;
 }
 
@@ -88,6 +100,7 @@ export interface WhatsAppIngestMediaPlaceholder {
   fileName?: string;
   caption?: string;
   durationSeconds?: number;
+  ptt?: boolean;
 }
 export interface WhatsAppIngestMessage {
   remoteJid: string;

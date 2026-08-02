@@ -9,6 +9,7 @@ import {
 import { getEvolutionConfig } from "@/lib/integrations/whatsapp/env";
 import { getWhatsAppProvider } from "@/lib/integrations/whatsapp/factory";
 import type {
+  WhatsAppAudioMessage,
   WhatsAppMediaMessage,
   WhatsAppTextOptions,
 } from "@/lib/integrations/whatsapp/types";
@@ -266,6 +267,33 @@ export async function sendWhatsAppToUser(
   const provider = getWhatsAppProvider();
   await provider.sendText(config.instanceName, phone, text, options);
   markWhatsAppOutboundContent(phone, text);
+}
+
+export async function sendWhatsAppAudioToUser(
+  userId: string,
+  audio: WhatsAppAudioMessage
+): Promise<void> {
+  const connected = await isChannelConnected();
+
+  if (!connected) {
+    throw new Error("Channel WhatsApp belum aktif.");
+  }
+
+  const [phone, config] = await Promise.all([
+    getUserWhatsAppPhone(userId),
+    getOrCreateConfigRow(),
+  ]);
+
+  if (!phone) {
+    throw new Error("Nomor WhatsApp user belum dipasangkan.");
+  }
+
+  const provider = getWhatsAppProvider();
+  const result = await provider.sendAudio(config.instanceName, phone, audio);
+
+  if (!result.success) {
+    throw new Error(result.error ?? "Gagal mengirim audio WhatsApp.");
+  }
 }
 
 export async function sendWhatsAppMediaToUser(

@@ -45,7 +45,7 @@ export function findPersonalOutboundToGlobalBot(
       message.isGroup ||
       message.chatType !== "dm" ||
       !message.messageId ||
-      !message.text.trim()
+      (!message.text.trim() && message.messageType !== "audio")
     ) {
       continue;
     }
@@ -66,11 +66,34 @@ export function personalOutboundToChannelInbound(
   // bot number stored on the personal outbound remoteJid.
   const senderRemoteJid = `${phoneDigits(senderPhoneE164)}@s.whatsapp.net`;
 
+  const isVoice = message.messageType === "audio";
+
   return {
     senderPhoneE164,
     text: message.text.trim(),
     messageId: message.messageId,
     remoteJid: senderRemoteJid,
     isGroup: false,
+    attachments:
+      isVoice && message.messageId
+        ? [
+            {
+              mediaType: "audio",
+              mimeType:
+                message.mediaPlaceholder?.mimeType ??
+                "audio/ogg; codecs=opus",
+              fileName:
+                message.mediaPlaceholder?.fileName ?? "voice-note.ogg",
+              durationSeconds:
+                message.mediaPlaceholder?.durationSeconds,
+              ptt: message.mediaPlaceholder?.ptt,
+              messageKey: {
+                remoteJid: message.remoteJid,
+                fromMe: true,
+                id: message.messageId,
+              },
+            },
+          ]
+        : undefined,
   };
 }
