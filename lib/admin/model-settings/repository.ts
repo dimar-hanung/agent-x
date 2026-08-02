@@ -5,10 +5,22 @@ import { appSettings } from "@/lib/db/schema";
 
 import {
   DEFAULT_TEXT_MODEL_ID,
+  DEFAULT_VOICE_INPUT_MAX_BYTES,
+  DEFAULT_VOICE_INPUT_MAX_SECONDS,
+  DEFAULT_VOICE_INPUT_MODEL_ID,
+  DEFAULT_VOICE_REPLY_MAX_CHARS,
+  DEFAULT_VOICE_REPLY_MAX_WORDS,
+  DEFAULT_VOICE_REPLY_MODEL_ID,
+  DEFAULT_VOICE_REPLY_PERCENT,
+  DEFAULT_VOICE_REPLY_VOICE,
   TEXT_MODEL_OPTIONS,
   VISION_MODEL_OPTIONS,
+  VOICE_INPUT_MODEL_OPTIONS,
+  VOICE_REPLY_MODEL_OPTIONS,
   isTextModelId,
   isVisionModelId,
+  isVoiceInputModelId,
+  isVoiceReplyModelId,
 } from "./constants";
 import type {
   ModelSettingsOptionsView,
@@ -30,6 +42,14 @@ function toView(row: typeof appSettings.$inferSelect): ModelSettingsView {
   return {
     textModelId: row.textModelId,
     visionModelId: row.visionModelId,
+    voiceInputModelId: row.voiceInputModelId,
+    voiceReplyModelId: row.voiceReplyModelId,
+    voiceReplyVoice: row.voiceReplyVoice,
+    voiceReplyPercent: row.voiceReplyPercent,
+    voiceInputMaxSeconds: row.voiceInputMaxSeconds,
+    voiceInputMaxBytes: row.voiceInputMaxBytes,
+    voiceReplyMaxChars: row.voiceReplyMaxChars,
+    voiceReplyMaxWords: row.voiceReplyMaxWords,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -47,6 +67,14 @@ async function getOrCreateSettingsRow() {
       id: SINGLETON_SETTINGS_ID,
       textModelId: getBootstrapTextModelId(),
       visionModelId: "disabled",
+      voiceInputModelId: DEFAULT_VOICE_INPUT_MODEL_ID,
+      voiceReplyModelId: DEFAULT_VOICE_REPLY_MODEL_ID,
+      voiceReplyVoice: DEFAULT_VOICE_REPLY_VOICE,
+      voiceReplyPercent: DEFAULT_VOICE_REPLY_PERCENT,
+      voiceInputMaxSeconds: DEFAULT_VOICE_INPUT_MAX_SECONDS,
+      voiceInputMaxBytes: DEFAULT_VOICE_INPUT_MAX_BYTES,
+      voiceReplyMaxChars: DEFAULT_VOICE_REPLY_MAX_CHARS,
+      voiceReplyMaxWords: DEFAULT_VOICE_REPLY_MAX_WORDS,
     })
     .returning();
 
@@ -60,6 +88,14 @@ export function getModelSettingsOptions(): ModelSettingsOptionsView {
       label: option.label,
     })),
     visionModels: VISION_MODEL_OPTIONS.map((option) => ({
+      id: option.id,
+      label: option.label,
+    })),
+    voiceInputModels: VOICE_INPUT_MODEL_OPTIONS.map((option) => ({
+      id: option.id,
+      label: option.label,
+    })),
+    voiceReplyModels: VOICE_REPLY_MODEL_OPTIONS.map((option) => ({
       id: option.id,
       label: option.label,
     })),
@@ -82,6 +118,14 @@ export async function updateModelSettings(
     throw new Error("Model vision tidak valid.");
   }
 
+  if (!isVoiceInputModelId(input.voiceInputModelId)) {
+    throw new Error("Model input voice tidak valid.");
+  }
+
+  if (!isVoiceReplyModelId(input.voiceReplyModelId)) {
+    throw new Error("Model balasan voice tidak valid.");
+  }
+
   const row = await getOrCreateSettingsRow();
 
   const [updated] = await db
@@ -89,6 +133,14 @@ export async function updateModelSettings(
     .set({
       textModelId: input.textModelId,
       visionModelId: input.visionModelId,
+      voiceInputModelId: input.voiceInputModelId,
+      voiceReplyModelId: input.voiceReplyModelId,
+      voiceReplyVoice: input.voiceReplyVoice,
+      voiceReplyPercent: input.voiceReplyPercent,
+      voiceInputMaxSeconds: input.voiceInputMaxSeconds,
+      voiceInputMaxBytes: input.voiceInputMaxBytes,
+      voiceReplyMaxChars: input.voiceReplyMaxChars,
+      voiceReplyMaxWords: input.voiceReplyMaxWords,
       updatedAt: new Date(),
     })
     .where(eq(appSettings.id, row.id))
