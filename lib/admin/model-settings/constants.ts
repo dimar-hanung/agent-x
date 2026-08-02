@@ -49,8 +49,8 @@ export const VOICE_REPLY_MODEL_OPTIONS = [
     label: "Disabled",
   },
   {
-    id: "openai/gpt-4o-mini-tts-2025-12-15",
-    label: "GPT-4o Mini TTS",
+    id: "google/gemini-3.1-flash-tts-preview",
+    label: "Gemini 3.1 Flash TTS",
   },
 ] as const;
 
@@ -65,7 +65,7 @@ export const DEFAULT_TEXT_MODEL_ID: TextModelId = "deepseek/deepseek-v4-pro";
 export const DEFAULT_VOICE_INPUT_MODEL_ID: VoiceInputModelId =
   "openai/whisper-large-v3";
 export const DEFAULT_VOICE_REPLY_MODEL_ID: VoiceReplyModelId =
-  "openai/gpt-4o-mini-tts-2025-12-15";
+  "google/gemini-3.1-flash-tts-preview";
 export const DEFAULT_VOICE_REPLY_VOICE = "nova";
 export const DEFAULT_VOICE_REPLY_PERCENT = 35;
 export const DEFAULT_VOICE_INPUT_MAX_SECONDS = 120;

@@ -15,9 +15,9 @@ eligible WhatsApp voice note from Evolution, transcribe it to canonical user
 text, and run the existing `processChannelMessage` flow. Generate and persist one
 canonical assistant text reply. Only then apply deterministic voice eligibility
 rules; if the reply is eligible, make one configurable random selection. A
-selected reply is synthesized to MP3 and sent through Evolution's dedicated
-WhatsApp-audio endpoint, which converts it to a PTT-compatible Ogg/Opus voice
-note. Any transcription, synthesis, or audio-delivery failure falls back to a
+selected reply is synthesized in the format required by its model and sent
+through Evolution's dedicated WhatsApp-audio endpoint, which converts it to a
+PTT-compatible Ogg/Opus voice note. Gemini raw PCM is wrapped in WAV first. Any transcription, synthesis, or audio-delivery failure falls back to a
 short Indonesian text response or the canonical assistant text.
 
 This capability belongs only to the global bot channel. Personal WhatsApp
@@ -142,8 +142,9 @@ and shows the resulting WhatsApp `audioMessage` with `ptt: true`.
 [Evolution API: Send WhatsApp Audio](https://docs.evoapicloud.com/api-reference/message-controller/send-audio)
 
 Implication: AgentX does not need its own FFmpeg dependency for the first
-version. It can request compressed MP3 from TTS, base64-encode the returned raw
-bytes, and let the pinned Evolution service perform the WhatsApp conversion.
+version. It can request the model-compatible TTS format, wrap Gemini's raw PCM
+in WAV, base64-encode the audio bytes, and let the pinned Evolution service
+perform the WhatsApp conversion.
 The production canary must still verify this exact path against the deployed
 container before enabling randomized replies.
 
@@ -274,15 +275,18 @@ deterministic text-only reason instead (`news`, `long`, `structured`, `error`,
 
 ## Recommended delivery sequence
 
-1. Generate the complete canonical assistant text. Continue suppressing
-   per-step WhatsApp replies on `replyViaWhatsApp` runs.
+1. Generate the complete canonical assistant text with OpenRouter reasoning
+   explicitly disabled for WhatsApp. Continue suppressing per-step WhatsApp
+   replies on `replyViaWhatsApp` runs. If visible text is still empty, persist
+   and send the deterministic text-only fallback.
 2. Collect executed tool names and evaluate deterministic eligibility.
 3. If eligible, sample text versus voice once.
 4. Persist the canonical assistant text and delivery metadata.
 5. For text mode, use the existing `sendWhatsAppToUser` path.
 6. For voice mode, switch presence to `recording`, call OpenRouter TTS with
-   `response_format: "mp3"`, validate the HTTP status and `audio/mpeg` response,
-   then call a provider-level `sendAudio` operation backed by Evolution
+   the selected model-compatible format. Gemini requires 24 kHz, 16-bit mono PCM;
+   wrap its raw samples in a WAV container before calling the provider-level
+   `sendAudio` operation backed by Evolution
    `/message/sendWhatsAppAudio/{instance}`.
 7. If TTS or Evolution audio delivery fails, send the already-persisted
    canonical text. Do not regenerate the answer and do not retry audio after a
@@ -383,8 +387,8 @@ Integration/canary coverage:
 - ask short conversational questions enough times to observe the configured
   voice/text ratio;
 - inspect the delivered WhatsApp message as a playable PTT voice note;
-- verify Evolution 2.3.7 accepts the chosen OpenRouter MP3 bytes and performs
-  conversion;
+- verify Evolution 2.3.7 accepts the chosen model-compatible audio bytes
+  (including Gemini PCM wrapped as WAV) and performs conversion;
 - stop/fail OpenRouter TTS and confirm one text fallback with no duplicate audio;
 - confirm personal inbox contacts never receive an automated message.
 

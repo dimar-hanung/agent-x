@@ -38,6 +38,9 @@ import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
 
 export type ChannelMessageSource = "web" | "whatsapp" | "scheduler";
 
+const EMPTY_WHATSAPP_REPLY =
+  "Maaf, saya tidak dapat menghasilkan jawaban. Coba kirim ulang.";
+
 const EXCLUDED_SCHEDULER_TOOL_KEYS: NativeToolKey[] = ["create_schedule"];
 
 const EXCLUDED_WHATSAPP_TOOL_KEYS: NativeToolKey[] = [
@@ -135,6 +138,7 @@ export async function processChannelMessage(
     instructions: systemPrompt,
     modelId,
     maxSteps: input.source === "whatsapp" ? WHATSAPP_MAX_AGENT_STEPS : undefined,
+    reasoning: input.source === "whatsapp" ? "none" : undefined,
     onToolExecutionStart: notifyToolProgress
       ? async ({ toolCall }) => {
           await notifyWhatsAppToolStart(user.userId, toolCall.toolName);
@@ -184,10 +188,13 @@ export async function processChannelMessage(
     .map((step) => step.text.trim())
     .filter((text) => text.length > 0);
 
-  const finalAssistantText =
+  const generatedAssistantText =
     assistantTextParts.length > 0
       ? assistantTextParts.join("\n\n")
       : result.text.trim();
+  const finalAssistantText =
+    generatedAssistantText ||
+    (replyViaWhatsApp ? EMPTY_WHATSAPP_REPLY : "");
 
   const toolNames = result.steps.flatMap((step) =>
     step.toolCalls.map((toolCall) => toolCall.toolName)
@@ -210,7 +217,7 @@ export async function processChannelMessage(
     parts:
       assistantTextParts.length > 0
         ? assistantTextParts.map((text) => ({ type: "text" as const, text }))
-        : [{ type: "text", text: result.text }],
+        : [{ type: "text", text: finalAssistantText }],
     metadata: {
       source: input.source,
       ...input.metadata,

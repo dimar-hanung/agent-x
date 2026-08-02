@@ -1,4 +1,7 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import {
+  createOpenRouter,
+  type OpenRouterChatSettings,
+} from "@openrouter/ai-sdk-provider";
 
 import { DEFAULT_TEXT_MODEL_ID } from "@/lib/admin/model-settings/constants";
 
@@ -16,13 +19,16 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY ?? "",
 });
 
-export function getChatModel(modelId?: string) {
+export function getChatModel(
+  modelId?: string,
+  settings?: OpenRouterChatSettings
+) {
   if (!isOpenRouterConfigured()) {
     throw new Error("OpenRouter API key is not configured.");
   }
 
   const resolvedModelId = modelId?.trim() || getEnvModelId();
-  return openrouter.chat(resolvedModelId);
+  return openrouter.chat(resolvedModelId, settings);
 }
 
 export function getEnvFallbackModelId(): string {

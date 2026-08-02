@@ -2,6 +2,12 @@ import type { VoiceConfig } from "./config";
 
 const OPENROUTER_AUDIO_BASE_URL = "https://openrouter.ai/api/v1/audio";
 const AUDIO_REQUEST_TIMEOUT_MS = 45_000;
+const GEMINI_TTS_MODEL_PREFIX = "google/gemini-";
+const GEMINI_PCM_SAMPLE_RATE = 24_000;
+const GEMINI_PCM_CHANNELS = 1;
+const GEMINI_PCM_BITS_PER_SAMPLE = 16;
+
+type SpeechResponseFormat = "mp3" | "pcm";
 
 interface OpenRouterErrorBody {
   error?: {
@@ -76,6 +82,38 @@ function withTimeout(abortSignal?: AbortSignal): AbortSignal {
     : timeout;
 }
 
+function resolveSpeechResponseFormat(model: string): SpeechResponseFormat {
+  return model.startsWith(GEMINI_TTS_MODEL_PREFIX) ? "pcm" : "mp3";
+}
+
+function wrapPcm16MonoAsWav(pcm: Buffer): Buffer {
+  if (pcm.length % (GEMINI_PCM_BITS_PER_SAMPLE / 8) !== 0) {
+    throw new Error("OpenRouter TTS mengembalikan PCM yang tidak valid.");
+  }
+
+  const header = Buffer.alloc(44);
+  const bytesPerSample = GEMINI_PCM_BITS_PER_SAMPLE / 8;
+  const byteRate =
+    GEMINI_PCM_SAMPLE_RATE * GEMINI_PCM_CHANNELS * bytesPerSample;
+  const blockAlign = GEMINI_PCM_CHANNELS * bytesPerSample;
+
+  header.write("RIFF", 0, "ascii");
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8, "ascii");
+  header.write("fmt ", 12, "ascii");
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(GEMINI_PCM_CHANNELS, 22);
+  header.writeUInt32LE(GEMINI_PCM_SAMPLE_RATE, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(GEMINI_PCM_BITS_PER_SAMPLE, 34);
+  header.write("data", 36, "ascii");
+  header.writeUInt32LE(pcm.length, 40);
+
+  return Buffer.concat([header, pcm]);
+}
+
 export async function transcribeAudio(
   input: {
     base64: string;
@@ -136,6 +174,7 @@ export async function synthesizeSpeech(
     throw new Error("Balasan voice belum diaktifkan.");
   }
 
+  const responseFormat = resolveSpeechResponseFormat(config.ttsModel);
   const response = await fetch(OPENROUTER_AUDIO_BASE_URL + "/speech", {
     method: "POST",
     headers: {
@@ -146,7 +185,7 @@ export async function synthesizeSpeech(
       model: config.ttsModel,
       input: text,
       voice: config.ttsVoice,
-      response_format: "mp3",
+      response_format: responseFormat,
     }),
     signal: withTimeout(abortSignal),
   });
@@ -162,14 +201,19 @@ export async function synthesizeSpeech(
     throw new Error("OpenRouter TTS tidak mengembalikan audio.");
   }
 
-  const bytes = Buffer.from(await response.arrayBuffer());
+  const responseBytes = Buffer.from(await response.arrayBuffer());
 
-  if (bytes.length === 0) {
+  if (responseBytes.length === 0) {
     throw new Error("Audio balasan kosong.");
   }
 
+  const audioBytes =
+    responseFormat === "pcm"
+      ? wrapPcm16MonoAsWav(responseBytes)
+      : responseBytes;
+
   return {
-    base64: bytes.toString("base64"),
-    mimeType,
+    base64: audioBytes.toString("base64"),
+    mimeType: responseFormat === "pcm" ? "audio/wav" : mimeType,
   };
 }

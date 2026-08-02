@@ -66,3 +66,4 @@ Two WhatsApp modes coexist:
 
 - WhatsApp global-channel path excludes `summarize_whatsapp_chat` / `list_whatsapp_chats`; catch-up uses `summarize_whatsapp_digest` once, then one final WA reply (no per-step sends). Tool start still sends a short status line (e.g. "Merangkum chat WhatsApp…") via `notifyWhatsAppToolStart`.
 - Overlapping WA agent runs for the same user abort the previous run and clear in-flight digest work.
+- Distinguish a missing event from a slow webhook using Evolution logs. `WebhookController` `ECONNABORTED` with `timeout of 60000ms exceeded` proves Evolution emitted the event and AgentX did not acknowledge it in time. The global bot path currently awaits `processChannelMessage` (model/tools/persistence/final delivery) before returning HTTP 200, so slow generation causes provider retries; do not misdiagnose that pattern as a dead Baileys message processor.

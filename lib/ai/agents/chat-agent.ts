@@ -25,6 +25,14 @@ export interface CreateChatAgentOptions {
   modelId?: string;
   onToolExecutionStart?: OnToolExecutionStartCallback;
   onToolExecutionEnd?: OnToolExecutionEndCallback;
+  reasoning?:
+    | "provider-default"
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh";
 }
 
 export async function createChatAgent(
@@ -37,12 +45,18 @@ export async function createChatAgent(
     (await createAllToolsForUser(user, { runtimeContext }))) as ToolSet;
 
   return new ToolLoopAgent({
-    model: getChatModel(options?.modelId),
+    model: getChatModel(
+      options?.modelId,
+      options?.reasoning === "none"
+        ? { reasoning: { enabled: false, effort: "none" } }
+        : undefined
+    ),
     instructions: options?.instructions ?? buildSystemPrompt(user),
     tools,
     stopWhen: isStepCount(options?.maxSteps ?? MAX_AGENT_STEPS),
     onToolExecutionStart: options?.onToolExecutionStart,
     onToolExecutionEnd: options?.onToolExecutionEnd,
+    reasoning: options?.reasoning,
   });
 }
 
@@ -61,6 +75,7 @@ export async function createChatAgentForRun({
   modelId,
   onToolExecutionStart,
   onToolExecutionEnd,
+  reasoning,
 }: {
   user: UserContext;
   chatId: string;
@@ -68,6 +83,14 @@ export async function createChatAgentForRun({
   modelId?: string;
   onToolExecutionStart?: OnToolExecutionStartCallback;
   onToolExecutionEnd?: OnToolExecutionEndCallback;
+  reasoning?:
+    | "provider-default"
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh";
 }) {
   const runtimeContext = {
     userId: user.userId,
@@ -79,6 +102,7 @@ export async function createChatAgentForRun({
     modelId,
     onToolExecutionStart,
     onToolExecutionEnd,
+    reasoning,
   });
 
   return {

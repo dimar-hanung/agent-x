@@ -37,7 +37,8 @@ Voice is a transport around the existing canonical text conversation: transcribe
 - In the conservative first release, only voice-originated direct global-channel replies are eligible. Eligible replies use a cryptographic random draw against the Admin-managed reply percentage, default 35.
 - Persist the sampled deliveryMode, policy reason, and probability with the canonical assistant text before sending.
 - TTS or Evolution-audio failure sends the exact canonical text fallback without regenerating or re-randomizing.
-- Send selected audio through Evolution sendWhatsAppAudio; the pinned 2.3.7 service converts MP3 input to WhatsApp PTT Ogg/Opus.
+- WhatsApp agent generation disables reasoning with the OpenRouter provider setting `reasoning: { enabled: false, effort: "none" }`; the generic AI SDK reasoning option alone does not disable DeepSeek V4 reasoning. If a WhatsApp run still returns no visible text, persist and send a deterministic text-only fallback; never finish the webhook with an empty assistant reply.
+- Select the OpenRouter TTS response format by model. Gemini TTS requires raw 24 kHz, 16-bit mono PCM; wrap it in a WAV container before sending it through Evolution `sendWhatsAppAudio`, which converts the input to WhatsApp PTT Ogg/Opus.
 - Tool progress and tool errors remain text and are never randomized.
 - The official Meta provider remains intentionally unsupported for voice until its separate audio contract is implemented.
 
