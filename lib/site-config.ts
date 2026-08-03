@@ -7,6 +7,7 @@ export const appRoutes = {
   dashboard: "/dashboard",
   chat: "/chat",
   settings: "/dashboard/settings",
+  profile: "/dashboard/profile",
   users: "/dashboard/users",
   todos: "/dashboard/todos",
   memories: "/dashboard/memories",

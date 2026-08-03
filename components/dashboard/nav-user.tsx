@@ -21,11 +21,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { appRoutes } from "@/lib/site-config";
 import {
   ChevronsUpDown,
   LogOut,
   Moon,
   Sun,
+  User,
 } from "lucide-react";
 import { useTheme } from "@wrksz/themes/client";
 
@@ -94,6 +96,10 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push(appRoutes.profile)}>
+              <User />
+              Profil
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             >

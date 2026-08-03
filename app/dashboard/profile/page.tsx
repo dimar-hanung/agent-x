@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-
-import { ModelSettingsCard } from "@/components/dashboard/model-settings-card";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,27 +8,15 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import {
-  getModelSettings,
-  getModelSettingsOptions,
-} from "@/lib/admin/model-settings/repository";
+import { ProfileDetails } from "@/components/dashboard/profile/profile-details";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 
-export default async function ModelSettingsPage() {
+export default async function ProfilePage() {
   const user = await getSessionUser();
 
   if (!user) {
     return null;
   }
-
-  if (user.role !== "admin") {
-    redirect("/dashboard");
-  }
-
-  const [settings, options] = await Promise.all([
-    getModelSettings(),
-    Promise.resolve(getModelSettingsOptions()),
-  ]);
 
   return (
     <>
@@ -49,26 +34,24 @@ export default async function ModelSettingsPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Pengaturan Model</BreadcrumbPage>
+                <BreadcrumbPage>Profil</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
       </header>
-      <div className="flex flex-1 flex-col items-center gap-6 p-4 pt-0">
-        <div className="w-full max-w-2xl text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Pengaturan Model
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Kelola model teks, vision, dan voice untuk seluruh jalur chat
-            AgentX.
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div className="max-w-3xl">
+          <h1 className="text-xl font-semibold tracking-tight">Profil</h1>
+          <p className="text-muted-foreground">
+            Lihat data akun. Ubah password lewat tombol di bawah.
           </p>
         </div>
-        <div className="w-full max-w-2xl">
-          <ModelSettingsCard
-            initialSettings={settings}
-            initialOptions={options}
+        <div className="max-w-3xl">
+          <ProfileDetails
+            displayName={user.displayName}
+            email={user.email}
+            role={user.role}
           />
         </div>
       </div>

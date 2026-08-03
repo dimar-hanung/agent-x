@@ -18,9 +18,11 @@ import {
 } from "@/components/ui/table";
 import { appRoutes } from "@/lib/site-config";
 import {
+  formatCronExpressionDisplay,
   formatNextRunAt,
   formatScheduleKind,
   formatScheduleStatus,
+  type ScheduleCronDisplayMode,
 } from "@/lib/scheduler/format-schedule";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +41,8 @@ export function ScheduleWorkspace({ initialSchedules }: ScheduleWorkspaceProps) 
   const router = useRouter();
   const [schedules, setSchedules] = useState(initialSchedules);
   const [filter, setFilter] = useState<ScheduleStatusFilter>("all");
+  const [cronDisplay, setCronDisplay] =
+    useState<ScheduleCronDisplayMode>("friendly");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,18 +131,44 @@ export function ScheduleWorkspace({ initialSchedules }: ScheduleWorkspaceProps) 
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
-        {SCHEDULE_STATUS_FILTERS.map((item) => (
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {SCHEDULE_STATUS_FILTERS.map((item) => (
+            <Button
+              key={item.value}
+              type="button"
+              size="sm"
+              variant={filter === item.value ? "default" : "outline"}
+              onClick={() => setFilter(item.value)}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </div>
+        <div
+          className="bg-card flex items-center gap-1 rounded-md border p-1"
+          role="group"
+          aria-label="Format jadwal"
+        >
           <Button
-            key={item.value}
             type="button"
             size="sm"
-            variant={filter === item.value ? "default" : "outline"}
-            onClick={() => setFilter(item.value)}
+            variant={cronDisplay === "friendly" ? "secondary" : "ghost"}
+            onClick={() => setCronDisplay("friendly")}
+            aria-pressed={cronDisplay === "friendly"}
           >
-            {item.label}
+            Mudah dibaca
           </Button>
-        ))}
+          <Button
+            type="button"
+            size="sm"
+            variant={cronDisplay === "cron" ? "secondary" : "ghost"}
+            onClick={() => setCronDisplay("cron")}
+            aria-pressed={cronDisplay === "cron"}
+          >
+            Cron
+          </Button>
+        </div>
       </div>
 
       {error ? (
@@ -194,8 +224,24 @@ export function ScheduleWorkspace({ initialSchedules }: ScheduleWorkspaceProps) 
                             {schedule.lastError}
                           </p>
                         ) : schedule.cronExpression ? (
-                          <p className="text-muted-foreground mt-0.5 font-mono text-xs">
-                            {schedule.cronExpression}
+                          <p
+                            className={cn(
+                              "text-muted-foreground mt-0.5 text-xs",
+                              cronDisplay === "cron" && "font-mono"
+                            )}
+                            title={
+                              cronDisplay === "friendly"
+                                ? schedule.cronExpression
+                                : formatCronExpressionDisplay(
+                                    schedule.cronExpression,
+                                    "friendly"
+                                  )
+                            }
+                          >
+                            {formatCronExpressionDisplay(
+                              schedule.cronExpression,
+                              cronDisplay
+                            )}
                           </p>
                         ) : null}
                       </div>

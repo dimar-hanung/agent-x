@@ -1,18 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  ModelSettingsRow,
+  ModelSettingsSection,
+  ModelSettingsSwitch,
+} from "@/components/dashboard/model-settings-row";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -24,6 +20,7 @@ import type {
   ModelSettingsOptionsView,
   ModelSettingsView,
 } from "@/lib/admin/model-settings/schemas";
+import { cn } from "@/lib/utils";
 
 interface ModelSettingsCardProps {
   initialSettings: ModelSettingsView;
@@ -31,9 +28,17 @@ interface ModelSettingsCardProps {
 }
 
 const BYTES_PER_MEGABYTE = 1024 * 1024;
+const selectTriggerClassName = "w-[11rem]";
 
 function toMegabytes(bytes: number): number {
   return bytes / BYTES_PER_MEGABYTE;
+}
+
+function firstEnabledOptionId(
+  options: Array<{ id: string; label: string }>
+): string {
+  const enabled = options.find((option) => option.id !== "disabled");
+  return enabled?.id ?? options[0]?.id ?? "";
 }
 
 export function ModelSettingsCard({
@@ -73,6 +78,22 @@ export function ModelSettingsCard({
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const lastVisionModelId = useRef(
+    initialSettings.visionModelId !== "disabled"
+      ? initialSettings.visionModelId
+      : firstEnabledOptionId(initialOptions.visionModels)
+  );
+  const lastVoiceInputModelId = useRef(
+    initialSettings.voiceInputModelId !== "disabled"
+      ? initialSettings.voiceInputModelId
+      : firstEnabledOptionId(initialOptions.voiceInputModels)
+  );
+  const lastVoiceReplyModelId = useRef(
+    initialSettings.voiceReplyModelId !== "disabled"
+      ? initialSettings.voiceReplyModelId
+      : firstEnabledOptionId(initialOptions.voiceReplyModels)
+  );
+
   function applySettings(nextSettings: ModelSettingsView) {
     setSettings(nextSettings);
     setTextModelId(nextSettings.textModelId);
@@ -87,6 +108,16 @@ export function ModelSettingsCard({
     );
     setVoiceReplyMaxChars(nextSettings.voiceReplyMaxChars);
     setVoiceReplyMaxWords(nextSettings.voiceReplyMaxWords);
+
+    if (nextSettings.visionModelId !== "disabled") {
+      lastVisionModelId.current = nextSettings.visionModelId;
+    }
+    if (nextSettings.voiceInputModelId !== "disabled") {
+      lastVoiceInputModelId.current = nextSettings.voiceInputModelId;
+    }
+    if (nextSettings.voiceReplyModelId !== "disabled") {
+      lastVoiceReplyModelId.current = nextSettings.voiceReplyModelId;
+    }
   }
 
   async function handleSave() {
@@ -150,23 +181,76 @@ export function ModelSettingsCard({
     voiceInputMaxBytes !== settings.voiceInputMaxBytes ||
     voiceReplyMaxChars !== settings.voiceReplyMaxChars ||
     voiceReplyMaxWords !== settings.voiceReplyMaxWords;
+
+  const visionEnabled = visionModelId !== "disabled";
   const voiceInputEnabled = voiceInputModelId !== "disabled";
   const voiceReplyEnabled = voiceReplyModelId !== "disabled";
 
+  const enabledVisionModels = initialOptions.visionModels.filter(
+    (option) => option.id !== "disabled"
+  );
+
+  function handleVisionToggle(enabled: boolean) {
+    if (enabled) {
+      setVisionModelId(lastVisionModelId.current);
+      return;
+    }
+
+    if (visionModelId !== "disabled") {
+      lastVisionModelId.current = visionModelId;
+    }
+    setVisionModelId("disabled");
+  }
+
+  function handleVoiceInputToggle(enabled: boolean) {
+    if (enabled) {
+      setVoiceInputModelId(lastVoiceInputModelId.current);
+      return;
+    }
+
+    if (voiceInputModelId !== "disabled") {
+      lastVoiceInputModelId.current = voiceInputModelId;
+    }
+    setVoiceInputModelId("disabled");
+  }
+
+  function handleVoiceReplyToggle(enabled: boolean) {
+    if (enabled) {
+      setVoiceReplyModelId(lastVoiceReplyModelId.current);
+      return;
+    }
+
+    if (voiceReplyModelId !== "disabled") {
+      lastVoiceReplyModelId.current = voiceReplyModelId;
+    }
+    setVoiceReplyModelId("disabled");
+  }
+
+  function handleVisionModelChange(value: string) {
+    lastVisionModelId.current = value;
+    setVisionModelId(value);
+  }
+
+  function handleVoiceInputModelChange(value: string) {
+    lastVoiceInputModelId.current = value;
+    setVoiceInputModelId(value);
+  }
+
+  function handleVoiceReplyModelChange(value: string) {
+    lastVoiceReplyModelId.current = value;
+    setVoiceReplyModelId(value);
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Model OpenRouter</CardTitle>
-        <CardDescription>
-          Pengaturan global untuk chat web, WhatsApp, dan otomatisasi.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-8">
-        <div className="space-y-2">
-          <Label htmlFor="text-model">Model Teks (Wajib)</Label>
+    <div className="divide-border surface-panel divide-y overflow-hidden rounded-lg border">
+      <ModelSettingsRow
+        title="Model Teks"
+        description="Model utama untuk chat web, WhatsApp, dan otomatisasi."
+        htmlFor="text-model"
+        control={
           <Select value={textModelId} onValueChange={setTextModelId}>
-            <SelectTrigger id="text-model" className="w-full">
-              <SelectValue placeholder="Pilih model teks" />
+            <SelectTrigger id="text-model" className={selectTriggerClassName}>
+              <SelectValue placeholder="Pilih model" />
             </SelectTrigger>
             <SelectContent>
               {initialOptions.textModels.map((option) => (
@@ -176,198 +260,275 @@ export function ModelSettingsCard({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        }
+      />
 
-        <div className="space-y-2">
-          <Label htmlFor="vision-model">Model Vision</Label>
-          <Select value={visionModelId} onValueChange={setVisionModelId}>
-            <SelectTrigger id="vision-model" className="w-full">
-              <SelectValue placeholder="Pilih model vision" />
-            </SelectTrigger>
-            <SelectContent>
-              {initialOptions.visionModels.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-muted-foreground text-xs">
-            Dipakai saat user mengirim gambar atau file visual lewat WhatsApp.
-            Pilih Disabled jika belum siap.
-          </p>
-        </div>
+      <ModelSettingsRow
+        title="Model Vision"
+        description="Dipakai saat user mengirim gambar atau file visual lewat WhatsApp."
+        htmlFor="vision-enabled"
+        control={
+          <ModelSettingsSwitch
+            id="vision-enabled"
+            checked={visionEnabled}
+            onCheckedChange={handleVisionToggle}
+          />
+        }
+      />
 
-        <div className="space-y-5 border-t pt-6">
-          <div>
-            <h3 className="font-medium">Voice</h3>
-            <p className="text-muted-foreground text-xs">
-              Atur transkripsi pesan suara di chat web dan kanal utama
-              WhatsApp.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="voice-input-model">Model Input Voice</Label>
+      {visionEnabled ? (
+        <ModelSettingsRow
+          title="Pilihan Model Vision"
+          description="Model yang dipakai saat vision aktif."
+          htmlFor="vision-model"
+          control={
             <Select
-              value={voiceInputModelId}
-              onValueChange={setVoiceInputModelId}
+              value={visionModelId}
+              onValueChange={handleVisionModelChange}
             >
-              <SelectTrigger id="voice-input-model" className="w-full">
-                <SelectValue placeholder="Pilih model transkripsi" />
+              <SelectTrigger id="vision-model" className={selectTriggerClassName}>
+                <SelectValue placeholder="Pilih model" />
               </SelectTrigger>
               <SelectContent>
-                {initialOptions.voiceInputModels.map((option) => (
+                {enabledVisionModels.map((option) => (
                   <SelectItem key={option.id} value={option.id}>
                     {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-muted-foreground text-xs">
-              Pilih Disabled untuk menolak input suara di chat web dan WhatsApp
-              tanpa menjalankan transkripsi.
-            </p>
-          </div>
+          }
+        />
+      ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="voice-input-max-seconds">
-                Durasi Maksimal (detik)
-              </Label>
+      <ModelSettingsSection title="Voice" />
+
+      <ModelSettingsRow
+        title="Input Voice"
+        description="Transkripsi pesan suara di chat web dan kanal utama WhatsApp."
+        htmlFor="voice-input-enabled"
+        control={
+          <ModelSettingsSwitch
+            id="voice-input-enabled"
+            checked={voiceInputEnabled}
+            onCheckedChange={handleVoiceInputToggle}
+          />
+        }
+      />
+
+      {voiceInputEnabled ? (
+        <>
+          <ModelSettingsRow
+            title="Model Transkripsi"
+            description="Model yang memproses audio menjadi teks."
+            htmlFor="voice-input-model"
+            control={
+              <Select
+                value={voiceInputModelId}
+                onValueChange={handleVoiceInputModelChange}
+              >
+                <SelectTrigger
+                  id="voice-input-model"
+                  className={selectTriggerClassName}
+                >
+                  <SelectValue placeholder="Pilih model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {initialOptions.voiceInputModels
+                    .filter((option) => option.id !== "disabled")
+                    .map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            }
+          />
+
+          <ModelSettingsRow
+            title="Durasi Maksimal"
+            description="Batas panjang rekaman suara dalam detik."
+            htmlFor="voice-input-max-seconds"
+            control={
               <Input
                 id="voice-input-max-seconds"
                 type="number"
                 min={10}
                 max={600}
+                className="w-[7rem] text-right"
                 value={voiceInputMaxSeconds}
-                disabled={!voiceInputEnabled}
                 onChange={(event) =>
                   setVoiceInputMaxSeconds(Number(event.target.value))
                 }
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="voice-input-max-megabytes">
-                Ukuran Maksimal (MB)
-              </Label>
+            }
+          />
+
+          <ModelSettingsRow
+            title="Ukuran Maksimal"
+            description="Batas ukuran file audio dalam megabyte."
+            htmlFor="voice-input-max-megabytes"
+            control={
               <Input
                 id="voice-input-max-megabytes"
                 type="number"
                 min={1}
                 max={47}
                 step={1}
+                className="w-[7rem] text-right"
                 value={voiceInputMaxMegabytes}
-                disabled={!voiceInputEnabled}
                 onChange={(event) =>
                   setVoiceInputMaxMegabytes(Number(event.target.value))
                 }
               />
-            </div>
-          </div>
+            }
+          />
+        </>
+      ) : null}
 
-          <div className="space-y-2">
-            <Label htmlFor="voice-reply-model">Model Balasan Voice</Label>
-            <Select
-              value={voiceReplyModelId}
-              onValueChange={setVoiceReplyModelId}
-            >
-              <SelectTrigger id="voice-reply-model" className="w-full">
-                <SelectValue placeholder="Pilih model TTS" />
-              </SelectTrigger>
-              <SelectContent>
-                {initialOptions.voiceReplyModels.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-muted-foreground text-xs">
-              Pilih Disabled agar agent selalu membalas dengan teks.
-            </p>
-          </div>
+      <ModelSettingsRow
+        title="Balasan Voice"
+        description="Agent membalas dengan audio TTS sesuai peluang yang diatur."
+        htmlFor="voice-reply-enabled"
+        control={
+          <ModelSettingsSwitch
+            id="voice-reply-enabled"
+            checked={voiceReplyEnabled}
+            onCheckedChange={handleVoiceReplyToggle}
+          />
+        }
+      />
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="voice-reply-voice">Voice TTS</Label>
+      {voiceReplyEnabled ? (
+        <>
+          <ModelSettingsRow
+            title="Model TTS"
+            description="Model yang menghasilkan balasan suara."
+            htmlFor="voice-reply-model"
+            control={
+              <Select
+                value={voiceReplyModelId}
+                onValueChange={handleVoiceReplyModelChange}
+              >
+                <SelectTrigger
+                  id="voice-reply-model"
+                  className={selectTriggerClassName}
+                >
+                  <SelectValue placeholder="Pilih model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {initialOptions.voiceReplyModels
+                    .filter((option) => option.id !== "disabled")
+                    .map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            }
+          />
+
+          <ModelSettingsRow
+            title="Voice TTS"
+            description="Nama suara yang dipakai untuk output audio."
+            htmlFor="voice-reply-voice"
+            control={
               <Input
                 id="voice-reply-voice"
                 value={voiceReplyVoice}
                 maxLength={64}
-                disabled={!voiceReplyEnabled}
+                className="w-[11rem]"
                 onChange={(event) => setVoiceReplyVoice(event.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="voice-reply-percent">
-                Peluang Balasan Voice (%)
-              </Label>
+            }
+          />
+
+          <ModelSettingsRow
+            title="Peluang Balasan Voice"
+            description="Persentase balasan yang dikirim sebagai audio."
+            htmlFor="voice-reply-percent"
+            control={
               <Input
                 id="voice-reply-percent"
                 type="number"
                 min={0}
                 max={100}
+                className="w-[7rem] text-right"
                 value={voiceReplyPercent}
-                disabled={!voiceReplyEnabled}
                 onChange={(event) =>
                   setVoiceReplyPercent(Number(event.target.value))
                 }
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="voice-reply-max-chars">
-                Maksimal Karakter
-              </Label>
+            }
+          />
+
+          <ModelSettingsRow
+            title="Maksimal Karakter"
+            description="Batas panjang teks sebelum balasan dipaksa ke teks."
+            htmlFor="voice-reply-max-chars"
+            control={
               <Input
                 id="voice-reply-max-chars"
                 type="number"
                 min={80}
                 max={4000}
+                className="w-[7rem] text-right"
                 value={voiceReplyMaxChars}
-                disabled={!voiceReplyEnabled}
                 onChange={(event) =>
                   setVoiceReplyMaxChars(Number(event.target.value))
                 }
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="voice-reply-max-words">
-                Maksimal Kata
-              </Label>
+            }
+          />
+
+          <ModelSettingsRow
+            title="Maksimal Kata"
+            description="Batas jumlah kata untuk balasan voice."
+            htmlFor="voice-reply-max-words"
+            control={
               <Input
                 id="voice-reply-max-words"
                 type="number"
                 min={10}
                 max={500}
+                className="w-[7rem] text-right"
                 value={voiceReplyMaxWords}
-                disabled={!voiceReplyEnabled}
                 onChange={(event) =>
                   setVoiceReplyMaxWords(Number(event.target.value))
                 }
               />
-            </div>
+            }
+          />
+
+          <div className="px-4 py-3">
+            <p className="text-muted-foreground leading-snug">
+              Berita, balasan panjang, tautan, hasil tindakan, dan konten
+              berisiko tetap dikirim sebagai teks meskipun balasan voice aktif.
+            </p>
           </div>
+        </>
+      ) : null}
 
-          <p className="text-muted-foreground text-xs">
-            Berita, balasan panjang, tautan, hasil tindakan, dan konten berisiko
-            tetap dikirim sebagai teks meskipun balasan voice aktif.
-          </p>
+      <div
+        className={cn(
+          "flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between",
+          (error || success) && "gap-4"
+        )}
+      >
+        <div className="min-h-6 flex-1">
+          {error ? (
+            <p className="text-destructive" role="alert">
+              {error}
+            </p>
+          ) : null}
+          {success ? (
+            <p className="text-emerald-600 dark:text-emerald-400" role="status">
+              {success}
+            </p>
+          ) : null}
         </div>
-
-        {error ? (
-          <p className="text-destructive text-sm" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        {success ? (
-          <p className="text-sm text-emerald-600" role="status">
-            {success}
-          </p>
-        ) : null}
-      </CardContent>
-      <CardFooter>
         <Button
           type="button"
           onClick={() => void handleSave()}
@@ -375,7 +536,7 @@ export function ModelSettingsCard({
         >
           {isSubmitting ? "Menyimpan…" : "Simpan"}
         </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }

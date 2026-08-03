@@ -42,6 +42,7 @@ User-scoped **recurring** AI automations (`schedule_kind: cron` only). Created v
 - Statuses: `active` \| `paused` \| `completed` \| `cancelled`
 - Lists (API, dashboard, chat, list_schedules) filter `scheduleKind: cron`
 - Dashboard: list, filter, pause, resume, cancel
+- Dashboard schedule subtitle toggles **Mudah dibaca** (default) vs **Cron**; friendly labels via `formatCronExpressionDisplay` (`cronstrue` locale `id`) in `lib/scheduler/format-schedule.ts`
 - UI Bahasa Indonesia label: **Otomatisasi** (not Jadwal)
 - Not the same as todo `starts_at` reminders
 - Scheduled runs go through `processChannelMessage` (`source: "scheduler"`) and mirror replies to WhatsApp when channel + phone are set

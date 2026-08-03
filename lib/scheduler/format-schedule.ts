@@ -1,4 +1,8 @@
+import cronstrue from "cronstrue/i18n";
+
 const LOCALE = "id-ID";
+
+export type ScheduleCronDisplayMode = "friendly" | "cron";
 
 export function formatNextRunAt(date: Date, timezone: string): string {
   return new Intl.DateTimeFormat(LOCALE, {
@@ -6,6 +10,28 @@ export function formatNextRunAt(date: Date, timezone: string): string {
     timeStyle: "short",
     timeZone: timezone,
   }).format(date);
+}
+
+export function formatCronExpressionFriendly(expression: string): string {
+  try {
+    return cronstrue.toString(expression, {
+      locale: "id",
+      use24HourTimeFormat: true,
+    });
+  } catch {
+    return expression;
+  }
+}
+
+export function formatCronExpressionDisplay(
+  expression: string,
+  mode: ScheduleCronDisplayMode
+): string {
+  if (mode === "cron") {
+    return expression;
+  }
+
+  return formatCronExpressionFriendly(expression);
 }
 
 export function formatScheduleKind(kind: "cron" | "once"): string {
