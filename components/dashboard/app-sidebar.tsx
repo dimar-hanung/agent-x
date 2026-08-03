@@ -6,11 +6,9 @@ import {
   Brain,
   CalendarClock,
   CheckSquare,
-  Cpu,
   FolderOpen,
   MessageSquare,
   MessagesSquare,
-  Radio,
   Settings2,
   SquareTerminal,
   Users,
@@ -57,16 +55,6 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
             url: appRoutes.users,
             icon: Users,
           },
-          {
-            title: "Channel WhatsApp",
-            url: "/dashboard/whatsapp-channel",
-            icon: Radio,
-          },
-          {
-            title: "Pengaturan Model",
-            url: "/dashboard/model-settings",
-            icon: Cpu,
-          },
         ]
       : [];
 
@@ -110,7 +98,7 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
       },
       ...adminNav,
       {
-        title: "Integrations",
+        title: "Pengaturan",
         url: appRoutes.settings,
         icon: Settings2,
       },

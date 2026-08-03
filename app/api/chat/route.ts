@@ -6,12 +6,12 @@ import {
 } from "ai";
 import { NextResponse } from "next/server";
 
-import { createChatAgentForRun } from "@/lib/ai/agents/chat-agent";
 import { getModelSettings } from "@/lib/admin/model-settings/repository";
+import { createChatAgentForRun } from "@/lib/ai/agents/chat-agent";
 import { prepareModelContext } from "@/lib/ai/context/prepare-model-context";
 import { maxDuration } from "@/lib/ai/chat-config";
 import { chatRequestSchema } from "@/lib/ai/chat-schema";
-import { isOpenRouterConfigured } from "@/lib/ai/openrouter";
+import { isChatModelConfigured } from "@/lib/ai/openrouter";
 import { UnauthorizedError, resolveUser } from "@/lib/ai/roles/resolve-user";
 import { createAllToolsForUser } from "@/lib/ai/tools/resolve-tools";
 import { isMainChannel } from "@/lib/db/repositories/channel-repository";
@@ -21,10 +21,23 @@ import {
   loadStoredChatMessages,
   saveChat,
 } from "@/lib/db/repositories/chat-repository";
+import {
+  buildFileRagSystemAppendix,
+  FileRagError,
+} from "@/lib/files/file-rag-context";
 import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
 import { notifyWhatsAppToolError, notifyWhatsAppToolStart } from "@/lib/integrations/whatsapp/notify-tool-progress";
 
 export { maxDuration };
+
+function extractUserText(message: UIMessage): string | null {
+  const textPart = message.parts.find(
+    (part): part is { type: "text"; text: string } =>
+      part.type === "text" && typeof part.text === "string"
+  );
+  const trimmed = textPart?.text.trim();
+  return trimmed || null;
+}
 
 export async function POST(req: Request) {
   let body: unknown;
@@ -47,40 +60,47 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!isOpenRouterConfigured()) {
+  const modelSettings = await getModelSettings();
+
+  if (!isChatModelConfigured(modelSettings.textModelId)) {
     return NextResponse.json(
-      { message: "OpenRouter is not configured." },
+      { message: "Model provider is not configured." },
       { status: 503 }
     );
   }
 
   try {
     const user = await resolveUser();
-    const { id: chatId, message } = parsed.data;
+    const { id: chatId, message, fileId } = parsed.data;
 
     const ownerUserId = await getChatOwner(chatId);
 
     if (ownerUserId === null) {
-      await createChatWithId(user.userId, chatId);
+      await createChatWithId(user.userId, chatId, {
+        sourceFileId: fileId,
+      });
     } else if (ownerUserId !== user.userId) {
       return NextResponse.json({ message: "Chat not found." }, { status: 404 });
     }
 
+    const userMessage = message as UIMessage;
+    const userQuestion = extractUserText(userMessage);
+
     const storedMessages = await loadStoredChatMessages(chatId, user.userId);
     const fullMessages: UIMessage[] = [
       ...storedMessages.map(({ sequence: _sequence, ...msg }) => msg),
-      message as UIMessage,
+      userMessage,
     ];
 
     const storedWithNew = [
       ...storedMessages,
       {
-        ...(message as UIMessage),
+        ...userMessage,
         sequence: storedMessages.length,
       },
     ];
 
-    const whatsappOutput = await isMainChannel(chatId);
+    const whatsappOutput = fileId ? false : await isMainChannel(chatId);
 
     const { systemPrompt, modelMessages } = await prepareModelContext({
       chatId,
@@ -89,9 +109,27 @@ export async function POST(req: Request) {
       whatsappOutput,
     });
 
+    let instructions = systemPrompt;
+    if (fileId) {
+      if (!userQuestion) {
+        return NextResponse.json(
+          { message: "Pesan pengguna kosong." },
+          { status: 400 }
+        );
+      }
+      const fileAppendix = await buildFileRagSystemAppendix({
+        user,
+        fileId,
+        userQuestion,
+      });
+      instructions = `${systemPrompt}\n\n${fileAppendix}`;
+    }
+
     const runtimeContext = { userId: user.userId, chatId };
 
-    const tools = await createAllToolsForUser(user, { runtimeContext });
+    const tools = fileId
+      ? ({} as Awaited<ReturnType<typeof createAllToolsForUser>>)
+      : await createAllToolsForUser(user, { runtimeContext });
 
     const validatedModelMessages = await validateUIMessages({
       messages: modelMessages,
@@ -106,8 +144,9 @@ export async function POST(req: Request) {
     const { agent } = await createChatAgentForRun({
       user,
       chatId,
-      instructions: systemPrompt,
-      modelId: (await getModelSettings()).textModelId,
+      instructions,
+      modelId: modelSettings.textModelId,
+      toolsOverride: fileId ? {} : undefined,
       onToolExecutionStart: whatsappOutput
         ? async ({ toolCall }) => {
             await notifyWhatsAppToolStart(user.userId, toolCall.toolName);
@@ -160,6 +199,12 @@ export async function POST(req: Request) {
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
+    }
+    if (error instanceof FileRagError) {
+      return NextResponse.json(
+        { message: error.message },
+        { status: error.status }
+      );
     }
 
     console.error("POST /api/chat error:", error);

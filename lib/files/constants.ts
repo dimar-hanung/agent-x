@@ -17,3 +17,116 @@ export const SEAWEEDFS_NOT_CONFIGURED_CODE = "SEAWEEDFS_NOT_CONFIGURED";
 
 export const SEAWEEDFS_NOT_CONFIGURED_MESSAGE =
   "Penyimpanan file belum tersedia karena konfigurasi server belum lengkap.";
+
+export const DOCLING_NOT_CONFIGURED_CODE = "DOCLING_NOT_CONFIGURED";
+
+export const DOCLING_NOT_CONFIGURED_MESSAGE =
+  "Pengindeksan dokumen belum tersedia karena Docling belum dikonfigurasi.";
+
+export const INDEXABLE_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+] as const;
+
+const INDEXABLE_EXTENSIONS = /\.(pdf|docx)$/i;
+
+export function isIndexableFile(
+  mimeType: string | null | undefined,
+  name: string
+): boolean {
+  const mime = (mimeType ?? "").toLowerCase();
+  if (
+    INDEXABLE_MIME_TYPES.includes(
+      mime as (typeof INDEXABLE_MIME_TYPES)[number]
+    )
+  ) {
+    return true;
+  }
+  return INDEXABLE_EXTENSIONS.test(name);
+}
+
+export function isPdfFile(
+  mimeType: string | null | undefined,
+  name: string
+): boolean {
+  const mime = (mimeType ?? "").toLowerCase();
+  if (mime === "application/pdf") {
+    return true;
+  }
+  return /\.pdf$/i.test(name);
+}
+
+export function isDocxFile(
+  mimeType: string | null | undefined,
+  name: string
+): boolean {
+  const mime = (mimeType ?? "").toLowerCase();
+  if (
+    mime ===
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return true;
+  }
+  return /\.docx$/i.test(name);
+}
+
+export const FILE_INDEX_PROGRESS_PHASES = [
+  "queued",
+  "downloading",
+  "chunking",
+  "embedding",
+  "saving",
+] as const;
+
+export type FileIndexProgressPhase =
+  (typeof FILE_INDEX_PROGRESS_PHASES)[number];
+
+const FILE_INDEX_PROGRESS_LABELS: Record<FileIndexProgressPhase, string> = {
+  queued: "Menunggu antrean",
+  downloading: "Mengunduh file",
+  chunking: "Memotong dokumen",
+  embedding: "Membuat embedding",
+  saving: "Menyimpan indeks",
+};
+
+export function formatFileIndexProgressLabel(
+  phase: string | null | undefined,
+  current: number | null | undefined,
+  total: number | null | undefined
+): string {
+  if (!phase) {
+    return "Sedang mengindeks dokumen…";
+  }
+
+  const key = phase as FileIndexProgressPhase;
+  const base =
+    key in FILE_INDEX_PROGRESS_LABELS
+      ? FILE_INDEX_PROGRESS_LABELS[key]
+      : "Sedang mengindeks dokumen…";
+
+  if (
+    phase === "embedding" &&
+    typeof current === "number" &&
+    typeof total === "number" &&
+    total > 0
+  ) {
+    return `${base} (${current}/${total})`;
+  }
+
+  return base;
+}
+
+export function fileIndexProgressPercent(
+  current: number | null | undefined,
+  total: number | null | undefined
+): number | null {
+  if (
+    typeof current !== "number" ||
+    typeof total !== "number" ||
+    total <= 0
+  ) {
+    return null;
+  }
+
+  return Math.min(100, Math.round((current / total) * 100));
+}

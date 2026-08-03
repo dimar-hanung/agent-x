@@ -11,6 +11,7 @@ import {
 import {
   USER_STORAGE_QUOTA_BYTES,
 } from "./constants";
+import { deleteFileIndexData } from "./index-repository";
 import type {
   CreateFolderInput,
   FileListItem,
@@ -464,6 +465,9 @@ export async function deleteFile(
   }
 
   for (const id of ids) {
+    await deleteFileIndexData(id).catch((error) => {
+      console.error("deleteFileIndexData error:", id, error);
+    });
     await db
       .delete(userFiles)
       .where(and(eq(userFiles.id, id), eq(userFiles.userId, userId)));

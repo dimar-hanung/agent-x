@@ -11,6 +11,18 @@ export const TEXT_MODEL_OPTIONS = [
     id: "qwen/qwen3-8b",
     label: "Qwen3 8B",
   },
+  {
+    id: "gemma4:31b-cloud",
+    label: "Gemma 4 31B (Ollama)",
+  },
+  {
+    id: "kimi-k2.7-code:cloud",
+    label: "Kimi K2.7 Code (Ollama)",
+  },
+  {
+    id: "gemma4:12b-it-q4_K_M",
+    label: "Gemma 4 12B IT Q4 (Ollama lokal)",
+  },
 ] as const;
 
 export const VISION_MODEL_OPTIONS = [
@@ -29,6 +41,18 @@ export const VISION_MODEL_OPTIONS = [
   {
     id: "qwen/qwen3-vl-8b-instruct",
     label: "Qwen3 VL 8B Instruct",
+  },
+  {
+    id: "gemma4:31b-cloud",
+    label: "Gemma 4 31B (Ollama)",
+  },
+  {
+    id: "kimi-k2.7-code:cloud",
+    label: "Kimi K2.7 Code (Ollama)",
+  },
+  {
+    id: "gemma4:12b-it-q4_K_M",
+    label: "Gemma 4 12B IT Q4 (Ollama lokal)",
   },
 ] as const;
 
@@ -81,6 +105,18 @@ export const VOICE_INPUT_MODEL_IDS = VOICE_INPUT_MODEL_OPTIONS.map(
 export const VOICE_REPLY_MODEL_IDS = VOICE_REPLY_MODEL_OPTIONS.map(
   (option) => option.id
 );
+
+export const OLLAMA_MODEL_IDS = [
+  "gemma4:31b-cloud",
+  "kimi-k2.7-code:cloud",
+  "gemma4:12b-it-q4_K_M",
+] as const;
+
+export type OllamaModelId = (typeof OLLAMA_MODEL_IDS)[number];
+
+export function isOllamaModelId(value: string): value is OllamaModelId {
+  return OLLAMA_MODEL_IDS.includes(value as OllamaModelId);
+}
 
 export function isTextModelId(value: string): value is TextModelId {
   return TEXT_MODEL_IDS.includes(value as TextModelId);

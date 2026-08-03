@@ -8,7 +8,9 @@ Integrations live under dashboard settings. Each provider is a card/row componen
 
 ## Key locations
 
-- Page: `app/settings/integrations/page.tsx` (and/or dashboard settings route that renders the cards)
+- Shell layout: `app/dashboard/settings/layout.tsx`, `components/settings/settings-category-nav.tsx`, `lib/settings/nav.ts`
+- Integrasi page: `app/dashboard/settings/page.tsx`
+- Legacy redirect: `app/settings/integrations/page.tsx` → `/dashboard/settings`
 - Shared row chrome: `components/settings/integration-row.tsx`
 - Cards:
   - `components/settings/google-integration-card.tsx`

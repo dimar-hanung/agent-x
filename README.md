@@ -81,6 +81,7 @@ cp .env.local .env
 pm2 start npm --name agentx -- start
 pm2 start npm --name agentx-scheduler -- run scheduler:worker
 pm2 start npm --name agentx-apify -- run apify:worker
+pm2 start npm --name agentx-files-index -- run files:index-worker
 pm2 start npm --name agentx-whatsapp-inbox -- run whatsapp-inbox:worker
 
 # Persist process list across reboots
@@ -156,12 +157,12 @@ Each user has one pinned **Kanal utama** at `/chat` (cron output and default cha
 
 **Global channel setup:**
 
-1. **Admin** — open [Dashboard → Channel WhatsApp](http://localhost:3000/dashboard/whatsapp-channel), scan QR (Evolution API).
-2. **Users** — open [Settings → Integrations](http://localhost:3000/dashboard/settings), register their phone number, then message the global channel number from that phone.
+1. **Admin** — open [Dashboard → Pengaturan → Channel WhatsApp](http://localhost:3000/dashboard/settings/whatsapp-channel), scan QR (Evolution API).
+2. **Users** — open [Pengaturan → Integrasi](http://localhost:3000/dashboard/settings), register their phone number, then message the global channel number from that phone.
 
 **Personal inbox setup:**
 
-1. **Users** — open [Settings → Integrations](http://localhost:3000/dashboard/settings), connect **WhatsApp pribadi** (scan QR).
+1. **Users** — open [Pengaturan → Integrasi](http://localhost:3000/dashboard/settings), connect **WhatsApp pribadi** (scan QR).
 2. Browse summaries at [Dashboard → Ringkasan WhatsApp](http://localhost:3000/dashboard/whatsapp-inbox) or ask in chat: *"Rangkum grup Marketing hari ini"*.
 3. Apply database migrations, then keep `npm run whatsapp-inbox:worker` running. The webhook only appends durable events; the worker promotes text events into the inbox tables.
 
@@ -190,7 +191,7 @@ Chat tools (distinct from Google Drive): `list_files`, `upload_file`, `read_file
 
 ### Todos MCP server
 
-Create a personal API key under [Settings → Integrations](http://localhost:3000/dashboard/settings), then connect Cursor/Claude to `{ORIGIN}/api/mcp/mcp` with `Authorization: Bearer <key>`. See [docs/mcp-todos.md](docs/mcp-todos.md).
+Create a personal API key under [Pengaturan → Integrasi](http://localhost:3000/dashboard/settings), then connect Cursor/Claude to `{ORIGIN}/api/mcp/mcp` with `Authorization: Bearer <key>`. See [docs/mcp-todos.md](docs/mcp-todos.md).
 
 ### Web search (Exa)
 

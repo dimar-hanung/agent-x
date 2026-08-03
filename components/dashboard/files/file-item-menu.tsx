@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, FolderOpen, Pencil, Trash2 } from "lucide-react";
+import { Download, FolderOpen, MessageSquareText, Pencil, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { isIndexableFile } from "@/lib/files/constants";
 import type { FileListItem } from "@/lib/files/schemas";
+import { appRoutes } from "@/lib/site-config";
 
 interface FileItemMenuProps {
   item: FileListItem;
@@ -32,6 +35,10 @@ export function FileItemMenu({
   onRename,
   onDelete,
 }: FileItemMenuProps) {
+  const router = useRouter();
+  const canAsk =
+    item.kind === "file" && isIndexableFile(item.mimeType, item.name);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -71,6 +78,14 @@ export function FileItemMenu({
           <DropdownMenuItem onSelect={() => onDownload(item)}>
             <Download />
             Unduh
+          </DropdownMenuItem>
+        ) : null}
+        {canAsk ? (
+          <DropdownMenuItem
+            onSelect={() => router.push(appRoutes.filesFileChat(item.id))}
+          >
+            <MessageSquareText />
+            Tanya isi file
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem onSelect={() => onRename(item)}>

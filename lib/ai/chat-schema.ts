@@ -15,6 +15,7 @@ const uiMessageSchema = z.object({
 export const chatRequestSchema = z.object({
   id: z.string().uuid(),
   message: uiMessageSchema,
+  fileId: z.string().uuid().optional(),
 });
 
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
