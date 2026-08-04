@@ -38,6 +38,7 @@ export type { ReadFileToolResult } from "./read-file/types";
 export type { RememberMemoryToolResult } from "./remember-memory/types";
 export type { SearchDriveToolResult } from "./search-drive/types";
 export type { SearchInboxToolResult } from "./search-inbox/types";
+export type { SearchWhatsappMessagesToolResult } from "./search-whatsapp-messages/types";
 export type { SendEmailToolResult } from "./send-email/types";
 export type { UpdateTodoToolResult } from "./update-todo/types";
 export type { UploadDriveFileToolResult } from "./upload-drive-file/types";

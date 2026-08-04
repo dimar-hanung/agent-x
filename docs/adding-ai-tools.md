@@ -210,8 +210,8 @@ Example prompts:
 |------|----------------|
 | `get_time` | "What time is it in Asia/Jakarta?" |
 | `list_todos` | "Tampilkan todo saya" |
-| `exa_web_search` | "Cari berita AI terbaru" |
-| `exa_web_fetch` | "Baca https://example.com dan ringkas" |
+| `web_search` | "Cari berita AI terbaru" |
+| `web_fetch` | "Baca https://example.com dan ringkas" |
 
 Watch the chat UI for tool badges (`Tool: get_time (running)` → `done`). Exa tools show Indonesian labels and source cards when search completes.
 

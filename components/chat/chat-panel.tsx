@@ -39,8 +39,9 @@ interface ChatPanelProps {
   initialHasMore?: boolean;
   initialOldestSequence?: number | null;
   initialSequences?: Array<{ id: string; sequence: number }>;
-  exaConfigured?: boolean;
-  hasExaTools?: boolean;
+  webSearchConfigured?: boolean;
+  webSearchMissingEnvKey?: string;
+  hasWebSearchTools?: boolean;
   voiceInputEnabled?: boolean;
   voiceInputMaxSeconds?: number;
 }
@@ -51,11 +52,14 @@ const BASE_SUGGESTIONS = [
   "Ingat bahwa saya prefer Bahasa Indonesia",
 ];
 
-const EXA_SUGGESTION = "Cari berita AI terbaru";
+const WEB_SEARCH_SUGGESTION = "Cari berita AI terbaru";
 
-function getSuggestions(hasExaTools: boolean, exaConfigured: boolean): string[] {
-  if (hasExaTools && exaConfigured) {
-    return [EXA_SUGGESTION, ...BASE_SUGGESTIONS];
+function getSuggestions(
+  hasWebSearchTools: boolean,
+  webSearchConfigured: boolean
+): string[] {
+  if (hasWebSearchTools && webSearchConfigured) {
+    return [WEB_SEARCH_SUGGESTION, ...BASE_SUGGESTIONS];
   }
 
   return BASE_SUGGESTIONS;
@@ -67,14 +71,18 @@ export function ChatPanel({
   initialHasMore = false,
   initialOldestSequence = null,
   initialSequences = [],
-  exaConfigured = false,
-  hasExaTools = false,
+  webSearchConfigured = false,
+  webSearchMissingEnvKey = "EXA_API_KEY",
+  hasWebSearchTools = false,
   voiceInputEnabled = false,
   voiceInputMaxSeconds = 120,
 }: ChatPanelProps) {
   const router = useRouter();
   const { setMobileOpen } = useChatSidebar();
-  const suggestions = getSuggestions(hasExaTools, exaConfigured);
+  const suggestions = getSuggestions(
+    hasWebSearchTools,
+    webSearchConfigured
+  );
 
   const [draftId] = React.useState<string>(() => crypto.randomUUID());
   const chatId = id ?? draftId;
@@ -420,7 +428,9 @@ export function ChatPanel({
 
       <div className="bg-background shrink-0 border-t">
         <div className="mx-auto w-full max-w-3xl px-4 py-3">
-          {hasExaTools && !exaConfigured ? <ExaUnavailableBanner /> : null}
+          {hasWebSearchTools && !webSearchConfigured ? (
+            <ExaUnavailableBanner missingEnvKey={webSearchMissingEnvKey} />
+          ) : null}
 
           {error ? (
             <p className="text-destructive mb-2 flex items-center gap-2 text-sm">

@@ -17,6 +17,10 @@ Chat model selection is stored in PostgreSQL (`app_settings` singleton) and appl
 | Admin UI | `app/dashboard/settings/model/page.tsx`, `components/dashboard/model-settings-card.tsx`, `components/dashboard/model-settings-row.tsx` |
 | Provider routing | `lib/ai/openrouter.ts` (`getChatModel`, `isChatModelConfigured`) |
 | Ollama client | `lib/ai/ollama.ts` |
+| Web search provider | `app_settings.webSearchProvider` (`exa` \| `ollama`); admin dropdown on Model settings card |
+| Web search routing | `lib/ai/web-search/execute.ts` — dispatches `web_search` / `web_fetch` by provider |
+| Ollama.com web APIs | `lib/ai/ollama-web/` — `OLLAMA_API_KEY` for `https://ollama.com/api/web_search` and `/web_fetch` |
+| Web search configured check | `lib/ai/web-search/is-configured.ts`, `lib/ai/web-search/runtime.ts` |
 | Agent | `lib/ai/agents/chat-agent.ts` |
 | Summarize model reuse | `lib/ai/context/resolve-summarize-model.ts`, `context-config.ts` |
 | Multimodal parts | `lib/ai/build-multimodal-parts.ts` |
@@ -39,6 +43,7 @@ Chat model selection is stored in PostgreSQL (`app_settings` singleton) and appl
 - **Text model (required):** OpenRouter — `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-pro`, `qwen/qwen3-8b`. Ollama — `gemma4:31b-cloud`, `kimi-k2.7-code:cloud`, `gemma4:12b-it-q4_K_M` (local, `num_ctx: 4096`). Used for all text-only chat runs globally.
 - **Vision model:** `disabled`, OpenRouter — `qwen/qwen3.7-flash`, `google/gemini-3.6-flash`, `qwen/qwen3-vl-8b-instruct`. Ollama — `gemma4:31b-cloud`, `kimi-k2.7-code:cloud`, `gemma4:12b-it-q4_K_M`. Used only when an inbound run includes image/visual attachments and vision is not `disabled`.
 - **Ollama routing:** `isOllamaModelId()` in constants; `getChatModel()` routes Ollama ids to `lib/ai/ollama.ts` via `@ai-sdk/openai` against `{OLLAMA_BASE_URL}/v1`. Default base URL `http://172.16.81.16:11434`. OpenRouter-only settings (e.g. `reasoning`) are skipped for Ollama.
+- **Web search provider:** Admin selects `exa` or `ollama` in Model settings (`webSearchProvider`). Model-visible tool keys are provider-neutral: `web_search` / `web_fetch`. Exa uses `EXA_API_KEY`; Ollama Search uses `OLLAMA_API_KEY` against ollama.com (not `OLLAMA_BASE_URL`). Default provider is `exa`.
 - **Chat gate:** `POST /api/chat` uses `isChatModelConfigured(textModelId)` — Ollama models do not require `OPENROUTER_API_KEY`. Voice, embeddings, and Apify analysis still require OpenRouter.
 - `OPENROUTER_MODEL` env is bootstrap fallback when seeding the first `app_settings` row; admin UI is the runtime source of truth.
 - WA media download uses Evolution `POST /chat/getBase64FromMediaMessage/{instance}` (webhook stays `webhookBase64: false`).

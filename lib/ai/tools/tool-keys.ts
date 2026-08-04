@@ -1,7 +1,7 @@
 export type NativeToolKey =
   | "get_time"
-  | "exa_web_search"
-  | "exa_web_fetch"
+  | "web_search"
+  | "web_fetch"
   | "fetch_tiktok_data"
   | "fetch_twitter_data"
   | "fetch_threads_data"
@@ -37,7 +37,8 @@ export type NativeToolKey =
   | "read_file"
   | "list_whatsapp_chats"
   | "summarize_whatsapp_chat"
-  | "summarize_whatsapp_digest";
+  | "summarize_whatsapp_digest"
+  | "search_whatsapp_messages";
 
 const MCP_TOOL_KEYS = [] as const satisfies readonly string[];
 
@@ -64,8 +65,13 @@ export function isNativeToolKey(key: ToolKey): key is NativeToolKey {
   return !isMcpToolKey(key);
 }
 
-const EXA_TOOL_KEYS = ["exa_web_search", "exa_web_fetch"] as const satisfies readonly NativeToolKey[];
+const WEB_SEARCH_TOOL_KEYS = [
+  "web_search",
+  "web_fetch",
+] as const satisfies readonly NativeToolKey[];
 
-export function isExaToolKey(key: ToolKey): key is (typeof EXA_TOOL_KEYS)[number] {
-  return (EXA_TOOL_KEYS as readonly ToolKey[]).includes(key);
+export function isWebSearchToolKey(
+  key: ToolKey
+): key is (typeof WEB_SEARCH_TOOL_KEYS)[number] {
+  return (WEB_SEARCH_TOOL_KEYS as readonly ToolKey[]).includes(key);
 }

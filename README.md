@@ -201,4 +201,4 @@ With `EXA_API_KEY` set, sign in as `client@agentx.local` (or admin) and try:
 Cari berita AI terbaru
 ```
 
-The agent uses native `exa_web_search` and `exa_web_fetch` tools via the Exa REST API.
+The agent uses provider-neutral `web_search` and `web_fetch` tools, routed through the web search provider selected by an admin.

@@ -12,7 +12,7 @@ import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import { toFriendlyToolError } from "@/lib/ai/tools/friendly-tool-error";
 import { cn } from "@/lib/utils";
 
-interface ExaToolChipProps {
+interface WebSearchToolChipProps {
   part: UIMessage["parts"][number];
 }
 
@@ -50,23 +50,31 @@ function getToolOutput(part: UIMessage["parts"][number]): ToolOutput | null {
   return null;
 }
 
-export function isExaToolPart(part: UIMessage["parts"][number]): boolean {
+export function isWebSearchToolPart(
+  part: UIMessage["parts"][number]
+): boolean {
   if (!isToolUIPart(part)) {
     return false;
   }
 
   const name = getToolName(part);
-  return name === "exa_web_search" || name === "exa_web_fetch";
+  return (
+    name === "web_search" ||
+    name === "web_fetch" ||
+    name === "exa_web_search" ||
+    name === "exa_web_fetch"
+  );
 }
 
-export function ExaToolChip({ part }: ExaToolChipProps) {
+export function WebSearchToolChip({ part }: WebSearchToolChipProps) {
   if (!isToolUIPart(part)) {
     return null;
   }
 
   const toolName = getToolName(part);
   const state = part.state;
-  const isSearch = toolName === "exa_web_search";
+  const isSearch =
+    toolName === "web_search" || toolName === "exa_web_search";
   const isRunning = state !== "output-available" && state !== "output-error";
   const input = getToolInput(part);
   const output = getToolOutput(part);

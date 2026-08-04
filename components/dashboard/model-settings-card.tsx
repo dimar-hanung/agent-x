@@ -74,6 +74,9 @@ export function ModelSettingsCard({
   const [voiceReplyMaxWords, setVoiceReplyMaxWords] = useState(
     initialSettings.voiceReplyMaxWords
   );
+  const [webSearchProvider, setWebSearchProvider] = useState(
+    initialSettings.webSearchProvider
+  );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,6 +111,7 @@ export function ModelSettingsCard({
     );
     setVoiceReplyMaxChars(nextSettings.voiceReplyMaxChars);
     setVoiceReplyMaxWords(nextSettings.voiceReplyMaxWords);
+    setWebSearchProvider(nextSettings.webSearchProvider);
 
     if (nextSettings.visionModelId !== "disabled") {
       lastVisionModelId.current = nextSettings.visionModelId;
@@ -142,6 +146,7 @@ export function ModelSettingsCard({
           ),
           voiceReplyMaxChars,
           voiceReplyMaxWords,
+          webSearchProvider,
         }),
       });
 
@@ -180,7 +185,8 @@ export function ModelSettingsCard({
     voiceInputMaxSeconds !== settings.voiceInputMaxSeconds ||
     voiceInputMaxBytes !== settings.voiceInputMaxBytes ||
     voiceReplyMaxChars !== settings.voiceReplyMaxChars ||
-    voiceReplyMaxWords !== settings.voiceReplyMaxWords;
+    voiceReplyMaxWords !== settings.voiceReplyMaxWords ||
+    webSearchProvider !== settings.webSearchProvider;
 
   const visionEnabled = visionModelId !== "disabled";
   const voiceInputEnabled = voiceInputModelId !== "disabled";
@@ -254,6 +260,32 @@ export function ModelSettingsCard({
             </SelectTrigger>
             <SelectContent>
               {initialOptions.textModels.map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      />
+
+      <ModelSettingsRow
+        title="Penyedia pencarian web"
+        description="Penyedia untuk pencarian web dan pembacaan halaman di semua chat."
+        htmlFor="web-search-provider"
+        control={
+          <Select
+            value={webSearchProvider}
+            onValueChange={setWebSearchProvider}
+          >
+            <SelectTrigger
+              id="web-search-provider"
+              className={selectTriggerClassName}
+            >
+              <SelectValue placeholder="Pilih penyedia" />
+            </SelectTrigger>
+            <SelectContent>
+              {initialOptions.webSearchProviders.map((option) => (
                 <SelectItem key={option.id} value={option.id}>
                   {option.label}
                 </SelectItem>

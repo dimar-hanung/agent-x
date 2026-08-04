@@ -3,7 +3,7 @@
 import { ExternalLink } from "lucide-react";
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
 
-interface ExaSource {
+interface WebSearchSource {
   title: string;
   url: string;
   snippet: string;
@@ -13,16 +13,19 @@ interface ExaSource {
 interface SearchOutput {
   success?: boolean;
   data?: {
-    sources?: ExaSource[];
+    sources?: WebSearchSource[];
   };
 }
 
-function getSearchSources(part: UIMessage["parts"][number]): ExaSource[] {
+function getSearchSources(
+  part: UIMessage["parts"][number]
+): WebSearchSource[] {
   if (!isToolUIPart(part)) {
     return [];
   }
 
-  if (getToolName(part) !== "exa_web_search") {
+  const toolName = getToolName(part);
+  if (toolName !== "web_search" && toolName !== "exa_web_search") {
     return [];
   }
 
@@ -39,11 +42,13 @@ function getSearchSources(part: UIMessage["parts"][number]): ExaSource[] {
   return output.data.sources;
 }
 
-interface ExaSourceCardsProps {
+interface WebSearchSourceCardsProps {
   part: UIMessage["parts"][number];
 }
 
-export function ExaSourceCards({ part }: ExaSourceCardsProps) {
+export function WebSearchSourceCards({
+  part,
+}: WebSearchSourceCardsProps) {
   const sources = getSearchSources(part);
 
   if (sources.length === 0) {

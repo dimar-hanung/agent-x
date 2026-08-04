@@ -414,6 +414,9 @@ export const appSettings = pgTable("app_settings", {
   voiceReplyMaxWords: integer("voice_reply_max_words")
     .notNull()
     .default(80),
+  webSearchProvider: varchar("web_search_provider", { length: 32 })
+    .notNull()
+    .default("exa"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

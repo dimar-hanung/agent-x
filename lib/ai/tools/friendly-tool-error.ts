@@ -3,8 +3,8 @@ import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
 /** Short Indonesian noun for the tool domain (user-facing). */
 const TOOL_FRIENDLY_NOUNS = {
   get_time: "waktu",
-  exa_web_search: "pencarian web",
-  exa_web_fetch: "pembacaan halaman",
+  web_search: "pencarian web",
+  web_fetch: "pembacaan halaman",
   fetch_tiktok_data: "data TikTok",
   fetch_twitter_data: "data Twitter/X",
   fetch_threads_data: "data Threads",
@@ -41,9 +41,18 @@ const TOOL_FRIENDLY_NOUNS = {
   list_whatsapp_chats: "WhatsApp",
   summarize_whatsapp_chat: "ringkasan WhatsApp",
   summarize_whatsapp_digest: "ringkasan WhatsApp",
+  search_whatsapp_messages: "pencarian WhatsApp",
 } as const satisfies Record<NativeToolKey, string>;
 
 function getToolFriendlyNoun(toolName: string): string {
+  if (toolName === "exa_web_search") {
+    return "pencarian web";
+  }
+
+  if (toolName === "exa_web_fetch") {
+    return "pembacaan halaman";
+  }
+
   if (Object.hasOwn(TOOL_FRIENDLY_NOUNS, toolName)) {
     return TOOL_FRIENDLY_NOUNS[toolName as NativeToolKey];
   }
@@ -84,6 +93,13 @@ export function toFriendlyToolError(options: {
   if (
     code === "EXA_NOT_CONFIGURED" ||
     /EXA_NOT_CONFIGURED|EXA_API_KEY/i.test(raw)
+  ) {
+    return "Pencarian web belum tersedia. Hubungi admin untuk mengaktifkannya.";
+  }
+
+  if (
+    code === "OLLAMA_API_KEY_NOT_CONFIGURED" ||
+    /OLLAMA_API_KEY_NOT_CONFIGURED|OLLAMA_API_KEY/i.test(raw)
   ) {
     return "Pencarian web belum tersedia. Hubungi admin untuk mengaktifkannya.";
   }

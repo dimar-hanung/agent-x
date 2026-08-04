@@ -16,6 +16,9 @@ const ERROR_OR_RISK_PATTERN =
 const EXACT_VALUE_PATTERN =
   /(?:\b(?:Rp|IDR|USD)\s?[\d.,]+|\b\d{1,2}[:.]\d{2}\b|\b[A-F0-9]{8,}\b)/i;
 const TEXT_ONLY_TOOL_NAMES = new Set([
+  "web_search",
+  "web_fetch",
+  // Preserve behavior for historical tool calls stored in chat messages.
   "exa_web_search",
   "exa_web_fetch",
   "fetch_tiktok_data",

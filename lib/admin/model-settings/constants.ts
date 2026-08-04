@@ -78,12 +78,25 @@ export const VOICE_REPLY_MODEL_OPTIONS = [
   },
 ] as const;
 
+export const WEB_SEARCH_PROVIDER_OPTIONS = [
+  {
+    id: "exa",
+    label: "Exa",
+  },
+  {
+    id: "ollama",
+    label: "Ollama Search",
+  },
+] as const;
+
 export type TextModelId = (typeof TEXT_MODEL_OPTIONS)[number]["id"];
 export type VisionModelId = (typeof VISION_MODEL_OPTIONS)[number]["id"];
 export type VoiceInputModelId =
   (typeof VOICE_INPUT_MODEL_OPTIONS)[number]["id"];
 export type VoiceReplyModelId =
   (typeof VOICE_REPLY_MODEL_OPTIONS)[number]["id"];
+export type WebSearchProviderId =
+  (typeof WEB_SEARCH_PROVIDER_OPTIONS)[number]["id"];
 
 export const DEFAULT_TEXT_MODEL_ID: TextModelId = "deepseek/deepseek-v4-pro";
 export const DEFAULT_VOICE_INPUT_MODEL_ID: VoiceInputModelId =
@@ -96,6 +109,7 @@ export const DEFAULT_VOICE_INPUT_MAX_SECONDS = 120;
 export const DEFAULT_VOICE_INPUT_MAX_BYTES = 10 * 1024 * 1024;
 export const DEFAULT_VOICE_REPLY_MAX_CHARS = 600;
 export const DEFAULT_VOICE_REPLY_MAX_WORDS = 80;
+export const DEFAULT_WEB_SEARCH_PROVIDER_ID: WebSearchProviderId = "exa";
 
 export const TEXT_MODEL_IDS = TEXT_MODEL_OPTIONS.map((option) => option.id);
 export const VISION_MODEL_IDS = VISION_MODEL_OPTIONS.map((option) => option.id);
@@ -103,6 +117,9 @@ export const VOICE_INPUT_MODEL_IDS = VOICE_INPUT_MODEL_OPTIONS.map(
   (option) => option.id
 );
 export const VOICE_REPLY_MODEL_IDS = VOICE_REPLY_MODEL_OPTIONS.map(
+  (option) => option.id
+);
+export const WEB_SEARCH_PROVIDER_IDS = WEB_SEARCH_PROVIDER_OPTIONS.map(
   (option) => option.id
 );
 
@@ -136,6 +153,12 @@ export function isVoiceReplyModelId(
   value: string
 ): value is VoiceReplyModelId {
   return VOICE_REPLY_MODEL_IDS.includes(value as VoiceReplyModelId);
+}
+
+export function isWebSearchProviderId(
+  value: string
+): value is WebSearchProviderId {
+  return WEB_SEARCH_PROVIDER_IDS.includes(value as WebSearchProviderId);
 }
 
 export function isVisionModelEnabled(visionModelId: string): boolean {

@@ -4,7 +4,7 @@ This guide explains how to connect a new **external** MCP server to AgentX. Tool
 
 See also: [Adding AI Tools](./adding-ai-tools.md) for in-process native tools.
 
-> **Note:** Exa web search (`exa_web_search`, `exa_web_fetch`) is implemented as **native REST tools** in `lib/ai/exa/` and `lib/ai/tools/exa-web-*`, not via MCP. Use this guide for other external MCP HTTP servers only.
+> **Note:** Web search (`web_search`, `web_fetch`) is implemented as **native REST tools** with provider routing through Exa or Ollama, not via MCP. Use this guide for other external MCP HTTP servers only.
 
 ## Overview
 

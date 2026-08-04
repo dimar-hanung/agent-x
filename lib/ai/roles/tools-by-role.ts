@@ -1,5 +1,5 @@
 import {
-  isExaToolKey,
+  isWebSearchToolKey,
   isMcpToolKey,
   isNativeToolKey,
   type McpToolKey,
@@ -11,8 +11,8 @@ import type { AppRole } from "./types";
 
 const CLIENT_ADMIN_TOOLS: ToolKey[] = [
   "get_time",
-  "exa_web_search",
-  "exa_web_fetch",
+  "web_search",
+  "web_fetch",
   "fetch_tiktok_data",
   "fetch_twitter_data",
   "fetch_threads_data",
@@ -49,6 +49,7 @@ const CLIENT_ADMIN_TOOLS: ToolKey[] = [
   "list_whatsapp_chats",
   "summarize_whatsapp_chat",
   "summarize_whatsapp_digest",
+  "search_whatsapp_messages",
 ];
 
 const TOOLS_BY_ROLE: Record<AppRole, ToolKey[]> = {
@@ -69,6 +70,6 @@ export function getMcpToolKeysForRole(role: AppRole): McpToolKey[] {
   return getToolKeysForRole(role).filter(isMcpToolKey);
 }
 
-export function userHasExaTools(role: AppRole): boolean {
-  return getToolKeysForRole(role).some(isExaToolKey);
+export function userHasWebSearchTools(role: AppRole): boolean {
+  return getToolKeysForRole(role).some(isWebSearchToolKey);
 }

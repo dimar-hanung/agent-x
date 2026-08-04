@@ -5,6 +5,7 @@ import {
   VISION_MODEL_IDS,
   VOICE_INPUT_MODEL_IDS,
   VOICE_REPLY_MODEL_IDS,
+  WEB_SEARCH_PROVIDER_IDS,
 } from "./constants";
 
 export const updateModelSettingsSchema = z.object({
@@ -26,6 +27,9 @@ export const updateModelSettingsSchema = z.object({
     .max(50_000_000),
   voiceReplyMaxChars: z.number().int().min(80).max(4_000),
   voiceReplyMaxWords: z.number().int().min(10).max(500),
+  webSearchProvider: z.enum(
+    WEB_SEARCH_PROVIDER_IDS as [string, ...string[]]
+  ),
 });
 
 export type UpdateModelSettingsInput = z.infer<typeof updateModelSettingsSchema>;
@@ -41,6 +45,7 @@ export interface ModelSettingsView {
   voiceInputMaxBytes: number;
   voiceReplyMaxChars: number;
   voiceReplyMaxWords: number;
+  webSearchProvider: string;
   updatedAt: string;
 }
 
@@ -49,4 +54,5 @@ export interface ModelSettingsOptionsView {
   visionModels: Array<{ id: string; label: string }>;
   voiceInputModels: Array<{ id: string; label: string }>;
   voiceReplyModels: Array<{ id: string; label: string }>;
+  webSearchProviders: Array<{ id: string; label: string }>;
 }

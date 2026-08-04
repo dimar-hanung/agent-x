@@ -17,14 +17,15 @@ Two WhatsApp modes coexist:
   - `user-instance-repository.ts` — per-user Evolution instance lifecycle
   - `ingest/` — durable event enqueue, worker processing, and atomic text promotion
   - `summary/` — executive summaries + digest snapshots
+  - `search/` — ILIKE message search, AI keyword generation (max 10 attempts), 500-chat analysis batches. Bounded to avoid stuck runs: SQL `LIMIT` per keyword (`getWhatsAppSearchMaxRowsPerKeyword`, 500), per-chat message cap (`getWhatsAppSearchMaxMessagesPerChat`, 20) + char cap (`getWhatsAppSearchMaxCharsPerChat`, 2000) applied before building the analysis prompt — never send an uncapped result set to the LLM.
 - Shared WhatsApp provider: `lib/integrations/whatsapp/` (factory, Evolution/Meta providers, webhook dedup)
 - Personal→bot bridge: `lib/integrations/whatsapp/personal-bot-bridge.ts`
 - Webhook routing: `app/api/integrations/whatsapp/webhook/route.ts` (routes by `instance` name)
-- API: `app/api/integrations/whatsapp/inbox/` — digest snapshots via `GET/POST .../digest`
-- AI tools: `list_whatsapp_chats`, `summarize_whatsapp_chat`, `summarize_whatsapp_digest`
+- API: `app/api/integrations/whatsapp/inbox/` — digest snapshots via `GET/POST .../digest`; message search via `GET .../messages/search?query=`
+- AI tools: `list_whatsapp_chats`, `summarize_whatsapp_chat`, `summarize_whatsapp_digest`, `search_whatsapp_messages`
 - Settings UI: `components/settings/whatsapp-inbox-connect-card.tsx` — connected subtitle shows `phoneE164` (Settings SSR syncs via `syncUserConnectionStatus` with `getUserInstance` fallback); Putuskan opens confirm `AlertDialog` (see `develop-feature-integrations`)
 - Phone for connected personal instances comes from Evolution `fetchInstances` (`owner` / `ownerJid` / `number`) — `connectionState` does not return owner.
-- Dashboard: `app/dashboard/whatsapp-inbox/` — snapshot-centric UI (`snapshot-list`, `snapshot-panel`); `snapshot-panel` renders `digestText` via shared `MessageMarkdown` (`components/chat/message-markdown.tsx`)
+- Dashboard: `app/dashboard/whatsapp-inbox/` — tabs **Pencarian pesan** (`message-search-panel`) and **Snapshot ringkasan** (`snapshot-list`, `snapshot-panel`); digest renders via `MessageMarkdown`
 
 ## References
 
@@ -58,12 +59,12 @@ Two WhatsApp modes coexist:
 - There is no connect-time history backfill and no provider `findChats` / `findMessages` API. Only durable webhook events become personal-inbox history.
 - Text events are promoted into summary history; groups (`@g.us`) are included. Media events remain deferred metadata placeholders until a media worker is implemented.
 - **Digest snapshots:** `generateDigest` always regenerates on each user ask (no stale snapshot reuse), batches up to 100 chats per LLM call (`getWhatsAppDigestChunkSize`), joins chunk outputs in code (no merge LLM), and inserts a new row in `whatsapp_digest_snapshots`. Concurrent in-flight calls for the same user share one promise; abort clears that in-flight work. 250 chats → 3 LLM calls → 1 new snapshot. Summarize uses `reasoning: "none"` plus fallback to `reasoningText` when DeepSeek V4 leaves `text` empty on long prompts; empty digests must not be persisted.
-- **Dashboard:** snapshot-first — list recent snapshots, view all-chat digest body rendered as markdown (`MessageMarkdown`); list and digest panes scroll independently; no per-DM/per-group summary panel.
-- **Agent catch-up:** call `summarize_whatsapp_digest` once for general summary asks; `summarize_whatsapp_chat` only when user names a specific chat/JID.
+- **Dashboard:** snapshot tab lists recent snapshots; search tab accepts natural-language `query`, shows AI `analysisText` plus deduped hits and `attemptedKeywords`.
+- **Agent catch-up:** call `summarize_whatsapp_digest` once for general summary asks; `summarize_whatsapp_chat` only when user names a specific chat/JID; `search_whatsapp_messages` when user wants to find specific topics/messages (pass `query` only — tool generates keywords internally, up to 10 ILIKE attempts).
 - Single-chat `generateChatSummary` still exists for named-chat AI tool; writes `whatsapp_chat_summaries` (not used by digest path).
 
 ## Learned Workspace Facts
 
-- WhatsApp global-channel path excludes `summarize_whatsapp_chat` / `list_whatsapp_chats`; catch-up uses `summarize_whatsapp_digest` once, then one final WA reply (no per-step sends). Tool start still sends a short status line (e.g. "Merangkum chat WhatsApp…") via `notifyWhatsAppToolStart`.
+- WhatsApp global-channel path excludes `summarize_whatsapp_chat` / `list_whatsapp_chats`; catch-up uses `summarize_whatsapp_digest` once; message lookup uses `search_whatsapp_messages` (available on WA bot path). Tool start sends progress via `notifyWhatsAppToolStart`.
 - Overlapping WA agent runs for the same user abort the previous run and clear in-flight digest work.
 - Distinguish a missing event from a slow webhook using Evolution logs. `WebhookController` `ECONNABORTED` with `timeout of 60000ms exceeded` proves Evolution emitted the event and AgentX did not acknowledge it in time. The global bot path currently awaits `processChannelMessage` (model/tools/persistence/final delivery) before returning HTTP 200, so slow generation causes provider retries; do not misdiagnose that pattern as a dead Baileys message processor.

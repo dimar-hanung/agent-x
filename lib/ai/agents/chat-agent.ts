@@ -9,6 +9,8 @@ import {
 } from "ai";
 
 import { buildSystemPrompt, MAX_AGENT_STEPS } from "@/lib/ai/chat-config";
+import { getModelSettings } from "@/lib/admin/model-settings/repository";
+import type { WebSearchProviderId } from "@/lib/admin/model-settings/constants";
 import { getChatModel } from "@/lib/ai/openrouter";
 import type { UserContext } from "@/lib/ai/roles/types";
 import { createAllToolsForUser } from "@/lib/ai/tools/resolve-tools";
@@ -44,6 +46,15 @@ export async function createChatAgent(
   const tools = (toolsOverride ??
     (await createAllToolsForUser(user, { runtimeContext }))) as ToolSet;
 
+  let instructions = options?.instructions;
+  if (!instructions) {
+    const modelSettings = await getModelSettings();
+    instructions = buildSystemPrompt(user, {
+      webSearchProvider:
+        modelSettings.webSearchProvider as WebSearchProviderId,
+    });
+  }
+
   return new ToolLoopAgent({
     model: getChatModel(
       options?.modelId,
@@ -51,7 +62,7 @@ export async function createChatAgent(
         ? { reasoning: { enabled: false, effort: "none" } }
         : undefined
     ),
-    instructions: options?.instructions ?? buildSystemPrompt(user),
+    instructions,
     tools,
     stopWhen: isStepCount(options?.maxSteps ?? MAX_AGENT_STEPS),
     onToolExecutionStart: options?.onToolExecutionStart,

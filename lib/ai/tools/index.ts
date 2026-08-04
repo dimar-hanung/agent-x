@@ -37,6 +37,7 @@ import { createSearchDriveTool } from "./search-drive/search-drive.tool";
 import { createSearchInboxTool } from "./search-inbox/search-inbox.tool";
 import { createSearchMicrosoftInboxTool } from "./search-microsoft-inbox/search-microsoft-inbox.tool";
 import { createSearchOnedriveTool } from "./search-onedrive/search-onedrive.tool";
+import { createSearchWhatsappMessagesTool } from "./search-whatsapp-messages/search-whatsapp-messages.tool";
 import { createSendEmailTool } from "./send-email/send-email.tool";
 import { createSendMicrosoftEmailTool } from "./send-microsoft-email/send-microsoft-email.tool";
 import { createSummarizeWhatsappChatTool } from "./summarize-whatsapp-chat/summarize-whatsapp-chat.tool";
@@ -52,8 +53,8 @@ function createToolRegistry(
 ): Record<NativeToolKey, Tool> {
   return {
     get_time: createGetTimeTool(),
-    exa_web_search: createExaWebSearchTool(),
-    exa_web_fetch: createExaWebFetchTool(),
+    web_search: createExaWebSearchTool(),
+    web_fetch: createExaWebFetchTool(),
     fetch_tiktok_data: createFetchTikTokDataTool(user, runtimeContext),
     fetch_twitter_data: createFetchTwitterDataTool(user, runtimeContext),
     fetch_threads_data: createFetchThreadsDataTool(user, runtimeContext),
@@ -90,6 +91,7 @@ function createToolRegistry(
     list_whatsapp_chats: createListWhatsappChatsTool(user),
     summarize_whatsapp_chat: createSummarizeWhatsappChatTool(user),
     summarize_whatsapp_digest: createSummarizeWhatsappDigestTool(user),
+    search_whatsapp_messages: createSearchWhatsappMessagesTool(user),
   };
 }
 

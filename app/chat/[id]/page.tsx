@@ -1,10 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 
 import { ChatPanel } from "@/components/chat/chat-panel";
-import { isExaConfigured } from "@/lib/ai/exa/env";
-import { userHasExaTools } from "@/lib/ai/roles/tools-by-role";
+import { userHasWebSearchTools } from "@/lib/ai/roles/tools-by-role";
+import {
+  getWebSearchMissingEnvKey,
+  isWebSearchConfiguredForProvider,
+} from "@/lib/ai/web-search/is-configured";
 import { getVoiceConfig } from "@/lib/ai/voice";
 import { getModelSettings } from "@/lib/admin/model-settings/repository";
+import type { WebSearchProviderId } from "@/lib/admin/model-settings/constants";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 import { loadChatMessagesPage } from "@/lib/db/repositories/chat-repository";
 import { siteConfig, appRoutes } from "@/lib/site-config";
@@ -47,6 +51,7 @@ export default async function ChatPage({
 
   const modelSettings = await getModelSettings();
   const voiceConfig = getVoiceConfig(modelSettings);
+  const webSearchProvider = modelSettings.webSearchProvider as WebSearchProviderId;
 
   return (
     <main className="flex min-h-0 flex-1 flex-col">
@@ -56,8 +61,9 @@ export default async function ChatPage({
         initialHasMore={initialHasMore}
         initialOldestSequence={initialOldestSequence}
         initialSequences={initialSequences}
-        exaConfigured={isExaConfigured()}
-        hasExaTools={userHasExaTools(user.role)}
+        webSearchConfigured={isWebSearchConfiguredForProvider(webSearchProvider)}
+        webSearchMissingEnvKey={getWebSearchMissingEnvKey(webSearchProvider)}
+        hasWebSearchTools={userHasWebSearchTools(user.role)}
         voiceInputEnabled={voiceConfig.inputEnabled}
         voiceInputMaxSeconds={voiceConfig.inputMaxSeconds}
       />

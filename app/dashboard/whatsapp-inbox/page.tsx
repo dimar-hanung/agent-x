@@ -65,7 +65,8 @@ export default async function WhatsAppInboxPage() {
             Ringkasan WhatsApp
           </h1>
           <p className="text-muted-foreground text-sm">
-            Satu ringkasan lintas chat tersimpan sebagai snapshot.
+            Cari pesan dengan pertanyaan natural atau buat ringkasan lintas chat
+            sebagai snapshot.
           </p>
         </div>
         <div className="flex min-h-0 flex-1 flex-col">

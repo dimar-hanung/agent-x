@@ -134,6 +134,13 @@
       "when": 1785900000000,
       "tag": "0019_file_index_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786000000000,
+      "tag": "0020_web_search_provider",
+      "breakpoints": true
     }
   ]
 }

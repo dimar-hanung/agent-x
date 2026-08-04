@@ -7,9 +7,13 @@ import { cn } from "@/lib/utils";
 
 interface ExaUnavailableBannerProps {
   className?: string;
+  missingEnvKey?: string;
 }
 
-export function ExaUnavailableBanner({ className }: ExaUnavailableBannerProps) {
+export function ExaUnavailableBanner({
+  className,
+  missingEnvKey = "EXA_API_KEY",
+}: ExaUnavailableBannerProps) {
   const [dismissed, setDismissed] = React.useState(false);
 
   if (dismissed) {
@@ -28,7 +32,7 @@ export function ExaUnavailableBanner({ className }: ExaUnavailableBannerProps) {
       <p className="flex-1">
         Pencarian web tidak tersedia. Tambahkan{" "}
         <code className="rounded bg-amber-500/15 px-1 py-0.5 text-xs">
-          EXA_API_KEY
+          {missingEnvKey}
         </code>{" "}
         di environment server.
       </p>

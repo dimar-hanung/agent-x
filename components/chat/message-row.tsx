@@ -12,10 +12,10 @@ import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import * as React from "react";
 
 import { MessageMarkdown } from "@/components/chat/message-markdown";
-import { ExaSourceCards } from "@/components/chat/exa-source-cards";
+import { WebSearchSourceCards } from "@/components/chat/exa-source-cards";
 import {
-  ExaToolChip,
-  isExaToolPart,
+  isWebSearchToolPart,
+  WebSearchToolChip,
 } from "@/components/chat/exa-tool-chip";
 import { SocialMediaResultCards } from "@/components/chat/social-media-result-cards";
 import { toFriendlyToolError } from "@/lib/ai/tools/friendly-tool-error";
@@ -356,12 +356,16 @@ function MessageContent({
           ? part.toolCallId
           : `${message.id}-tool-${toolRunStart + index}`;
 
-      if (isExaToolPart(part)) {
-        toolNodes.push(<ExaToolChip key={key} part={part} />);
+      if (isWebSearchToolPart(part)) {
+        toolNodes.push(<WebSearchToolChip key={key} part={part} />);
 
-        if (isToolUIPart(part) && getToolName(part) === "exa_web_search") {
+        if (
+          isToolUIPart(part) &&
+          (getToolName(part) === "web_search" ||
+            getToolName(part) === "exa_web_search")
+        ) {
           toolNodes.push(
-            <ExaSourceCards key={`${key}-sources`} part={part} />
+            <WebSearchSourceCards key={`${key}-sources`} part={part} />
           );
         }
 

@@ -3,8 +3,8 @@ import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
 /** Short Indonesian progress lines sent to WhatsApp when a tool starts. */
 const TOOL_PROGRESS_LABELS = {
   get_time: "Memeriksa waktu…",
-  exa_web_search: "Mencari di web…",
-  exa_web_fetch: "Membaca halaman…",
+  web_search: "Mencari di web…",
+  web_fetch: "Membaca halaman…",
   fetch_tiktok_data: "Mengambil data TikTok…",
   fetch_twitter_data: "Mengambil data Twitter/X…",
   fetch_threads_data: "Mengambil data Threads…",
@@ -41,6 +41,7 @@ const TOOL_PROGRESS_LABELS = {
   list_whatsapp_chats: "Memuat chat WhatsApp…",
   summarize_whatsapp_chat: "Menyinkronkan dan merangkum data WhatsApp…",
   summarize_whatsapp_digest: "Menyinkronkan dan merangkum data WhatsApp…",
+  search_whatsapp_messages: "Mencari dan menganalisis pesan WhatsApp…",
 } as const satisfies Record<NativeToolKey, string>;
 
 const TOOL_PROGRESS_LABEL_SET = new Set<string>(

@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { WhatsAppUserInstanceView } from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
 
+import { MessageSearchPanel } from "./message-search-panel";
 import {
   SnapshotList,
   type DigestSnapshotListItem,
 } from "./snapshot-list";
 import { SnapshotPanel } from "./snapshot-panel";
+
+type WorkspaceTab = "search" | "snapshot";
 
 interface InboxWorkspaceProps {
   initialInstance: WhatsAppUserInstanceView;
@@ -23,6 +26,7 @@ export function InboxWorkspace({
   initialSnapshots,
 }: InboxWorkspaceProps) {
   const [instance] = useState(initialInstance);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("snapshot");
   const [snapshots, setSnapshots] =
     useState<DigestSnapshotListItem[]>(initialSnapshots);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -92,7 +96,7 @@ export function InboxWorkspace({
         <CardContent className="space-y-3 p-6">
           <p className="text-muted-foreground text-sm">
             WhatsApp pribadi belum terhubung. Hubungkan dulu untuk melihat
-            ringkasan chat.
+            ringkasan dan mencari pesan.
           </p>
           <Button asChild>
             <Link href="/dashboard/settings">Buka Settings</Link>
@@ -108,39 +112,63 @@ export function InboxWorkspace({
         <p className="text-muted-foreground text-sm">
           Terhubung{instance.phoneE164 ? ` · ${instance.phoneE164}` : ""}
         </p>
-        <Button onClick={handleGenerate} disabled={isGenerating}>
-          {isGenerating
-            ? "Memproses…"
-            : snapshots.length > 0
-              ? "Perbarui ringkasan"
-              : "Buat ringkasan"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant={activeTab === "search" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("search")}
+          >
+            Pencarian pesan
+          </Button>
+          <Button
+            variant={activeTab === "snapshot" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("snapshot")}
+          >
+            Snapshot ringkasan
+          </Button>
+          {activeTab === "snapshot" ? (
+            <Button onClick={handleGenerate} disabled={isGenerating} size="sm">
+              {isGenerating
+                ? "Memproses…"
+                : snapshots.length > 0
+                  ? "Perbarui ringkasan"
+                  : "Buat ringkasan"}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {error ? (
         <p className="text-destructive shrink-0 text-sm">{error}</p>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_1fr] lg:grid-rows-1">
-        <Card className="flex max-h-[40vh] min-h-0 flex-col gap-0 overflow-hidden py-0 lg:max-h-none">
-          <CardHeader className="shrink-0 border-b py-4">
-            <CardTitle className="text-base">Snapshot</CardTitle>
-          </CardHeader>
-          <CardContent className="min-h-0 flex-1 overflow-y-auto p-0">
-            <SnapshotList
-              snapshots={snapshots}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
-          </CardContent>
-        </Card>
+      {activeTab === "search" ? (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <MessageSearchPanel />
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_1fr] lg:grid-rows-1">
+          <Card className="flex max-h-[40vh] min-h-0 flex-col gap-0 overflow-hidden py-0 lg:max-h-none">
+            <CardHeader className="shrink-0 border-b py-4">
+              <CardTitle className="text-base">Snapshot</CardTitle>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 overflow-y-auto p-0">
+              <SnapshotList
+                snapshots={snapshots}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            </CardContent>
+          </Card>
 
-        <SnapshotPanel
-          snapshot={selectedSnapshot}
-          isLoading={isGenerating}
-          onRefresh={handleGenerate}
-        />
-      </div>
+          <SnapshotPanel
+            snapshot={selectedSnapshot}
+            isLoading={isGenerating}
+            onRefresh={handleGenerate}
+          />
+        </div>
+      )}
     </div>
   );
 }

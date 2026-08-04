@@ -13,14 +13,17 @@ import {
   DEFAULT_VOICE_REPLY_MODEL_ID,
   DEFAULT_VOICE_REPLY_PERCENT,
   DEFAULT_VOICE_REPLY_VOICE,
+  DEFAULT_WEB_SEARCH_PROVIDER_ID,
   TEXT_MODEL_OPTIONS,
   VISION_MODEL_OPTIONS,
   VOICE_INPUT_MODEL_OPTIONS,
   VOICE_REPLY_MODEL_OPTIONS,
+  WEB_SEARCH_PROVIDER_OPTIONS,
   isTextModelId,
   isVisionModelId,
   isVoiceInputModelId,
   isVoiceReplyModelId,
+  isWebSearchProviderId,
 } from "./constants";
 import type {
   ModelSettingsOptionsView,
@@ -50,6 +53,7 @@ function toView(row: typeof appSettings.$inferSelect): ModelSettingsView {
     voiceInputMaxBytes: row.voiceInputMaxBytes,
     voiceReplyMaxChars: row.voiceReplyMaxChars,
     voiceReplyMaxWords: row.voiceReplyMaxWords,
+    webSearchProvider: row.webSearchProvider,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -75,6 +79,7 @@ async function getOrCreateSettingsRow() {
       voiceInputMaxBytes: DEFAULT_VOICE_INPUT_MAX_BYTES,
       voiceReplyMaxChars: DEFAULT_VOICE_REPLY_MAX_CHARS,
       voiceReplyMaxWords: DEFAULT_VOICE_REPLY_MAX_WORDS,
+      webSearchProvider: DEFAULT_WEB_SEARCH_PROVIDER_ID,
     })
     .returning();
 
@@ -96,6 +101,10 @@ export function getModelSettingsOptions(): ModelSettingsOptionsView {
       label: option.label,
     })),
     voiceReplyModels: VOICE_REPLY_MODEL_OPTIONS.map((option) => ({
+      id: option.id,
+      label: option.label,
+    })),
+    webSearchProviders: WEB_SEARCH_PROVIDER_OPTIONS.map((option) => ({
       id: option.id,
       label: option.label,
     })),
@@ -126,6 +135,10 @@ export async function updateModelSettings(
     throw new Error("Model balasan voice tidak valid.");
   }
 
+  if (!isWebSearchProviderId(input.webSearchProvider)) {
+    throw new Error("Penyedia pencarian web tidak valid.");
+  }
+
   const row = await getOrCreateSettingsRow();
 
   const [updated] = await db
@@ -141,6 +154,7 @@ export async function updateModelSettings(
       voiceInputMaxBytes: input.voiceInputMaxBytes,
       voiceReplyMaxChars: input.voiceReplyMaxChars,
       voiceReplyMaxWords: input.voiceReplyMaxWords,
+      webSearchProvider: input.webSearchProvider,
       updatedAt: new Date(),
     })
     .where(eq(appSettings.id, row.id))

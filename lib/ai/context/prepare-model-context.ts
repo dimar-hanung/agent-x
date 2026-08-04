@@ -14,6 +14,8 @@ import {
   buildSystemPrompt,
   formatUserMemoryBlock,
 } from "@/lib/ai/chat-config";
+import type { WebSearchProviderId } from "@/lib/admin/model-settings/constants";
+import { getModelSettings } from "@/lib/admin/model-settings/repository";
 import type { UserContext } from "@/lib/ai/roles/types";
 import {
   getChatContextMeta,
@@ -117,9 +119,13 @@ export async function prepareModelContext({
     user.userId,
     MEMORY_PROMPT_LIMIT
   );
+  const modelSettings = await getModelSettings();
   const baseSystemPrompt =
-    buildSystemPrompt(user, { whatsappOutput }) +
-    formatUserMemoryBlock(memories);
+    buildSystemPrompt(user, {
+      whatsappOutput,
+      webSearchProvider:
+        modelSettings.webSearchProvider as WebSearchProviderId,
+    }) + formatUserMemoryBlock(memories);
 
   return fitContextToBudget({
     systemPrompt: baseSystemPrompt,

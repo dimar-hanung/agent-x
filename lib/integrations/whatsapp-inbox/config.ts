@@ -58,3 +58,23 @@ export function getWhatsAppInboxWorkerRetryBaseMs(): number {
 export function getWhatsAppInboxWorkerRetryMaxMs(): number {
   return positiveIntegerEnv("WHATSAPP_INBOX_WORKER_RETRY_MAX_MS", 60_000);
 }
+
+export function getWhatsAppSearchMaxKeywordAttempts(): number {
+  return positiveIntegerEnv("WHATSAPP_SEARCH_MAX_KEYWORD_ATTEMPTS", 10);
+}
+
+export function getWhatsAppSearchAiChunkSize(): number {
+  return positiveIntegerEnv("WHATSAPP_SEARCH_AI_CHUNK_SIZE", 500);
+}
+
+export function getWhatsAppSearchMaxRowsPerKeyword(): number {
+  return positiveIntegerEnv("WHATSAPP_SEARCH_MAX_ROWS_PER_KEYWORD", 500);
+}
+
+export function getWhatsAppSearchMaxMessagesPerChat(): number {
+  return positiveIntegerEnv("WHATSAPP_SEARCH_MAX_MESSAGES_PER_CHAT", 20);
+}
+
+export function getWhatsAppSearchMaxCharsPerChat(): number {
+  return positiveIntegerEnv("WHATSAPP_SEARCH_MAX_CHARS_PER_CHAT", 2000);
+}
