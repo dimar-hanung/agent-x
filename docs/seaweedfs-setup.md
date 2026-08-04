@@ -115,6 +115,19 @@ Keys **must match** `infra/seaweedfs/s3.json`. The S3 client uses **force path s
 
 If these vars are unset, File APIs and AI tools soft-fail with an Indonesian message that storage is not configured.
 
+### Public browser endpoint (production)
+
+When users access AgentX from remote browsers, presigned upload/download/preview URLs must use a **public HTTPS host**, not `127.0.0.1`. AgentX uses two endpoints:
+
+| Env var | Used for | Example |
+|---------|----------|---------|
+| `SEAWEEDFS_S3_ENDPOINT` | Server-side Put/Get/Head/Delete, indexing worker | `http://127.0.0.1:8333` |
+| `SEAWEEDFS_S3_PUBLIC_ENDPOINT` | Browser presigned PUT/GET only | `https://files.agent.serverlab.my.id` |
+
+SigV4 signatures bind the `Host` header — **never rewrite a signed URL's host after signing**. Set `SEAWEEDFS_S3_PUBLIC_ENDPOINT` to the same hostname nginx presents to browsers.
+
+See [Public gateway (DNS + TLS)](#public-gateway-dns--tls) below for nginx/Cloudflare setup.
+
 ## 5. Verify
 
 1. `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8333/` — any non-`000` code means the gateway is listening.
@@ -128,6 +141,73 @@ users/{userId}/{fileId}/{sanitizedFileName}
 ```
 
 Metadata (name, parent folder, size, status) is in PostgreSQL; SeaweedFS only stores bytes.
+
+## Public gateway (DNS + TLS)
+
+Expose SeaweedFS S3 to browsers at `https://files.agent.serverlab.my.id` while keeping the Docker port bound to `127.0.0.1:8333`. Nginx (CloudPanel) terminates origin TLS and reverse-proxies to the local gateway.
+
+### TLS layers
+
+1. **Visitor → Cloudflare** — Cloudflare presents the public certificate (orange-cloud DNS).
+2. **Cloudflare → origin nginx** — CloudPanel issues the origin certificate (Let's Encrypt or panel self-signed). Use the same SSL mode as `agent.serverlab.my.id` (Full or Full strict).
+3. **nginx → SeaweedFS** — plain HTTP to `127.0.0.1:8333`; SeaweedFS itself does not terminate TLS.
+
+### 1. Cloudflare DNS
+
+Create a proxied record:
+
+| Type | Name | Content | Proxy |
+|------|------|---------|-------|
+| A or CNAME | `files.agent` | same origin IP as `agent.serverlab.my.id` | Proxied (orange cloud) |
+
+### 2. CloudPanel / nginx site
+
+Add a site (reverse proxy) for `files.agent.serverlab.my.id` in CloudPanel:
+
+1. CloudPanel → **Sites** → **Add Site** → choose **Reverse Proxy** (or create a PHP/static site and switch to custom nginx).
+2. Domain: `files.agent.serverlab.my.id`
+3. Reverse proxy target: `http://127.0.0.1:8333`
+4. **SSL/TLS** → issue Let's Encrypt (or panel certificate) for `files.agent.serverlab.my.id`
+5. **Vhost** → paste/adapt from [`infra/seaweedfs/nginx-files.agent.serverlab.my.id.conf.example`](../infra/seaweedfs/nginx-files.agent.serverlab.my.id.conf.example) — especially `proxy_set_header Host $host`, `client_max_body_size 0`, and CORS for `https://agent.serverlab.my.id`
+6. Reload nginx from CloudPanel
+
+Use the reference config in [`infra/seaweedfs/nginx-files.agent.serverlab.my.id.conf.example`](../infra/seaweedfs/nginx-files.agent.serverlab.my.id.conf.example):
+
+- `proxy_pass http://127.0.0.1:8333`
+- `proxy_set_header Host $host` (preserve public hostname for SigV4)
+- `client_max_body_size 0` and `proxy_request_buffering off` for large uploads
+- CORS headers for `https://agent.serverlab.my.id` (browser PUT/GET from the dashboard)
+
+Issue an origin TLS certificate for `files.agent.serverlab.my.id` in CloudPanel before enabling Full (strict) on Cloudflare.
+
+### 3. AgentX env + restart
+
+```bash
+SEAWEEDFS_S3_ENDPOINT=http://127.0.0.1:8333
+SEAWEEDFS_S3_PUBLIC_ENDPOINT=https://files.agent.serverlab.my.id
+# ... access key, secret, bucket, region unchanged
+```
+
+Restart AgentX (e.g. `pm2 restart agentx`) after changing env.
+
+### 4. Verify public gateway
+
+```bash
+npm run seaweedfs:verify-public
+```
+
+Or manually:
+# Origin reachable through TLS (403 from S3 without auth is OK)
+curl -sI https://files.agent.serverlab.my.id/
+
+# CORS preflight (should include Access-Control-Allow-Origin)
+curl -sI -X OPTIONS https://files.agent.serverlab.my.id/ \
+  -H "Origin: https://agent.serverlab.my.id" \
+  -H "Access-Control-Request-Method: PUT"
+
+# Presigned URL host (logged-in session required)
+# GET /api/files/{id}/download-url → url starts with https://files.agent.serverlab.my.id/
+```
 
 ## Notes
 

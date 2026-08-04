@@ -48,20 +48,13 @@ function requireConfig() {
 }
 
 let cachedClient: S3Client | null = null;
+let cachedPublicPresignClient: S3Client | null = null;
 let ensuredBucket: string | null = null;
 
-export function getS3Bucket(): string {
-  return requireConfig().bucket;
-}
+function buildS3Client(endpoint: string): S3Client {
+  const { accessKeyId, secretAccessKey, region } = requireConfig();
 
-export function getS3Client(): S3Client {
-  if (cachedClient) {
-    return cachedClient;
-  }
-
-  const { endpoint, accessKeyId, secretAccessKey, region } = requireConfig();
-
-  cachedClient = new S3Client({
+  return new S3Client({
     endpoint,
     region,
     forcePathStyle: true,
@@ -74,8 +67,35 @@ export function getS3Client(): S3Client {
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   });
+}
+
+export function getS3Bucket(): string {
+  return requireConfig().bucket;
+}
+
+export function getS3Client(): S3Client {
+  if (cachedClient) {
+    return cachedClient;
+  }
+
+  const { endpoint } = requireConfig();
+  cachedClient = buildS3Client(endpoint);
 
   return cachedClient;
+}
+
+/** Presign client — uses SEAWEEDFS_S3_PUBLIC_ENDPOINT when set (browser-facing URLs). */
+function getPublicPresignClient(): S3Client {
+  if (cachedPublicPresignClient) {
+    return cachedPublicPresignClient;
+  }
+
+  const { endpoint } = requireConfig();
+  const publicEndpoint =
+    process.env.SEAWEEDFS_S3_PUBLIC_ENDPOINT?.trim() || endpoint;
+  cachedPublicPresignClient = buildS3Client(publicEndpoint);
+
+  return cachedPublicPresignClient;
 }
 
 export function buildStorageKey(
@@ -194,7 +214,7 @@ export async function createPresignedPutUrl(params: {
   await ensureBucketExists();
   // ContentType omitted from signed PutObject so browser Content-Type stays unsigned.
   // Flexible checksums disabled on S3Client (WHEN_REQUIRED) for SeaweedFS compatibility.
-  const client = getS3Client();
+  const client = getPublicPresignClient();
   const command = new PutObjectCommand({
     Bucket: getS3Bucket(),
     Key: params.key,
@@ -209,14 +229,28 @@ export async function createPresignedGetUrl(params: {
   key: string;
   fileName?: string;
   expiresIn?: number;
+  disposition?: "attachment" | "inline";
+  contentType?: string;
 }): Promise<string> {
-  const client = getS3Client();
+  const client = getPublicPresignClient();
+  const disposition = params.disposition ?? "attachment";
+  const sanitizedName = params.fileName?.replace(/"/g, "") ?? "";
+
+  let responseContentDisposition: string | undefined;
+  if (sanitizedName) {
+    responseContentDisposition =
+      disposition === "inline"
+        ? `inline; filename="${sanitizedName}"`
+        : `attachment; filename="${sanitizedName}"`;
+  } else if (disposition === "inline") {
+    responseContentDisposition = "inline";
+  }
+
   const command = new GetObjectCommand({
     Bucket: getS3Bucket(),
     Key: params.key,
-    ResponseContentDisposition: params.fileName
-      ? `attachment; filename="${params.fileName.replace(/"/g, "")}"`
-      : undefined,
+    ResponseContentDisposition: responseContentDisposition,
+    ResponseContentType: params.contentType || undefined,
   });
 
   return getSignedUrl(client, command, {

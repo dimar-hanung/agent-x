@@ -26,7 +26,8 @@
     "evolution:logs": "docker compose -f infra/evolution/docker-compose.yml logs -f evolution-api",
     "seaweedfs:up": "bash scripts/setup-seaweedfs.sh",
     "seaweedfs:down": "docker compose -f infra/seaweedfs/docker-compose.yml down",
-    "seaweedfs:logs": "docker compose -f infra/seaweedfs/docker-compose.yml logs -f"
+    "seaweedfs:logs": "docker compose -f infra/seaweedfs/docker-compose.yml logs -f",
+    "seaweedfs:verify-public": "bash scripts/verify-seaweedfs-public-gateway.sh"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.52",

@@ -5,7 +5,7 @@ import {
   SEAWEEDFS_NOT_CONFIGURED_CODE,
   SEAWEEDFS_NOT_CONFIGURED_MESSAGE,
 } from "@/lib/files/constants";
-import { FilesError, createDownloadUrl } from "@/lib/files/repository";
+import { FilesError, uploadPendingFileBytes } from "@/lib/files/repository";
 import {
   SeaweedfsNotConfiguredError,
   isSeaweedfsConfigured,
@@ -13,7 +13,7 @@ import {
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(request: Request, context: RouteContext) {
+export async function PUT(request: Request, context: RouteContext) {
   try {
     const user = await resolveUser();
     const { id } = await context.params;
@@ -28,25 +28,19 @@ export async function GET(request: Request, context: RouteContext) {
       );
     }
 
-    const dispositionParam = new URL(request.url).searchParams.get("disposition");
-    let disposition: "attachment" | "inline" = "attachment";
-
-    if (
-      dispositionParam !== null &&
-      dispositionParam !== "" &&
-      dispositionParam !== "attachment"
-    ) {
-      if (dispositionParam !== "inline") {
-        return NextResponse.json(
-          { message: "Parameter disposition tidak valid." },
-          { status: 400 }
-        );
-      }
-      disposition = "inline";
+    const body = Buffer.from(await request.arrayBuffer());
+    if (body.length === 0) {
+      return NextResponse.json(
+        { message: "Body unggahan kosong." },
+        { status: 400 }
+      );
     }
 
-    const result = await createDownloadUrl(user.userId, id, { disposition });
-    return NextResponse.json({ url: result.url, file: result.file });
+    const contentType = request.headers.get("content-type")?.trim() || undefined;
+
+    await uploadPendingFileBytes(user.userId, id, body, contentType);
+
+    return new NextResponse(null, { status: 200 });
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
@@ -64,9 +58,9 @@ export async function GET(request: Request, context: RouteContext) {
       );
     }
 
-    console.error("GET /api/files/[id]/download-url error:", error);
+    console.error("PUT /api/files/[id]/upload error:", error);
     return NextResponse.json(
-      { message: "Gagal membuat tautan unduhan." },
+      { message: "Gagal mengunggah file." },
       { status: 500 }
     );
   }

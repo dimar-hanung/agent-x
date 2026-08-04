@@ -1,0 +1,61 @@
+# Reference nginx vhost for files.agent.serverlab.my.id → SeaweedFS S3 (127.0.0.1:8333)
+# Apply via CloudPanel (Sites → Add Site → Reverse Proxy) or merge into the site vhost.
+#
+# Requirements:
+# - Origin TLS cert for files.agent.serverlab.my.id (CloudPanel Let's Encrypt or panel cert)
+# - Cloudflare DNS proxied to this origin (same as agent.serverlab.my.id)
+# - AgentX: SEAWEEDFS_S3_PUBLIC_ENDPOINT=https://files.agent.serverlab.my.id
+
+# CORS origin for browser PUT/GET from the dashboard
+map $http_origin $cors_allow_origin {
+    default "";
+    "https://agent.serverlab.my.id" $http_origin;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name files.agent.serverlab.my.id;
+
+    # CloudPanel usually redirects HTTP → HTTPS; adjust if your panel handles TLS elsewhere.
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name files.agent.serverlab.my.id;
+
+    # CloudPanel-managed certificate paths (replace with your panel's paths)
+    # ssl_certificate     /path/to/files.agent.serverlab.my.id.crt;
+    # ssl_certificate_key /path/to/files.agent.serverlab.my.id.key;
+
+    client_max_body_size 0;
+    proxy_request_buffering off;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+
+    location / {
+        # CORS preflight
+        if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin $cors_allow_origin always;
+            add_header Access-Control-Allow-Methods "GET, PUT, HEAD, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Content-Type, Authorization, x-amz-content-sha256, x-amz-date, x-amz-security-token" always;
+            add_header Access-Control-Expose-Headers "ETag" always;
+            add_header Access-Control-Max-Age 86400 always;
+            add_header Content-Length 0;
+            add_header Content-Type text/plain;
+            return 204;
+        }
+
+        proxy_pass http://127.0.0.1:8333;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        add_header Access-Control-Allow-Origin $cors_allow_origin always;
+        add_header Access-Control-Expose-Headers "ETag" always;
+    }
+}

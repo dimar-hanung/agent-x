@@ -38,7 +38,7 @@ export function SnapshotList({
     return (
       <DashboardEmptyState
         variant="inline"
-        icon={HistoryIcon}
+        icon={<HistoryIcon aria-hidden />}
         title="Belum ada snapshot"
         description="Buat ringkasan untuk melihat riwayat percakapan yang sudah dirangkum."
         className="py-10"

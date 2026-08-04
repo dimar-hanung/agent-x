@@ -1,6 +1,6 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ export interface DashboardEmptyStateAction {
 }
 
 export interface DashboardEmptyStateProps {
-  icon: LucideIcon;
+  icon: ReactNode;
   title: string;
   description?: string;
   action?: DashboardEmptyStateAction;
@@ -24,7 +24,7 @@ export interface DashboardEmptyStateProps {
 }
 
 export function DashboardEmptyState({
-  icon: Icon,
+  icon,
   title,
   description,
   action,
@@ -43,12 +43,12 @@ export function DashboardEmptyState({
     >
       <div
         className={cn(
-          "bg-muted/60 text-muted-foreground flex items-center justify-center rounded-full",
-          variant === "panel" ? "size-12" : "size-10"
+          "bg-muted/60 text-muted-foreground flex items-center justify-center rounded-full [&_svg]:shrink-0",
+          variant === "panel" ? "size-12 [&_svg]:size-6" : "size-10 [&_svg]:size-5"
         )}
         aria-hidden
       >
-        <Icon className={variant === "panel" ? "size-6" : "size-5"} />
+        {icon}
       </div>
 
       <div className="space-y-1">

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Download, FolderOpen, MessageSquareText, Pencil, Trash2 } from "lucide-react";
+import { Download, Eye, FolderOpen, MessageSquareText, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -12,7 +12,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import type { FileListItem } from "@/lib/files/schemas";
-import { isIndexableFile } from "@/lib/files/constants";
+import { isIndexableFile, isPreviewableFile } from "@/lib/files/constants";
 import { appRoutes } from "@/lib/site-config";
 
 interface FileItemContextMenuProps {
@@ -20,6 +20,7 @@ interface FileItemContextMenuProps {
   busy?: boolean;
   children: ReactNode;
   onOpenFolder: (folder: FileListItem) => void;
+  onPreview?: (item: FileListItem) => void;
   onDownload: (item: FileListItem) => void;
   onRename: (item: FileListItem) => void;
   onDelete: (item: FileListItem) => void;
@@ -30,6 +31,7 @@ export function FileItemContextMenu({
   busy,
   children,
   onOpenFolder,
+  onPreview,
   onDownload,
   onRename,
   onDelete,
@@ -37,6 +39,8 @@ export function FileItemContextMenu({
   const router = useRouter();
   const canAsk =
     item.kind === "file" && isIndexableFile(item.mimeType, item.name);
+  const canPreview =
+    item.kind === "file" && isPreviewableFile(item.mimeType, item.name);
 
   return (
     <ContextMenu>
@@ -53,13 +57,24 @@ export function FileItemContextMenu({
             Buka
           </ContextMenuItem>
         ) : (
-          <ContextMenuItem
-            disabled={busy}
-            onSelect={() => onDownload(item)}
-          >
-            <Download />
-            Unduh
-          </ContextMenuItem>
+          <>
+            {canPreview && onPreview ? (
+              <ContextMenuItem
+                disabled={busy}
+                onSelect={() => onPreview(item)}
+              >
+                <Eye />
+                Pratinjau
+              </ContextMenuItem>
+            ) : null}
+            <ContextMenuItem
+              disabled={busy}
+              onSelect={() => onDownload(item)}
+            >
+              <Download />
+              Unduh
+            </ContextMenuItem>
+          </>
         )}
         {canAsk ? (
           <ContextMenuItem

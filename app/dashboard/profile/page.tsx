@@ -44,7 +44,7 @@ export default async function ProfilePage() {
         <div className="max-w-3xl">
           <h1 className="text-xl font-semibold tracking-tight">Profil</h1>
           <p className="text-muted-foreground">
-            Lihat data akun. Ubah password lewat tombol di bawah.
+            Kelola data akun dan ubah password.
           </p>
         </div>
         <div className="max-w-3xl">

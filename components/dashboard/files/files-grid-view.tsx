@@ -1,6 +1,7 @@
 "use client";
 
 import type { FileListItem } from "@/lib/files/schemas";
+import { isPreviewableFile } from "@/lib/files/constants";
 import { cn } from "@/lib/utils";
 
 import { FileIcon } from "./file-icon";
@@ -12,6 +13,7 @@ interface FilesGridViewProps {
   items: FileListItem[];
   busy?: boolean;
   onOpenFolder: (folder: FileListItem) => void;
+  onPreview: (item: FileListItem) => void;
   onDownload: (item: FileListItem) => void;
   onRename: (item: FileListItem) => void;
   onDelete: (item: FileListItem) => void;
@@ -21,6 +23,7 @@ export function FilesGridView({
   items,
   busy,
   onOpenFolder,
+  onPreview,
   onDownload,
   onRename,
   onDelete,
@@ -28,6 +31,10 @@ export function FilesGridView({
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
       {items.map((item) => {
+        const previewable =
+          item.kind === "file" &&
+          isPreviewableFile(item.mimeType, item.name);
+
         const body = (
           <div className="flex h-20 items-center justify-center rounded-md bg-muted/40">
             <FileIcon item={item} className="size-10" />
@@ -50,11 +57,19 @@ export function FilesGridView({
             item={item}
             busy={busy}
             onOpenFolder={onOpenFolder}
+            onPreview={onPreview}
             onDownload={onDownload}
             onRename={onRename}
             onDelete={onDelete}
           >
-            <div className="group focus-within:ring-ring relative flex flex-col rounded-lg border bg-card transition-colors hover:bg-accent/40 focus-within:ring-2">
+            <div
+              className="group focus-within:ring-ring relative flex flex-col rounded-lg border bg-card transition-colors hover:bg-accent/40 focus-within:ring-2"
+              onDoubleClick={
+                previewable
+                  ? () => onPreview(item)
+                  : undefined
+              }
+            >
               {item.kind === "folder" ? (
                 <button
                   type="button"
@@ -76,6 +91,7 @@ export function FilesGridView({
                 item={item}
                 busy={busy}
                 onOpenFolder={onOpenFolder}
+                onPreview={onPreview}
                 onDownload={onDownload}
                 onRename={onRename}
                 onDelete={onDelete}

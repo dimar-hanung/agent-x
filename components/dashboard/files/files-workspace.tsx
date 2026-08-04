@@ -56,6 +56,7 @@ import type { FileListItem, QuotaInfo } from "@/lib/files/schemas";
 import { appRoutes } from "@/lib/site-config";
 
 import { FilesBlankContextMenu } from "./files-blank-context-menu";
+import { FileQuickPreviewDialog } from "./file-quick-preview-dialog";
 import { FilesGridView } from "./files-grid-view";
 import { FilesListView } from "./files-list-view";
 import { StorageMeter } from "./storage-meter";
@@ -109,6 +110,7 @@ export function FilesWorkspace({
   const [renameTarget, setRenameTarget] = useState<FileListItem | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<FileListItem | null>(null);
+  const [previewTarget, setPreviewTarget] = useState<FileListItem | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
@@ -299,6 +301,11 @@ export function FilesWorkspace({
     } catch {
       setError("Terjadi kesalahan saat mengunduh.");
     }
+  }
+
+  function handlePreview(item: FileListItem) {
+    setError(null);
+    setPreviewTarget(item);
   }
 
   async function handleRename() {
@@ -596,13 +603,13 @@ export function FilesWorkspace({
           {visibleItems.length === 0 ? (
             trimmedQuery.length > 0 ? (
               <DashboardEmptyState
-                icon={Search}
+                icon={<Search aria-hidden />}
                 title="Tidak ada file yang cocok"
                 description="Coba kata kunci lain atau kosongkan pencarian."
               />
             ) : (
               <DashboardEmptyState
-                icon={FolderOpen}
+                icon={<FolderOpen aria-hidden />}
                 title="Belum ada file di sini"
                 description="Unggah file, buat folder, atau seret file ke area ini."
                 action={{ label: "Unggah file", onClick: triggerUpload }}
@@ -613,6 +620,7 @@ export function FilesWorkspace({
               items={visibleItems}
               busy={busy}
               onOpenFolder={openFolder}
+              onPreview={handlePreview}
               onDownload={handleDownload}
               onRename={(item) => {
                 setRenameTarget(item);
@@ -627,6 +635,7 @@ export function FilesWorkspace({
               busy={busy}
               onSortChange={setSort}
               onOpenFolder={openFolder}
+              onPreview={handlePreview}
               onDownload={handleDownload}
               onRename={(item) => {
                 setRenameTarget(item);
@@ -759,6 +768,15 @@ export function FilesWorkspace({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FileQuickPreviewDialog
+        file={previewTarget}
+        open={previewTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setPreviewTarget(null);
+        }}
+        onDownload={handleDownload}
+      />
     </div>
   );
 }

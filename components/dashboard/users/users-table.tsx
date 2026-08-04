@@ -121,7 +121,7 @@ export function UsersTable({ initialUsers }: UsersTableProps) {
 
       {users.length === 0 ? (
         <DashboardEmptyState
-          icon={UsersIcon}
+          icon={<UsersIcon aria-hidden />}
           title="Belum ada user"
           description="Tambahkan akun client agar mereka bisa login dan menggunakan AgentX."
           action={{ label: "Tambah user", onClick: openCreateDialog }}

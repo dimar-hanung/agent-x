@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FolderOpen, MessageSquareText, Pencil, Trash2 } from "lucide-react";
+import { Download, Eye, FolderOpen, MessageSquareText, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { isIndexableFile } from "@/lib/files/constants";
+import { isIndexableFile, isPreviewableFile } from "@/lib/files/constants";
 import type { FileListItem } from "@/lib/files/schemas";
 import { appRoutes } from "@/lib/site-config";
 
@@ -21,6 +21,7 @@ interface FileItemMenuProps {
   busy?: boolean;
   className?: string;
   onOpenFolder?: (folder: FileListItem) => void;
+  onPreview?: (item: FileListItem) => void;
   onDownload: (item: FileListItem) => void;
   onRename: (item: FileListItem) => void;
   onDelete: (item: FileListItem) => void;
@@ -31,6 +32,7 @@ export function FileItemMenu({
   busy,
   className,
   onOpenFolder,
+  onPreview,
   onDownload,
   onRename,
   onDelete,
@@ -38,6 +40,8 @@ export function FileItemMenu({
   const router = useRouter();
   const canAsk =
     item.kind === "file" && isIndexableFile(item.mimeType, item.name);
+  const canPreview =
+    item.kind === "file" && isPreviewableFile(item.mimeType, item.name);
 
   return (
     <DropdownMenu>
@@ -75,10 +79,18 @@ export function FileItemMenu({
           </DropdownMenuItem>
         ) : null}
         {item.kind === "file" ? (
-          <DropdownMenuItem onSelect={() => onDownload(item)}>
-            <Download />
-            Unduh
-          </DropdownMenuItem>
+          <>
+            {canPreview && onPreview ? (
+              <DropdownMenuItem onSelect={() => onPreview(item)}>
+                <Eye />
+                Pratinjau
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuItem onSelect={() => onDownload(item)}>
+              <Download />
+              Unduh
+            </DropdownMenuItem>
+          </>
         ) : null}
         {canAsk ? (
           <DropdownMenuItem

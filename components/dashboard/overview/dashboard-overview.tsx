@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   AlertTriangle,
-  Brain,
+  BookMarked,
   CalendarClock,
   CheckSquare,
   FolderOpen,
@@ -110,7 +110,7 @@ export function DashboardOverviewView({ data }: DashboardOverviewProps) {
           <p className="text-muted-foreground mt-1">{data.todayLabel}</p>
         </div>
         <DashboardEmptyState
-          icon={MessageSquare}
+          icon={<MessageSquare aria-hidden />}
           title="Mulai dari chat"
           description="Tanya agent, buat todo, atau minta otomatisasi. Semua hasilnya muncul di sini."
           action={{ label: "Buka chat", href: appRoutes.chat }}
@@ -229,7 +229,7 @@ export function DashboardOverviewView({ data }: DashboardOverviewProps) {
               href={appRoutes.memories}
               className="hover:bg-muted/50 flex items-start gap-3 px-4 py-3 transition-colors duration-150"
             >
-              <Brain
+              <BookMarked
                 className="text-muted-foreground mt-0.5 size-5 shrink-0"
                 aria-hidden
               />
@@ -306,7 +306,7 @@ export function DashboardOverviewView({ data }: DashboardOverviewProps) {
           {data.recentChats.length === 0 ? (
             <DashboardEmptyState
               variant="inline"
-              icon={MessageSquare}
+              icon={<MessageSquare aria-hidden />}
               title="Belum ada chat"
               description="Buka chat untuk mulai percakapan baru."
               action={{ label: "Buka chat", href: appRoutes.chat }}

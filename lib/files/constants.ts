@@ -18,6 +18,15 @@ export const SEAWEEDFS_NOT_CONFIGURED_CODE = "SEAWEEDFS_NOT_CONFIGURED";
 export const SEAWEEDFS_NOT_CONFIGURED_MESSAGE =
   "Penyimpanan file belum tersedia karena konfigurasi server belum lengkap.";
 
+/** When true (default), browser upload/preview/download use same-origin /api/files routes instead of presigned S3 URLs. */
+export function useBrowserAppProxy(): boolean {
+  const raw = process.env.SEAWEEDFS_BROWSER_USE_APP_PROXY?.trim().toLowerCase();
+  if (raw === "false" || raw === "0") {
+    return false;
+  }
+  return true;
+}
+
 export const DOCLING_NOT_CONFIGURED_CODE = "DOCLING_NOT_CONFIGURED";
 
 export const DOCLING_NOT_CONFIGURED_MESSAGE =
@@ -68,6 +77,26 @@ export function isDocxFile(
     return true;
   }
   return /\.docx$/i.test(name);
+}
+
+const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif|heic)$/i;
+
+export function isImageFile(
+  mimeType: string | null | undefined,
+  name: string
+): boolean {
+  const mime = (mimeType ?? "").toLowerCase();
+  if (mime.startsWith("image/")) {
+    return true;
+  }
+  return IMAGE_EXTENSIONS.test(name);
+}
+
+export function isPreviewableFile(
+  mimeType: string | null | undefined,
+  name: string
+): boolean {
+  return isImageFile(mimeType, name) || isPdfFile(mimeType, name);
 }
 
 export const FILE_INDEX_PROGRESS_PHASES = [

@@ -1,6 +1,6 @@
 "use client";
 
-import { BrainIcon } from "lucide-react";
+import { BookMarked } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -77,7 +77,7 @@ export function MemoryWorkspace({ initialMemories }: MemoryWorkspaceProps) {
   if (memories.length === 0) {
     return (
       <DashboardEmptyState
-        icon={BrainIcon}
+        icon={<BookMarked aria-hidden />}
         title="Belum ada memory"
         description="Minta asisten mengingat preference di chat, atau biarkan diekstrak otomatis dari percakapan panjang."
         action={{ label: "Buka Chat", href: appRoutes.chat }}

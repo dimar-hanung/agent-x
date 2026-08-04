@@ -5,13 +5,23 @@ import {
   SEAWEEDFS_NOT_CONFIGURED_CODE,
   SEAWEEDFS_NOT_CONFIGURED_MESSAGE,
 } from "@/lib/files/constants";
-import { FilesError, createDownloadUrl } from "@/lib/files/repository";
+import { FilesError, readFileStreamContent } from "@/lib/files/repository";
 import {
   SeaweedfsNotConfiguredError,
   isSeaweedfsConfigured,
 } from "@/lib/files/s3-client";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+function buildContentDisposition(
+  disposition: "inline" | "attachment",
+  fileName: string
+): string {
+  const encodedName = encodeURIComponent(fileName);
+  const asciiName = fileName.replace(/[^\x20-\x7E]/g, "_") || "file";
+
+  return `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`;
+}
 
 export async function GET(request: Request, context: RouteContext) {
   try {
@@ -29,7 +39,7 @@ export async function GET(request: Request, context: RouteContext) {
     }
 
     const dispositionParam = new URL(request.url).searchParams.get("disposition");
-    let disposition: "attachment" | "inline" = "attachment";
+    let disposition: "inline" | "attachment" = "attachment";
 
     if (
       dispositionParam !== null &&
@@ -45,8 +55,18 @@ export async function GET(request: Request, context: RouteContext) {
       disposition = "inline";
     }
 
-    const result = await createDownloadUrl(user.userId, id, { disposition });
-    return NextResponse.json({ url: result.url, file: result.file });
+    const { body, contentType, fileName } = await readFileStreamContent(
+      user.userId,
+      id
+    );
+
+    return new Response(new Uint8Array(body), {
+      headers: {
+        "Content-Type": contentType,
+        "Content-Disposition": buildContentDisposition(disposition, fileName),
+        "Cache-Control": "private, no-store",
+      },
+    });
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
@@ -64,9 +84,9 @@ export async function GET(request: Request, context: RouteContext) {
       );
     }
 
-    console.error("GET /api/files/[id]/download-url error:", error);
+    console.error("GET /api/files/[id]/stream error:", error);
     return NextResponse.json(
-      { message: "Gagal membuat tautan unduhan." },
+      { message: "Gagal mengambil file." },
       { status: 500 }
     );
   }

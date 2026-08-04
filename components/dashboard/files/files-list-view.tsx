@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 
 import type { FileListItem } from "@/lib/files/schemas";
+import { isPreviewableFile } from "@/lib/files/constants";
 import { cn } from "@/lib/utils";
 
 import { FileIcon } from "./file-icon";
@@ -16,6 +17,7 @@ interface FilesListViewProps {
   busy?: boolean;
   onSortChange: (next: SortKey) => void;
   onOpenFolder: (folder: FileListItem) => void;
+  onPreview: (item: FileListItem) => void;
   onDownload: (item: FileListItem) => void;
   onRename: (item: FileListItem) => void;
   onDelete: (item: FileListItem) => void;
@@ -73,6 +75,7 @@ export function FilesListView({
   busy,
   onSortChange,
   onOpenFolder,
+  onPreview,
   onDownload,
   onRename,
   onDelete,
@@ -110,17 +113,30 @@ export function FilesListView({
 
       {/* Rows */}
       <div className="divide-y">
-        {items.map((item) => (
+        {items.map((item) => {
+          const previewable =
+            item.kind === "file" &&
+            isPreviewableFile(item.mimeType, item.name);
+
+          return (
           <FileItemContextMenu
             key={item.id}
             item={item}
             busy={busy}
             onOpenFolder={onOpenFolder}
+            onPreview={onPreview}
             onDownload={onDownload}
             onRename={onRename}
             onDelete={onDelete}
           >
-            <div className="group flex items-center gap-3 px-3 py-2 transition-colors hover:bg-accent/40">
+            <div
+              className="group flex items-center gap-3 px-3 py-2 transition-colors hover:bg-accent/40"
+              onDoubleClick={
+                previewable
+                  ? () => onPreview(item)
+                  : undefined
+              }
+            >
               {item.kind === "folder" ? (
                 <button
                   type="button"
@@ -153,6 +169,7 @@ export function FilesListView({
                 item={item}
                 busy={busy}
                 onOpenFolder={onOpenFolder}
+                onPreview={onPreview}
                 onDownload={onDownload}
                 onRename={onRename}
                 onDelete={onDelete}
@@ -160,7 +177,8 @@ export function FilesListView({
               />
             </div>
           </FileItemContextMenu>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

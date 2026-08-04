@@ -179,14 +179,14 @@ export function ScheduleWorkspace({ initialSchedules }: ScheduleWorkspaceProps) 
 
       {schedules.length === 0 ? (
         <DashboardEmptyState
-          icon={CalendarClockIcon}
+          icon={<CalendarClockIcon aria-hidden />}
           title="Belum ada otomatisasi"
           description='Minta asisten membuat jadwal berulang di Chat, misalnya "Ingatkan saya setiap Senin pagi".'
           action={{ label: "Buka Chat", href: appRoutes.chat }}
         />
       ) : filtered.length === 0 ? (
         <DashboardEmptyState
-          icon={SearchIcon}
+          icon={<SearchIcon aria-hidden />}
           title="Tidak ada otomatisasi dengan filter ini"
           description="Pilih filter lain atau tampilkan semua status."
           action={{ label: "Tampilkan semua", onClick: () => setFilter("all") }}

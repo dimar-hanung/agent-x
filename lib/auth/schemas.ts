@@ -17,3 +17,15 @@ export const changePasswordSchema = z
   });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+export const updateProfileSchema = z
+  .object({
+    displayName: z.string().trim().min(1, "Nama wajib diisi.").max(255).optional(),
+    email: z.string().trim().email("Format email tidak valid.").optional(),
+  })
+  .refine(
+    (data) => data.displayName !== undefined || data.email !== undefined,
+    { message: "Minimal satu field harus diisi." }
+  );
+
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

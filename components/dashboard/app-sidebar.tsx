@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Brain,
+  BookMarked,
   CalendarClock,
   CheckSquare,
   FolderOpen,
@@ -84,7 +85,7 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
       {
         title: "Memory",
         url: appRoutes.memories,
-        icon: Brain,
+        icon: BookMarked,
       },
       {
         title: "File",
@@ -114,14 +115,14 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
+              <Link href="/dashboard">
                 <div className="flex aspect-square size-10 shrink-0 items-center justify-center">
                   <IndonesianFlagIcon className="size-10" />
                 </div>
                 <div className="flex flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{siteConfig.name}</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

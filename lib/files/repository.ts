@@ -10,6 +10,7 @@ import {
 
 import {
   USER_STORAGE_QUOTA_BYTES,
+  useBrowserAppProxy,
 } from "./constants";
 import { deleteFileIndexData } from "./index-repository";
 import type {
@@ -24,6 +25,7 @@ import {
   createPresignedGetUrl,
   createPresignedPutUrl,
   deleteObject,
+  getObjectBytes,
   headObject,
   putObject,
 } from "./s3-client";
@@ -279,10 +281,12 @@ export async function createUploadSession(
     .set({ storageKey, updatedAt: new Date() })
     .where(and(eq(userFiles.id, row.id), eq(userFiles.userId, userId)));
 
-  const uploadUrl = await createPresignedPutUrl({
-    key: storageKey,
-    contentType: mimeType,
-  });
+  const uploadUrl = useBrowserAppProxy()
+    ? `/api/files/${row.id}/upload`
+    : await createPresignedPutUrl({
+        key: storageKey,
+        contentType: mimeType,
+      });
 
   return {
     file: toListItem({ ...row, storageKey, status: "pending" }),
@@ -324,7 +328,8 @@ export async function confirmUpload(
 
 export async function createDownloadUrl(
   userId: string,
-  fileId: string
+  fileId: string,
+  options?: { disposition?: "attachment" | "inline" }
 ): Promise<{ url: string; file: FileListItem }> {
   const row = await getFileRow(userId, fileId);
 
@@ -332,12 +337,70 @@ export async function createDownloadUrl(
     throw new FilesError("File tidak ditemukan.", 404);
   }
 
+  const disposition = options?.disposition ?? "attachment";
+
+  if (useBrowserAppProxy()) {
+    return {
+      url: browserFileStreamPath(fileId, disposition),
+      file: toListItem(row),
+    };
+  }
+
   const url = await createPresignedGetUrl({
     key: row.storageKey,
     fileName: row.name,
+    disposition,
+    contentType:
+      disposition === "inline" ? row.mimeType ?? undefined : undefined,
   });
 
   return { url, file: toListItem(row) };
+}
+
+export async function readFileStreamContent(
+  userId: string,
+  fileId: string
+): Promise<{ body: Buffer; contentType: string; fileName: string }> {
+  const row = await getFileRow(userId, fileId);
+
+  if (!row || row.kind !== "file" || row.status !== "ready" || !row.storageKey) {
+    throw new FilesError("File tidak ditemukan.", 404);
+  }
+
+  const object = await getObjectBytes(row.storageKey);
+
+  return {
+    body: object.body,
+    contentType:
+      object.contentType || row.mimeType || "application/octet-stream",
+    fileName: row.name,
+  };
+}
+
+export async function uploadPendingFileBytes(
+  userId: string,
+  fileId: string,
+  body: Buffer,
+  contentType?: string
+): Promise<void> {
+  const row = await getFileRow(userId, fileId);
+
+  if (!row || row.kind !== "file" || row.status !== "pending" || !row.storageKey) {
+    throw new FilesError("Sesi unggah tidak valid.", 400);
+  }
+
+  await putObject({
+    key: row.storageKey,
+    body,
+    contentType: contentType || row.mimeType || "application/octet-stream",
+  });
+}
+
+export function browserFileStreamPath(
+  fileId: string,
+  disposition: "inline" | "attachment" = "attachment"
+): string {
+  return `/api/files/${fileId}/stream?disposition=${disposition}`;
 }
 
 async function wouldCreateCycle(

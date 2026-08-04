@@ -234,14 +234,14 @@ export function TodoWorkspace({ initialTodos }: TodoWorkspaceProps) {
       {filteredTodos.length === 0 ? (
         todos.length === 0 ? (
           <DashboardEmptyState
-            icon={CheckSquareIcon}
+            icon={<CheckSquareIcon aria-hidden />}
             title="Belum ada todo"
             description="Buat todo pertama untuk melacak tugas, deadline, dan project."
             action={{ label: "Tambah todo", onClick: openCreateDialog }}
           />
         ) : (
           <DashboardEmptyState
-            icon={SearchIcon}
+            icon={<SearchIcon aria-hidden />}
             title="Tidak ada todo yang cocok"
             description="Coba ubah filter atau kosongkan pencarian."
             action={{

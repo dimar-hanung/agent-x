@@ -72,8 +72,9 @@ owns state + API calls, the rest are presentational:
 | `file-icon.tsx` | Type-aware colored icon by category (folder, pdf, image, video, audio, archive, code, spreadsheet, presentation, document) |
 | `files-grid-view.tsx` | Grid/card view (default) |
 | `files-list-view.tsx` | List view with sortable column headers (Nama, Diubah, Ukuran) |
-| `file-item-menu.tsx` | Shared "more actions" dropdown (Buka / Unduh / Tanya isi file / Ganti nama / Hapus) |
+| `file-item-menu.tsx` | Shared "more actions" dropdown (Pratinjau / Unduh / Tanya isi file / Ganti nama / Hapus) |
 | `file-item-context-menu.tsx` | Right-click context menu on a file/folder card or row |
+| `file-quick-preview-dialog.tsx` | Modal quick preview for Image/PDF (inline URL, image zoom/rotate toolbar, header Unduh) |
 | `files-blank-context-menu.tsx` | Right-click on empty space → Unggah file / Folder baru |
 | `storage-meter.tsx` | Compact quota progress card |
 
@@ -83,13 +84,14 @@ Notes for agents:
 - Search is local to the current folder (filters `files` by name); there is no search API.
 - All UI text stays Bahasa Indonesia; status feedback uses `busy` + `busyLabel` ("Mengunggah…", "Menghapus…", dst).
 - Upload trigger from the "Baru" dropdown uses `setTimeout(() => fileInputRef.click(), 0)` to avoid Radix focus-return canceling the file dialog.
-- Right-click: per-item menu via `FileItemContextMenu` (Buka for folders, Unduh for files, Ganti nama, Hapus). Empty-area menu via `FilesBlankContextMenu` wrapping the content pane (Unggah file / Folder baru). Nested Radix context menus — item menu wins when right-clicking an item.
+- Right-click: per-item menu via `FileItemContextMenu` (Buka for folders; Pratinjau + Unduh for image/PDF; Ganti nama, Hapus). Empty-area menu via `FilesBlankContextMenu` wrapping the content pane (Unggah file / Folder baru). Nested Radix context menus — item menu wins when right-clicking an item.
+- Quick preview (image/PDF): double-click or **Pratinjau** opens `FileQuickPreviewDialog`. Preview loads via same-origin `GET /api/files/{id}/stream?disposition=inline`; list/modal **Unduh** uses `/api/files/{id}/stream` (attachment). Image toolbar: icon buttons with tooltips (Perbesar, Perkecil, Putar kiri/kanan, Reset). PDF uses iframe only in the modal — separate from Tanya isi `file-preview-panel.tsx`.
 - Folder navigation is URL-driven via `?folder=<id>` so Back/Forward traverse folder history and folders are deep-linkable. `app/dashboard/files/page.tsx` is a server component that reads `searchParams.folder`, resolves it with `getFileById` (must be a folder owned by the user, else falls back to root), loads that folder's files + breadcrumb (`getBreadcrumb`), and passes `initialParentId` / `initialBreadcrumb` to the workspace. The workspace navigates with `router.push` (server re-render provides fresh props) and adopts the new folder via a during-render state guard (`prevParentId !== initialParentId`) — no effect, and `view`/`sort` prefs survive folder changes.
 
 ## Behavior agents must know
 
 - Object key: `users/{userId}/{fileId}/{sanitizedName}`
-- Browser upload: `POST upload-session` → client PUT to presigned URL → `POST confirm` (HeadObject → `ready`); PDF/DOCX also enqueue `user_file_indexes` when Docling configured
+- Browser upload: `POST upload-session` → client PUT to `/api/files/{id}/upload` (app proxy, default) or presigned S3 URL when `SEAWEEDFS_BROWSER_USE_APP_PROXY=false` → `POST confirm` (HeadObject → `ready`); PDF/DOCX also enqueue `user_file_indexes` when Docling configured
 - AI `upload_file`: server-side PutObject; max **5 MiB**; distinct from `upload_drive_file`
 - Soft-fail with `SEAWEEDFS_NOT_CONFIGURED` when env missing — Indonesian user messages
 - Quota: `SUM(size_bytes)` where `status = ready` vs `USER_STORAGE_QUOTA_BYTES` (20 GiB)
@@ -97,3 +99,5 @@ Notes for agents:
 - Do not confuse with Google Drive tools (`search_drive`, `read_drive_file`, `upload_drive_file`)
 - Tanya isi preview: when index is `ready`, API returns discrete chunks (`kind: "chunks"`) with headings/pageNumbers; UI renders each via `MessageMarkdown`. PDF can still toggle native viewer via `pdfUrl`.
 - Index progress: `user_file_indexes.progress_phase/current/total` updated by worker; `GET /api/files/{id}/index` returns them; Tanya isi polls every 2s and shows Indonesian phase labels + progress bar during embedding.
+- Previewable file helpers: `isImageFile`, `isPdfFile`, `isPreviewableFile` in `lib/files/constants.ts`.
+- **Dual S3 endpoints**: `SEAWEEDFS_S3_ENDPOINT` (server ops, localhost) + optional `SEAWEEDFS_S3_PUBLIC_ENDPOINT` (browser presigned PUT/GET when `SEAWEEDFS_BROWSER_USE_APP_PROXY=false`). Default app proxy: `GET/PUT /api/files/{id}/stream|upload` (auth-gated, same origin). Public host example: `https://files.agent.serverlab.my.id` — see `docs/seaweedfs-setup.md` Public gateway section.

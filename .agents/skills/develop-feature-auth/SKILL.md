@@ -29,8 +29,10 @@ There is **no public Sign Up** — new users are created only by an admin from t
 | Login API | `app/api/auth/login/route.ts` |
 | Logout API | `app/api/auth/logout/route.ts` |
 | Change password API | `app/api/auth/change-password/route.ts` |
-| Auth Zod | `lib/auth/schemas.ts` — `loginSchema`, `changePasswordSchema` |
+| Update profile API | `app/api/auth/profile/route.ts` |
+| Auth Zod | `lib/auth/schemas.ts` — `loginSchema`, `changePasswordSchema`, `updateProfileSchema` |
 | Change password helper | `lib/auth/change-password.ts` |
+| Update profile helper | `lib/auth/update-profile.ts` |
 | Profile page | `app/dashboard/profile/page.tsx` |
 | Profile UI | `components/dashboard/profile/` |
 | NavUser menu | `components/dashboard/nav-user.tsx` — Profil / Tema / Keluar |
@@ -48,7 +50,8 @@ There is **no public Sign Up** — new users are created only by an admin from t
 - Existing `admin` users cannot be edited or deleted from the dashboard (repo guards)
 - Login form is login-only; copy notes that accounts are admin-provisioned
 - After successful login, default redirect is `/dashboard` (`appRoutes.dashboard`); `?next=` still wins when present
-- Self-service profile: `/dashboard/profile` (`appRoutes.profile`) — read-only nama/email/role; **Ubah password** opens a Dialog modal
+- Self-service profile: `/dashboard/profile` (`appRoutes.profile`) — editable nama/email; role read-only; **Simpan** calls `PATCH /api/auth/profile`; **Ubah password** opens a Dialog modal
+- Update profile: `PATCH /api/auth/profile` with session; `displayName` and/or `email`; email uniqueness enforced; no session rewrite needed (name/email fetched from DB each request via `getSessionUser`)
 - Change password: `POST /api/auth/change-password` with session; min 8 chars for new password; current session stays valid after change
 - Admin Users UI does **not** change passwords; self-service only via profile modal
 - User-facing auth strings: Bahasa Indonesia

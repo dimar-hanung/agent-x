@@ -43,7 +43,9 @@ export async function GET(
 
     let pdfUrl: string | null = null;
     if (isPdf) {
-      const { url } = await createDownloadUrl(user.userId, fileId);
+      const { url } = await createDownloadUrl(user.userId, fileId, {
+        disposition: "inline",
+      });
       pdfUrl = url;
     }
 
