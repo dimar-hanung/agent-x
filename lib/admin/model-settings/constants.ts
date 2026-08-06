@@ -23,6 +23,18 @@ export const TEXT_MODEL_OPTIONS = [
     id: "gemma4:12b-it-q4_K_M",
     label: "Gemma 4 12B IT Q4 (Ollama lokal)",
   },
+  {
+    id: "mistral-nemo:12b",
+    label: "Mistral Nemo 12B (Ollama lokal)",
+  },
+  {
+    id: "qwen3.5:9b",
+    label: "Qwen3.5 9B (Ollama lokal)",
+  },
+  {
+    id: "ministral-3:8b",
+    label: "Ministral 3 8B (Ollama lokal)",
+  }
 ] as const;
 
 export const VISION_MODEL_OPTIONS = [
@@ -54,6 +66,18 @@ export const VISION_MODEL_OPTIONS = [
     id: "gemma4:12b-it-q4_K_M",
     label: "Gemma 4 12B IT Q4 (Ollama lokal)",
   },
+  {
+    id: "mistral-nemo:12b",
+    label: "Mistral Nemo 12B (Ollama lokal)",
+  },
+  {
+    id: "qwen3.5:9b",
+    label: "Qwen3.5 9B (Ollama lokal)",
+  },
+  {
+    id: "ministral-3:8b",
+    label: "Ministral 3 8B (Ollama lokal)",
+  }
 ] as const;
 
 export const VOICE_INPUT_MODEL_OPTIONS = [
