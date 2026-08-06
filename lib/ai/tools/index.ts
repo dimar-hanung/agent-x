@@ -6,6 +6,7 @@ import type { ChatAgentRuntimeContext } from "@/lib/ai/agents/chat-agent";
 import type { UserContext } from "@/lib/ai/roles/types";
 
 import type { NativeToolKey } from "./tool-keys";
+import { createAskFileTool } from "./ask-file/ask-file.tool";
 import { createCancelScheduleTool } from "./cancel-schedule/cancel-schedule.tool";
 import { createCreateCalendarEventTool } from "./create-calendar-event/create-calendar-event.tool";
 import { createCreateMicrosoftCalendarEventTool } from "./create-microsoft-calendar-event/create-microsoft-calendar-event.tool";
@@ -27,6 +28,8 @@ import { createListMemoriesTool } from "./list-memories/list-memories.tool";
 import { createListSchedulesTool } from "./list-schedules/list-schedules.tool";
 import { createListTodosTool } from "./list-todos/list-todos.tool";
 import { createListWhatsappChatsTool } from "./list-whatsapp-chats/list-whatsapp-chats.tool";
+import { createListWhatsappContactsTool } from "./list-whatsapp-contacts/list-whatsapp-contacts.tool";
+import { createListWhatsappGroupsTool } from "./list-whatsapp-groups/list-whatsapp-groups.tool";
 import { createReadDriveFileTool } from "./read-drive-file/read-drive-file.tool";
 import { createReadEmailTool } from "./read-email/read-email.tool";
 import { createReadMicrosoftEmailTool } from "./read-microsoft-email/read-microsoft-email.tool";
@@ -88,7 +91,10 @@ function createToolRegistry(
     list_files: createListFilesTool(user),
     upload_file: createUploadFileTool(user),
     read_file: createReadFileTool(user),
+    ask_file: createAskFileTool(user),
     list_whatsapp_chats: createListWhatsappChatsTool(user),
+    list_whatsapp_contacts: createListWhatsappContactsTool(user),
+    list_whatsapp_groups: createListWhatsappGroupsTool(user),
     summarize_whatsapp_chat: createSummarizeWhatsappChatTool(user),
     summarize_whatsapp_digest: createSummarizeWhatsappDigestTool(user),
     search_whatsapp_messages: createSearchWhatsappMessagesTool(user),

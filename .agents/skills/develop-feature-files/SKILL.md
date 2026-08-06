@@ -2,7 +2,7 @@
 name: develop-feature-files
 description: >-
   Develop or extend AgentX private file storage (SeaweedFS S3, dashboard File
-  browser, 20 GB quota, list_files/upload_file/read_file tools). Use when working
+  browser, 20 GB quota, list_files/upload_file/read_file/ask_file tools). Use when working
   on user_files, /api/files, SeaweedFS infra, or AgentX storage AI tools.
 ---
 
@@ -12,7 +12,7 @@ description: >-
 
 - Changing Dashboard → File UI or `/api/files` routes
 - Touching SeaweedFS Docker Compose, S3 client, or storage env vars
-- Working on `list_files` / `upload_file` / `read_file` (AgentX storage, not Google Drive)
+- Working on `list_files` / `upload_file` / `read_file` / `ask_file` (AgentX storage, not Google Drive)
 - Quota, upload-session/confirm flow, or `user_files` schema
 - **PDF/DOCX indexing**, Docling, pgvector, file Q&A UI (`/dashboard/files/[fileId]`)
 
@@ -34,7 +34,7 @@ Private Drive-like storage per user. Blobs live in **SeaweedFS** (S3 API); hiera
 | DB table | `user_files` in `lib/db/schema.ts` |
 | API | `app/api/files/` |
 | Dashboard | `app/dashboard/files/`, `components/dashboard/files/` |
-| AI tools | `lib/ai/tools/list-files/`, `upload-file/`, `read-file/` |
+| AI tools | `lib/ai/tools/list-files/`, `upload-file/`, `read-file/`, `ask-file/` |
 | Prompt | `PROMPT_FILES` in `lib/ai/chat-config.ts` |
 | Env | `SEAWEEDFS_S3_*`, `DOCLING_SERVE_*` in `.env.example` |
 | Docling client | `lib/docling/` |
@@ -57,6 +57,7 @@ Private Drive-like storage per user. Blobs live in **SeaweedFS** (S3 API); hiera
 ## Learned Workspace Facts
 
 - Preview endpoint switches to `kind: "chunks"` once indexing finishes; PDF can still toggle native viewer via `pdfUrl`.
+- WhatsApp global-bot PDF/DOCX saves via `saveInboundWhatsAppAttachments` also call `enqueueFileIndex` when Docling configured (same worker as dashboard). Agent uses `ask_file` tool for document Q&A; replies must name the stored filename. Indexing-in-progress returns `success: true` (no WhatsApp ❌). When index becomes ready for files under `wa/`, the index worker sends a WhatsApp notify naming the file.
 - Migrations: `0017_file_rag_source_file` (via `db:migrate`), `0018_file_rag_vectors` (via `db:file-rag:vectors`), `0019_file_index_progress` (via `db:migrate`).
 - File Q&A layout: page uses `h-[calc(100svh-5rem)] overflow-hidden`; `file-chat-layout` splits Chat/Pratinjau with `min-h-0` + per-panel `overflow-y-auto` (same pattern as WhatsApp inbox).
 

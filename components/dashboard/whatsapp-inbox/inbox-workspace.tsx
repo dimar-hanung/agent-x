@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { WhatsAppUserInstanceView } from "@/lib/integrations/whatsapp-inbox/user-instance-repository";
 
+import { ContactListPanel } from "./contact-list-panel";
+import { GroupListPanel } from "./group-list-panel";
 import { MessageSearchPanel } from "./message-search-panel";
 import {
   SnapshotList,
@@ -14,18 +16,30 @@ import {
 } from "./snapshot-list";
 import { SnapshotPanel } from "./snapshot-panel";
 
-type WorkspaceTab = "search" | "snapshot";
+type WorkspaceTab = "search" | "snapshot" | "contacts" | "groups";
 
 interface InboxWorkspaceProps {
   initialInstance: WhatsAppUserInstanceView;
   initialSnapshots: DigestSnapshotListItem[];
 }
 
+function formatDirectorySyncedAt(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export function InboxWorkspace({
   initialInstance,
   initialSnapshots,
 }: InboxWorkspaceProps) {
-  const [instance] = useState(initialInstance);
+  const [instance, setInstance] = useState(initialInstance);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("snapshot");
   const [snapshots, setSnapshots] =
     useState<DigestSnapshotListItem[]>(initialSnapshots);
@@ -34,10 +48,16 @@ export function InboxWorkspace({
   );
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSyncingDirectory, setIsSyncingDirectory] = useState(false);
+  const [directorySyncedAt, setDirectorySyncedAt] = useState<string | null>(
+    initialInstance.directorySyncedAt
+  );
+  const [directoryRefreshToken, setDirectoryRefreshToken] = useState(0);
 
   const connected = instance.status === "connected";
   const selectedSnapshot =
     snapshots.find((snapshot) => snapshot.id === selectedId) ?? null;
+  const showDirectoryControls = activeTab === "contacts" || activeTab === "groups";
 
   const refreshSnapshotList = useCallback(async () => {
     const response = await fetch(
@@ -90,6 +110,41 @@ export function InboxWorkspace({
     }
   }
 
+  async function handleDirectorySync() {
+    setIsSyncingDirectory(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        "/api/integrations/whatsapp/inbox/directory/sync",
+        { method: "POST" }
+      );
+      const data = (await response.json()) as {
+        directorySyncedAt?: string;
+        message?: string;
+      };
+
+      if (!response.ok) {
+        setError(data.message ?? "Gagal memuat ulang direktori.");
+        return;
+      }
+
+      if (data.directorySyncedAt) {
+        setDirectorySyncedAt(data.directorySyncedAt);
+        setInstance((current) => ({
+          ...current,
+          directorySyncedAt: data.directorySyncedAt ?? null,
+        }));
+      }
+
+      setDirectoryRefreshToken((current) => current + 1);
+    } catch {
+      setError("Terjadi kesalahan saat memuat ulang direktori.");
+    } finally {
+      setIsSyncingDirectory(false);
+    }
+  }
+
   if (!connected) {
     return (
       <Card>
@@ -106,12 +161,21 @@ export function InboxWorkspace({
     );
   }
 
+  const formattedSyncTime = formatDirectorySyncedAt(directorySyncedAt);
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <p className="text-muted-foreground text-sm">
-          Terhubung{instance.phoneE164 ? ` · ${instance.phoneE164}` : ""}
-        </p>
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-sm">
+            Terhubung{instance.phoneE164 ? ` · ${instance.phoneE164}` : ""}
+          </p>
+          {showDirectoryControls && formattedSyncTime ? (
+            <p className="text-muted-foreground text-xs">
+              Terakhir disinkronkan: {formattedSyncTime}
+            </p>
+          ) : null}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={activeTab === "search" ? "default" : "outline"}
@@ -127,6 +191,29 @@ export function InboxWorkspace({
           >
             Snapshot ringkasan
           </Button>
+          <Button
+            variant={activeTab === "contacts" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("contacts")}
+          >
+            Kontak
+          </Button>
+          <Button
+            variant={activeTab === "groups" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("groups")}
+          >
+            Grup
+          </Button>
+          {showDirectoryControls ? (
+            <Button
+              onClick={handleDirectorySync}
+              disabled={isSyncingDirectory}
+              size="sm"
+            >
+              {isSyncingDirectory ? "Memuat ulang…" : "Muat ulang"}
+            </Button>
+          ) : null}
           {activeTab === "snapshot" ? (
             <Button onClick={handleGenerate} disabled={isGenerating} size="sm">
               {isGenerating
@@ -146,6 +233,20 @@ export function InboxWorkspace({
       {activeTab === "search" ? (
         <div className="min-h-0 flex-1 overflow-hidden">
           <MessageSearchPanel />
+        </div>
+      ) : activeTab === "contacts" ? (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ContactListPanel
+            refreshToken={directoryRefreshToken}
+            onDirectorySyncedAt={setDirectorySyncedAt}
+          />
+        </div>
+      ) : activeTab === "groups" ? (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <GroupListPanel
+            refreshToken={directoryRefreshToken}
+            onDirectorySyncedAt={setDirectorySyncedAt}
+          />
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_1fr] lg:grid-rows-1">

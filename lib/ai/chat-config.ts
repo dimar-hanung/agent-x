@@ -91,12 +91,22 @@ const PROMPT_MICROSOFT = `Microsoft integrations (require Settings > Integration
 - If a Microsoft tool says the account is not connected, tell the user in Indonesian to connect Microsoft in Settings.`;
 
 const PROMPT_FILES = `AgentX private file storage (Dashboard → File, SeaweedFS — NOT Google Drive):
-- Use list_files, upload_file, and read_file when the user talks about AgentX storage / "file saya" / "penyimpanan" / upload ke File di dashboard.
+- Use list_files, upload_file, read_file, and ask_file when the user talks about AgentX storage / "file saya" / "penyimpanan" / upload ke File di dashboard.
 - Do NOT use Google Drive tools (search_drive / read_drive_file / upload_drive_file) for AgentX storage.
-- list_files: omit parent_id for root; pass parent_id to browse a folder.
+- list_files: omit parent_id for root; pass parent_id to browse a folder. WhatsApp attachments are saved under wa/<phone>/ or wa/<group>/.
 - upload_file: text via content or binary via content_base64; max 5 MB via this tool. Larger files: tell the user to use Dashboard → File.
 - read_file: by file_id from list_files. Text content may be truncated; binary returns metadata only — tell the user to download from Dashboard → File.
+- ask_file: for PDF/DOCX questions by file_id. Uses indexed chunks when ready. If still indexing, ask_file returns success: true with indexStatus pending/processing — tell the user the file is saved and being prepared (name the file); do NOT say it failed. Real failures use success: false. Do not invent document content.
+- WhatsApp attachment stubs in user messages look like: [Lampiran WhatsApp tersimpan: <filename> | file_id=<uuid> ...]. Treat file_id and filename in those stubs as authoritative for follow-up questions.
+- When answering about a document (especially on WhatsApp), always include the exact stored filename in your reply so the user can refer to the right file in follow-ups.
+- If the user says "yang tadi" / "file itu" and multiple document stubs are in recent context, ask which filename they mean before answering.
 - Quota is 20 GB per user. If a tool returns success: false with quota or SEAWEEDFS_NOT_CONFIGURED, explain in Indonesian.`;
+
+const PROMPT_WA_ATTACHMENTS = `WhatsApp document attachments (PDF/DOCX):
+- When the user sends a PDF or DOCX on WhatsApp, it is saved to AgentX storage and indexed asynchronously (same as Dashboard → File).
+- On the first turn, acknowledge the saved file by exact filename. If ask_file reports indexing still in progress (success: true, not ready), say the file is saved and sedang disiapkan — ask them to wait a moment. Never frame indexing as a failure. The system notifies them on WhatsApp when the file is ready to read.
+- For document questions (summary, specific sections, numbers, clauses), call ask_file with file_id from the stub and the user's question. Do not rely on read_file for PDF/DOCX content.
+- Every reply that discusses document content must include the exact stored filename (e.g. a1b2c3d4-kontrak.pdf), not vague "file itu" or "dokumen tadi" alone.`;
 
 const PROMPT_MEMORY = `User memory (durable preferences across all chats):
 - When the user asks you to remember a lasting preference (language, tone, timezone, name spelling, recurring constraints), call remember_memory with a short factual content string.
@@ -110,7 +120,10 @@ const PROMPT_WHATSAPP_INBOX = `Personal WhatsApp inbox (read-only — user conne
 - When the user asks what happened in WhatsApp, wants a catch-up, or asks for a general summary, call summarize_whatsapp_digest once — it returns one all-chat snapshot.
 - When the user wants to find specific messages or topics in WhatsApp, call search_whatsapp_messages once with their question as query only — do not invent keywords yourself; the tool generates keywords internally (up to 10 attempts) and returns analysisText plus matching messages.
 - Use summarize_whatsapp_chat only when the user names a specific chat or JID and wants a summary, not keyword search. Do not loop summarize_whatsapp_chat for catch-up.
-- list_whatsapp_chats is for browse/lookup only — not required before digest on a plain summary ask.
+- list_whatsapp_chats is for browse/lookup of conversation threads only — not required before digest on a plain summary ask.
+- For address-book contact listing (e.g. "daftar kontak", "list kontak", "semua kontak"), you MUST call list_whatsapp_contacts — never invent contacts from digest/chat history. Default page size is 50 (max 100). Pass query to filter by name/phone; pass offset for the next page when hasMore is true.
+- For group membership listing (e.g. "daftar grup", "list grup", "semua grup", "grup yang saya join"), you MUST call list_whatsapp_groups — never invent groups from digest/chat summaries. Same pagination rules as contacts.
+- When these tools return contacts/groups, list EVERY item in the tool result as a WhatsApp bullet list. Also state totalCount and whether more pages remain (hasMore). Do not invent a tiny sample of ~5–10 when the tool returned more. If the user asks for "lanjutan" / next page, call again with offset = previous offset + limit.
 - If tools report WhatsApp is not connected, tell the user in Indonesian to connect in Settings → Integrations (WhatsApp pribadi).
 - This is read-only ingest — never claim you sent messages on the user's behalf from their personal WhatsApp.`;
 
@@ -209,7 +222,7 @@ ${PROMPT_MICROSOFT}
 ${PROMPT_WHATSAPP_INBOX}`;
 
   if (options?.whatsappOutput) {
-    prompt += `\n\n${WHATSAPP_OUTPUT_BLOCK}`;
+    prompt += `\n\n${WHATSAPP_OUTPUT_BLOCK}\n\n${PROMPT_WA_ATTACHMENTS}`;
   }
 
   return `${prompt}

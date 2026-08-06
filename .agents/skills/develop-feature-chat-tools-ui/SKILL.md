@@ -45,7 +45,7 @@ Native tools return `ToolResult` (`success`, optional `message`). Soft failures 
 - Chat tool registry is still per-tool conditionals in `message-row.tsx` (no shared registry yet): web search → `WebSearchToolChip`, Apify social → `SocialMediaToolChip`, else `ToolChip`.
 - Model-visible web search keys are `web_search` / `web_fetch`. The web UI also recognizes historical `exa_web_search` / `exa_web_fetch` parts so old chat transcripts still render.
 - Message source badge: `scheduler` → **Otomatisasi**, `apify` → **Media sosial**, `whatsapp` → **WhatsApp**.
-- WhatsApp tool progress: wire `onToolExecutionStart` on the agent (not only `onStepEnd`). Labels live in `tool-progress-labels.ts`; unknown tools fall back to `Menjalankan {name}…`.
+- WhatsApp tool progress: wire `onToolExecutionStart` on the agent (not only `onStepEnd`). Labels live in `tool-progress-labels.ts`; unknown tools fall back to `Menjalankan {name}…`. Mid-tool search progress uses `notifyWhatsAppToolProgress` with dynamic `Mencari dengan: …` lines (recognized by `isToolProgressLabel` / `isWhatsAppSearchProgressMessage`).
 - WhatsApp summary tools use the status `Menyinkronkan dan merangkum data WhatsApp…` while the inbox watermark catches up. The web generic tool chip shows the same running label; do not send repeated polling messages.
 - WhatsApp tool errors: wire `onToolExecutionEnd` → `notifyWhatsAppToolError`. Soft + hard fails mapped via `toFriendlyToolError` / `formatWhatsAppToolError` (no snake_case tool keys, no API/HTTP jargon). Format: `❌ {friendly Indonesian message}`.
 - Progress/error notifies are for main-channel web mirror and WhatsApp/scheduler channel replies; send failures are swallowed so the agent continues.

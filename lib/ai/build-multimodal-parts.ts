@@ -1,6 +1,7 @@
 import type { UIMessage } from "ai";
 
 import { isVisionModelEnabled } from "@/lib/admin/model-settings/constants";
+import { isIndexableFile } from "@/lib/files/constants";
 import type { WhatsAppSavedAttachment } from "@/lib/integrations/whatsapp/types";
 
 export interface MultimodalBuildResult {
@@ -8,17 +9,25 @@ export interface MultimodalBuildResult {
   requiresVision: boolean;
 }
 
+function buildWaAttachmentStub(attachment: WhatsAppSavedAttachment): string {
+  const indexable = isIndexableFile(attachment.mimeType, attachment.fileName);
+  const indexNote = indexable ? " | indeks PDF/DOCX dijadwalkan" : "";
+
+  return `[Lampiran WhatsApp tersimpan: ${attachment.fileName} | file_id=${attachment.fileId}${indexNote}]`;
+}
+
 function buildAttachmentTextBlock(attachments: WhatsAppSavedAttachment[]): string {
   const lines: string[] = [];
 
   for (const attachment of attachments) {
-    if (!attachment.textContent) {
+    const stub = buildWaAttachmentStub(attachment);
+
+    if (attachment.textContent) {
+      lines.push(`${stub}\n${attachment.textContent}`);
       continue;
     }
 
-    lines.push(
-      `[Lampiran WhatsApp: ${attachment.fileName}]\n${attachment.textContent}`
-    );
+    lines.push(stub);
   }
 
   return lines.join("\n\n");

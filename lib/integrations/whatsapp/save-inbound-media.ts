@@ -1,8 +1,11 @@
+import { isDoclingConfigured } from "@/lib/docling/env";
 import {
   AI_READ_TEXT_MAX_CHARS,
+  isIndexableFile,
   SEAWEEDFS_NOT_CONFIGURED_MESSAGE,
 } from "@/lib/files/constants";
 import { ensureFolderPath } from "@/lib/files/ensure-folder-path";
+import { enqueueFileIndex } from "@/lib/files/index-repository";
 import { uploadFileBytes } from "@/lib/files/repository";
 import { isSeaweedfsConfigured } from "@/lib/files/s3-client";
 import type {
@@ -71,10 +74,6 @@ export function attachmentRequiresVision(
     return true;
   }
 
-  if (mime === "application/pdf") {
-    return true;
-  }
-
   return false;
 }
 
@@ -138,6 +137,16 @@ export async function saveInboundWhatsAppAttachments(
         ? toDataUrl(item.media.mimeType || item.meta.mimeType, item.media.base64)
         : undefined,
     });
+
+    const mimeType = item.media.mimeType || item.meta.mimeType;
+    if (
+      isDoclingConfigured() &&
+      isIndexableFile(mimeType, file.name)
+    ) {
+      await enqueueFileIndex(userId, file.id).catch((error) => {
+        console.error("enqueueFileIndex error:", error);
+      });
+    }
   }
 
   return saved;

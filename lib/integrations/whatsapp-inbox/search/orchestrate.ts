@@ -1,6 +1,10 @@
 import { getWhatsAppSearchMaxKeywordAttempts } from "@/lib/integrations/whatsapp-inbox/config";
 
-import { generateNextSearchKeyword } from "./keyword-generation";
+import { generateNextSearchKeywords } from "./keyword-generation";
+import {
+  formatWhatsAppSearchAttemptMessage,
+  type WhatsAppSearchProgressCallback,
+} from "./progress";
 import {
   dedupeSearchHits,
   searchWhatsAppMessages,
@@ -12,6 +16,7 @@ export interface RunWhatsAppMessageSearchInput {
   chatQuery?: string;
   since?: Date;
   abortSignal?: AbortSignal;
+  onProgress?: WhatsAppSearchProgressCallback;
 }
 
 export type RunWhatsAppMessageSearchResult =
@@ -24,6 +29,21 @@ export type RunWhatsAppMessageSearchResult =
       chatFilter: string | null;
     }
   | { success: false; message: string; attemptedKeywords: string[] };
+
+function collectSuccessfulKeywords(
+  batchKeywords: string[],
+  results: WhatsAppMessageSearchHit[]
+): string[] {
+  const matched = new Set(
+    results.flatMap((hit) =>
+      hit.matchedKeywords.map((keyword) => keyword.toLowerCase())
+    )
+  );
+
+  return batchKeywords.filter((keyword) =>
+    matched.has(keyword.toLowerCase())
+  );
+}
 
 export async function runWhatsAppMessageSearch(
   userId: string,
@@ -43,6 +63,7 @@ export async function runWhatsAppMessageSearch(
   const successfulKeywords: string[] = [];
   let results: WhatsAppMessageSearchHit[] = [];
   let chatFilter: string | null = null;
+  let attemptCount = 0;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     if (input.abortSignal?.aborted) {
@@ -53,21 +74,35 @@ export async function runWhatsAppMessageSearch(
       };
     }
 
-    const keyword = await generateNextSearchKeyword({
+    const keywords = await generateNextSearchKeywords({
       query,
       attemptedKeywords,
       chatQuery: input.chatQuery,
       abortSignal: input.abortSignal,
     });
 
-    if (!keyword) {
+    if (keywords.length === 0) {
       continue;
     }
 
-    attemptedKeywords.push(keyword);
+    attemptCount += 1;
+    attemptedKeywords.push(...keywords);
+
+    const message = formatWhatsAppSearchAttemptMessage(
+      keywords,
+      attemptCount,
+      maxAttempts
+    );
+    await input.onProgress?.({
+      type: "attempt",
+      attempt: attemptCount,
+      maxAttempts,
+      keywords,
+      message,
+    });
 
     const searchResult = await searchWhatsAppMessages(userId, {
-      keywords: [keyword],
+      keywords,
       chatQuery: input.chatQuery,
       since: input.since,
     });
@@ -86,7 +121,9 @@ export async function runWhatsAppMessageSearch(
       continue;
     }
 
-    successfulKeywords.push(keyword);
+    successfulKeywords.push(
+      ...collectSuccessfulKeywords(keywords, searchResult.results)
+    );
     results = dedupeSearchHits(results, searchResult.results);
     break;
   }
@@ -99,7 +136,7 @@ export async function runWhatsAppMessageSearch(
 
     return {
       success: false,
-      message: `Tidak ada pesan yang cocok setelah ${attemptedKeywords.length} percobaan. Kata kunci dicoba: ${tried}.`,
+      message: `Tidak ada pesan yang cocok setelah ${attemptCount} percobaan (${attemptedKeywords.length} kata kunci). Kata kunci dicoba: ${tried}.`,
       attemptedKeywords,
     };
   }

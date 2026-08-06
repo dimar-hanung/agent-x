@@ -27,6 +27,26 @@ interface SearchResponse {
   message?: string;
 }
 
+type StreamEvent =
+  | {
+      type: "attempt";
+      attempt: number;
+      maxAttempts: number;
+      keywords: string[];
+      message: string;
+    }
+  | {
+      type: "analyzing";
+      message: string;
+      messageCount: number;
+    }
+  | ({ type: "done" } & SearchResponse)
+  | {
+      type: "error";
+      message: string;
+      attemptedKeywords: string[];
+    };
+
 function formatSentAt(value: string) {
   return new Intl.DateTimeFormat("id-ID", {
     timeZone: "Asia/Jakarta",
@@ -69,6 +89,8 @@ export function MessageSearchPanel() {
   const [query, setQuery] = useState("");
   const [chatFilter, setChatFilter] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [liveKeywords, setLiveKeywords] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<SearchResponse | null>(null);
   const [showKeywords, setShowKeywords] = useState(false);
@@ -83,9 +105,16 @@ export function MessageSearchPanel() {
 
     setIsSearching(true);
     setError(null);
+    setResponse(null);
+    setProgressMessage("Menyusun kata kunci…");
+    setLiveKeywords([]);
+    setShowKeywords(false);
 
     try {
-      const params = new URLSearchParams({ query: trimmedQuery });
+      const params = new URLSearchParams({
+        query: trimmedQuery,
+        stream: "1",
+      });
       if (chatFilter.trim()) {
         params.set("chat", chatFilter.trim());
       }
@@ -94,37 +123,104 @@ export function MessageSearchPanel() {
         `/api/integrations/whatsapp/inbox/messages/search?${params.toString()}`,
         { cache: "no-store" }
       );
-      const data = (await result.json()) as SearchResponse;
 
-      if (!result.ok) {
-        setResponse(null);
-        setError(data.message ?? "Gagal mencari pesan.");
-        if (data.attemptedKeywords?.length) {
-          setResponse({
-            query: trimmedQuery,
-            attemptedKeywords: data.attemptedKeywords,
-            successfulKeywords: [],
-            results: [],
-            analysisText: "",
-            chatCount: 0,
-            chunkCount: 0,
-            messageCount: 0,
-            chatFilter: chatFilter.trim() || null,
-          });
+      if (!result.ok || !result.body) {
+        const data = (await result.json().catch(() => null)) as {
+          message?: string;
+          attemptedKeywords?: string[];
+        } | null;
+        setError(data?.message ?? "Gagal mencari pesan.");
+        if (data?.attemptedKeywords?.length) {
+          setLiveKeywords(data.attemptedKeywords);
           setShowKeywords(true);
         }
         return;
       }
 
-      setResponse(data);
-      setShowKeywords(data.attemptedKeywords.length > 1);
+      const reader = result.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let sawTerminal = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) {
+            continue;
+          }
+
+          const event = JSON.parse(trimmed) as StreamEvent;
+
+          if (event.type === "attempt") {
+            setProgressMessage(event.message);
+            setLiveKeywords((current) => {
+              const next = [...current];
+              for (const keyword of event.keywords) {
+                if (
+                  !next.some(
+                    (existing) =>
+                      existing.toLowerCase() === keyword.toLowerCase()
+                  )
+                ) {
+                  next.push(keyword);
+                }
+              }
+              return next;
+            });
+            setShowKeywords(true);
+            continue;
+          }
+
+          if (event.type === "analyzing") {
+            setProgressMessage(event.message);
+            continue;
+          }
+
+          if (event.type === "error") {
+            sawTerminal = true;
+            setError(event.message);
+            setResponse(null);
+            if (event.attemptedKeywords.length) {
+              setLiveKeywords(event.attemptedKeywords);
+              setShowKeywords(true);
+            }
+            continue;
+          }
+
+          if (event.type === "done") {
+            sawTerminal = true;
+            const { type: _type, ...data } = event;
+            setResponse(data);
+            setLiveKeywords(data.attemptedKeywords);
+            setShowKeywords(data.attemptedKeywords.length > 1);
+            setProgressMessage(null);
+          }
+        }
+      }
+
+      if (!sawTerminal) {
+        setError("Pencarian terputus sebelum selesai.");
+      }
     } catch {
       setError("Terjadi kesalahan saat mencari pesan.");
       setResponse(null);
     } finally {
       setIsSearching(false);
+      setProgressMessage(null);
     }
   }
+
+  const keywordsToShow =
+    response?.attemptedKeywords.length ? response.attemptedKeywords : liveKeywords;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -151,28 +247,37 @@ export function MessageSearchPanel() {
             />
           </div>
           <Button type="submit" disabled={isSearching || !query.trim()}>
-            {isSearching ? "Mencari dan menganalisis…" : "Cari"}
+            {isSearching ? "Mencari…" : "Cari"}
           </Button>
         </div>
         <p className="text-muted-foreground text-sm">
-          Sistem membuat kata kunci secara otomatis (maks. 10 percobaan) lalu
+          Sistem membuat 5 kata kunci per percobaan (maks. 10 percobaan) lalu
           menganalisis pesan teks yang cocok.
         </p>
+        {isSearching && progressMessage ? (
+          <p
+            className="text-foreground text-sm"
+            aria-live="polite"
+            role="status"
+          >
+            {progressMessage}
+          </p>
+        ) : null}
       </form>
 
       {error ? <p className="text-destructive shrink-0 text-sm">{error}</p> : null}
 
-      {response?.attemptedKeywords.length ? (
+      {keywordsToShow.length ? (
         <Collapsible open={showKeywords} onOpenChange={setShowKeywords}>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="w-fit px-0">
-              Kata kunci dicoba ({response.attemptedKeywords.length})
+              Kata kunci dicoba ({keywordsToShow.length})
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <p className="text-muted-foreground text-sm">
-              {response.attemptedKeywords.join(", ")}
-              {response.successfulKeywords.length > 0
+              {keywordsToShow.join(", ")}
+              {response?.successfulKeywords.length
                 ? ` · berhasil: ${response.successfulKeywords.join(", ")}`
                 : null}
             </p>

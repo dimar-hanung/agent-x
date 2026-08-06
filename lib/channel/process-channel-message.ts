@@ -199,6 +199,13 @@ export async function processChannelMessage(
   const toolNames = result.steps.flatMap((step) =>
     step.toolCalls.map((toolCall) => toolCall.toolName)
   );
+
+  if (input.source === "whatsapp" && toolNames.length > 0) {
+    console.info(
+      `[wa-agent] user=${user.userId} tools=${toolNames.join(",")}`
+    );
+  }
+
   const voiceReplyDecision = replyViaWhatsApp
     ? decideWhatsAppVoiceReply(
         {

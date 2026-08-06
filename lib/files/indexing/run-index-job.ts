@@ -8,13 +8,17 @@ import {
   embedTexts,
   getEmbeddingModelLabel,
 } from "@/lib/ai/embeddings/openrouter-embeddings";
-import { getFileRow } from "@/lib/files/repository";
+import {
+  getBreadcrumb,
+  getFileRow,
+} from "@/lib/files/repository";
 import {
   markIndexFailed,
   replaceFileChunks,
   updateFileIndexProgress,
 } from "@/lib/files/index-repository";
 import { getObjectBytes } from "@/lib/files/s3-client";
+import { sendWhatsAppToUser } from "@/lib/integrations/whatsapp-channel-repository";
 
 function userFacingIndexError(error: unknown): string {
   if (error instanceof DoclingNotConfiguredError) {
@@ -27,6 +31,31 @@ function userFacingIndexError(error: unknown): string {
     return "Gagal membuat embedding dokumen.";
   }
   return "Gagal mengindeks dokumen.";
+}
+
+/** WA inbound docs live under root folder `wa/` — notify user when ready. */
+async function notifyWhatsAppIfWaOriginFile(
+  userId: string,
+  fileId: string,
+  fileName: string,
+  parentId: string | null
+): Promise<void> {
+  try {
+    const breadcrumb = await getBreadcrumb(userId, parentId);
+    if (breadcrumb[0]?.name !== "wa") {
+      return;
+    }
+
+    await sendWhatsAppToUser(
+      userId,
+      `*${fileName}* siap dibaca. Tanya isinya kapan saja.`
+    );
+  } catch (error) {
+    console.error(
+      `[files:index] WA ready notify gagal file=${fileId}:`,
+      error
+    );
+  }
 }
 
 export async function runIndexJobForFile(
@@ -115,6 +144,13 @@ export async function runIndexJobForFile(
 
     console.info(
       `[files:index] ready file=${fileId} chunks=${stored.length} model=${getEmbeddingModelLabel()}`
+    );
+
+    await notifyWhatsAppIfWaOriginFile(
+      userId,
+      fileId,
+      row.name,
+      row.parentId
     );
   } catch (error) {
     console.error(`[files:index] failed file=${fileId}:`, error);

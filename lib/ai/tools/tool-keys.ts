@@ -35,7 +35,10 @@ export type NativeToolKey =
   | "list_files"
   | "upload_file"
   | "read_file"
+  | "ask_file"
   | "list_whatsapp_chats"
+  | "list_whatsapp_contacts"
+  | "list_whatsapp_groups"
   | "summarize_whatsapp_chat"
   | "summarize_whatsapp_digest"
   | "search_whatsapp_messages";

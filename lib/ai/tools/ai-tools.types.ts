@@ -14,6 +14,7 @@ export interface ToolResult {
   data?: unknown;
 }
 
+export type { AskFileToolResult } from "./ask-file/types";
 export type { CancelScheduleToolResult } from "./cancel-schedule/types";
 export type { CreateCalendarEventToolResult } from "./create-calendar-event/types";
 export type { CreateScheduleToolResult } from "./create-schedule/types";

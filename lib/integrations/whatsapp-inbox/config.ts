@@ -63,6 +63,10 @@ export function getWhatsAppSearchMaxKeywordAttempts(): number {
   return positiveIntegerEnv("WHATSAPP_SEARCH_MAX_KEYWORD_ATTEMPTS", 10);
 }
 
+export function getWhatsAppSearchKeywordsPerAttempt(): number {
+  return positiveIntegerEnv("WHATSAPP_SEARCH_KEYWORDS_PER_ATTEMPT", 5);
+}
+
 export function getWhatsAppSearchAiChunkSize(): number {
   return positiveIntegerEnv("WHATSAPP_SEARCH_AI_CHUNK_SIZE", 500);
 }
@@ -77,4 +81,8 @@ export function getWhatsAppSearchMaxMessagesPerChat(): number {
 
 export function getWhatsAppSearchMaxCharsPerChat(): number {
   return positiveIntegerEnv("WHATSAPP_SEARCH_MAX_CHARS_PER_CHAT", 2000);
+}
+
+export function getWhatsAppDirectorySyncPageSize(): number {
+  return positiveIntegerEnv("WHATSAPP_DIRECTORY_SYNC_PAGE_SIZE", 500);
 }

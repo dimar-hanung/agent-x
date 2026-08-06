@@ -135,3 +135,15 @@ export interface WhatsAppWebhookPayload {
   sender?: string;
   data?: unknown;
 }
+
+export interface WhatsAppContactRecord {
+  contactJid: string;
+  displayName: string;
+  phoneE164?: string;
+}
+
+export interface WhatsAppGroupRecord {
+  groupJid: string;
+  displayName: string;
+  participantCount?: number;
+}

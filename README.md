@@ -83,6 +83,7 @@ pm2 start npm --name agentx-scheduler -- run scheduler:worker
 pm2 start npm --name agentx-apify -- run apify:worker
 pm2 start npm --name agentx-files-index -- run files:index-worker
 pm2 start npm --name agentx-whatsapp-inbox -- run whatsapp-inbox:worker
+pm2 start npm --name agentx-whatsapp-bot -- run whatsapp-bot:worker
 
 # Persist process list across reboots
 pm2 save
@@ -99,6 +100,30 @@ pm2 stop all
 ```
 
 After code changes: `npm run build && pm2 restart all`.
+
+## Background workers
+
+All workers are separate Node processes (not part of `next start`). They read `.env` via `--env-file=.env`. Without the relevant worker running, that feature queues work but never finishes it.
+
+| npm script | PM2 name | Purpose |
+|------------|----------|---------|
+| `scheduler:worker` | `agentx-scheduler` | Runs recurring / one-time AI jobs (`node-schedule`) and posts results to the user's **Kanal utama**. Also sends todo `starts_at` / reminder WhatsApp notifications. |
+| `apify:worker` | `agentx-apify` | Polls Apify actor runs for TikTok / Twitter/X / Threads snapshots (`fetch_*_data`). On completion, stores items and notifies the user's main channel (and optionally WhatsApp). |
+| `files:index-worker` | `agentx-files-index` | Indexes uploaded PDF/DOCX (Docling + embeddings) for file RAG (`ask_file`). Also indexes WhatsApp-inbound documents under `wa/…` and can notify when a file is ready. |
+| `whatsapp-inbox:worker` | `agentx-whatsapp-inbox` | Promotes durable personal-inbox webhook events into inbox chat/message tables (per-chat order, bounded concurrency). Text is stored for summaries; media stays deferred metadata. |
+| `whatsapp-bot:worker` | `agentx-whatsapp-bot` | Claims global-channel WhatsApp bot jobs after the webhook enqueues them. Generates the AI reply and delivers it via Evolution. Without this, inbound channel messages queue but never get answered. |
+
+Local / multi-terminal (alongside `npm run dev`):
+
+```bash
+npm run scheduler:worker
+npm run apify:worker
+npm run files:index-worker
+npm run whatsapp-inbox:worker
+npm run whatsapp-bot:worker
+```
+
+Optional poll intervals (defaults `15000` ms unless noted in `.env.example`): `SCHEDULER_POLL_INTERVAL_MS`, `APIFY_WORKER_POLL_INTERVAL_MS`, `FILES_INDEX_WORKER_POLL_INTERVAL_MS`, plus WhatsApp inbox/bot worker env in `.env.example`.
 
 ## Features
 
@@ -123,20 +148,7 @@ AgentX uses [Vercel AI SDK](https://sdk.vercel.ai) with role-gated tools and Pos
 
 ### Scheduled jobs
 
-Users with role `client` or `admin` can create recurring or one-time AI jobs via chat. A background worker executes them with `node-schedule` and saves results to the user's **Kanal utama** (main channel).
-
-Run the app and scheduler worker in **separate terminals**:
-
-```bash
-npm run dev
-npm run scheduler:worker
-npm run apify:worker
-npm run whatsapp-inbox:worker
-```
-
-Optional env: `SCHEDULER_POLL_INTERVAL_MS` (default `15000`) — how often the worker syncs jobs from PostgreSQL.
-
-For Apify social media jobs, keep `npm run apify:worker` running too. Optional env: `APIFY_WORKER_POLL_INTERVAL_MS` (default `15000`).
+Users with role `client` or `admin` can create recurring or one-time AI jobs via chat. The **scheduler** worker executes them with `node-schedule` and saves results to the user's **Kanal utama** (main channel). See [Background workers](#background-workers) for every worker and how to run them.
 
 Chat examples:
 
@@ -159,6 +171,7 @@ Each user has one pinned **Kanal utama** at `/chat` (cron output and default cha
 
 1. **Admin** — open [Dashboard → Pengaturan → Channel WhatsApp](http://localhost:3000/dashboard/settings/whatsapp-channel), scan QR (Evolution API).
 2. **Users** — open [Pengaturan → Integrasi](http://localhost:3000/dashboard/settings), register their phone number, then message the global channel number from that phone.
+3. Keep `npm run whatsapp-bot:worker` running. The webhook acknowledges Evolution instantly and enqueues a durable job; this worker generates and delivers the reply. Without it, inbound messages queue but never get answered.
 
 **Personal inbox setup:**
 

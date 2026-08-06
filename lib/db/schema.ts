@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { toVectorLiteral } from "@/lib/db/pgvector";
+import type { WhatsAppSavedAttachment } from "@/lib/integrations/whatsapp/types";
 
 const vector3072 = customType<{ data: number[]; driverData: string }>({
   dataType() {
@@ -193,6 +194,7 @@ export const whatsappUserInstances = pgTable(
       .default("disconnected"),
     phoneE164: varchar("phone_e164", { length: 20 }),
     connectedAt: timestamp("connected_at", { withTimezone: true }),
+    directorySyncedAt: timestamp("directory_synced_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -206,6 +208,64 @@ export const whatsappUserInstances = pgTable(
       table.instanceName
     ),
     uniqueIndex("whatsapp_user_instances_phone_e164_idx").on(table.phoneE164),
+  ]
+);
+
+export const whatsappContacts = pgTable(
+  "whatsapp_contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    contactJid: varchar("contact_jid", { length: 128 }).notNull(),
+    displayName: varchar("display_name", { length: 255 }).notNull(),
+    phoneE164: varchar("phone_e164", { length: 20 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_contacts_user_contact_jid_idx").on(
+      table.userId,
+      table.contactJid
+    ),
+    index("whatsapp_contacts_user_display_name_idx").on(
+      table.userId,
+      table.displayName
+    ),
+  ]
+);
+
+export const whatsappGroups = pgTable(
+  "whatsapp_groups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    groupJid: varchar("group_jid", { length: 128 }).notNull(),
+    displayName: varchar("display_name", { length: 255 }).notNull(),
+    participantCount: integer("participant_count"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_groups_user_group_jid_idx").on(
+      table.userId,
+      table.groupJid
+    ),
+    index("whatsapp_groups_user_display_name_idx").on(
+      table.userId,
+      table.displayName
+    ),
   ]
 );
 
@@ -323,6 +383,55 @@ export const whatsappInboxEvents = pgTable(
     index("whatsapp_inbox_events_partition_idx").on(
       table.userId,
       table.remoteJid,
+      table.status,
+      table.sequence
+    ),
+  ]
+);
+
+// Durable queue for global WhatsApp bot replies. The webhook enqueues a job and
+// acknowledges Evolution immediately; a separate worker generates and delivers
+// the reply. Decouples slow model/tool runs from the webhook request so
+// Evolution never times out and retries (which the in-memory dedup would drop).
+export const whatsappBotJobs = pgTable(
+  "whatsapp_bot_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sequence: bigserial("sequence", { mode: "number" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    waMessageId: varchar("wa_message_id", { length: 128 }).notNull(),
+    text: text("text").notNull().default(""),
+    attachments: jsonb("attachments").$type<WhatsAppSavedAttachment[] | null>(),
+    inputMode: varchar("input_mode", { length: 16 }).notNull().default("text"),
+    status: varchar("status", { length: 32 }).notNull().default("queued"),
+    attempts: integer("attempts").notNull().default(0),
+    availableAt: timestamp("available_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_bot_jobs_user_message_idx").on(
+      table.userId,
+      table.waMessageId
+    ),
+    index("whatsapp_bot_jobs_queue_idx").on(
+      table.status,
+      table.availableAt,
+      table.sequence
+    ),
+    index("whatsapp_bot_jobs_partition_idx").on(
+      table.userId,
       table.status,
       table.sequence
     ),
@@ -774,9 +883,12 @@ export type ScheduledJob = typeof scheduledJobs.$inferSelect;
 export type UserIntegration = typeof userIntegrations.$inferSelect;
 export type WhatsAppChannelConfig = typeof whatsappChannelConfig.$inferSelect;
 export type WhatsAppUserInstance = typeof whatsappUserInstances.$inferSelect;
+export type WhatsAppContact = typeof whatsappContacts.$inferSelect;
+export type WhatsAppGroup = typeof whatsappGroups.$inferSelect;
 export type WhatsAppChat = typeof whatsappChats.$inferSelect;
 export type WhatsAppMessage = typeof whatsappMessages.$inferSelect;
 export type WhatsAppInboxEvent = typeof whatsappInboxEvents.$inferSelect;
+export type WhatsAppBotJob = typeof whatsappBotJobs.$inferSelect;
 export type WhatsAppChatSummary = typeof whatsappChatSummaries.$inferSelect;
 export type WhatsAppDigestSnapshot = typeof whatsappDigestSnapshots.$inferSelect;
 export type NewWhatsAppDigestSnapshot = typeof whatsappDigestSnapshots.$inferInsert;

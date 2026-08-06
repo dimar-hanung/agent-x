@@ -1,4 +1,5 @@
 import type { NativeToolKey } from "@/lib/ai/tools/tool-keys";
+import { isWhatsAppSearchProgressMessage } from "@/lib/integrations/whatsapp-inbox/search/progress";
 
 /** Short Indonesian progress lines sent to WhatsApp when a tool starts. */
 const TOOL_PROGRESS_LABELS = {
@@ -38,7 +39,10 @@ const TOOL_PROGRESS_LABELS = {
   list_files: "Memuat file…",
   upload_file: "Mengunggah file…",
   read_file: "Membaca file…",
+  ask_file: "Membaca dokumen…",
   list_whatsapp_chats: "Memuat chat WhatsApp…",
+  list_whatsapp_contacts: "Memuat kontak WhatsApp…",
+  list_whatsapp_groups: "Memuat grup WhatsApp…",
   summarize_whatsapp_chat: "Menyinkronkan dan merangkum data WhatsApp…",
   summarize_whatsapp_digest: "Menyinkronkan dan merangkum data WhatsApp…",
   search_whatsapp_messages: "Mencari dan menganalisis pesan WhatsApp…",
@@ -49,7 +53,11 @@ const TOOL_PROGRESS_LABEL_SET = new Set<string>(
 );
 
 export function isToolProgressLabel(text: string): boolean {
-  return TOOL_PROGRESS_LABEL_SET.has(text.trim());
+  const trimmed = text.trim();
+  return (
+    TOOL_PROGRESS_LABEL_SET.has(trimmed) ||
+    isWhatsAppSearchProgressMessage(trimmed)
+  );
 }
 
 export function getToolProgressLabel(toolName: string): string {

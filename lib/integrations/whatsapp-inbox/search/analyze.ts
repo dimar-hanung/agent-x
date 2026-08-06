@@ -7,8 +7,12 @@ import {
   getWhatsAppSearchMaxMessagesPerChat,
 } from "@/lib/integrations/whatsapp-inbox/config";
 
-import { generateNextSearchKeyword } from "./keyword-generation";
+import { generateNextSearchKeywords } from "./keyword-generation";
 import { runWhatsAppMessageSearch } from "./orchestrate";
+import {
+  formatWhatsAppSearchAnalyzingMessage,
+  type WhatsAppSearchProgressCallback,
+} from "./progress";
 import { buildSearchAnalysisChunkPrompt } from "./prompt";
 import {
   groupSearchHitsByChat,
@@ -175,6 +179,7 @@ export interface SearchAndAnalyzeWhatsAppMessagesInput {
   chatQuery?: string;
   since?: Date;
   abortSignal?: AbortSignal;
+  onProgress?: WhatsAppSearchProgressCallback;
 }
 
 export type SearchAndAnalyzeWhatsAppMessagesResult =
@@ -201,6 +206,7 @@ export async function searchAndAnalyzeWhatsAppMessages(
     chatQuery: input.chatQuery,
     since: input.since,
     abortSignal: input.abortSignal,
+    onProgress: input.onProgress,
   });
 
   if (!searchResult.success) {
@@ -210,6 +216,12 @@ export async function searchAndAnalyzeWhatsAppMessages(
       attemptedKeywords: searchResult.attemptedKeywords,
     };
   }
+
+  await input.onProgress?.({
+    type: "analyzing",
+    message: formatWhatsAppSearchAnalyzingMessage(),
+    messageCount: searchResult.results.length,
+  });
 
   const analysis = await analyzeWhatsAppSearch({
     query: searchResult.query,
@@ -241,4 +253,4 @@ export async function searchAndAnalyzeWhatsAppMessages(
 }
 
 // Re-export for tests and orchestration consumers
-export { generateNextSearchKeyword, runWhatsAppMessageSearch };
+export { generateNextSearchKeywords, runWhatsAppMessageSearch };

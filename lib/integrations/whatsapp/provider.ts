@@ -1,7 +1,9 @@
 import type {
   WhatsAppAudioMessage,
   WhatsAppConnectionStatus,
+  WhatsAppContactRecord,
   WhatsAppDownloadedMedia,
+  WhatsAppGroupRecord,
   WhatsAppInboundMessage,
   WhatsAppIngestMessage,
   WhatsAppMediaMessage,
@@ -86,4 +88,7 @@ export interface WhatsAppProvider {
     payload: WhatsAppWebhookPayload
   ): WhatsAppParsedWebhook;
 
+  findContacts(instanceName: string): Promise<WhatsAppContactRecord[]>;
+
+  fetchAllGroups(instanceName: string): Promise<WhatsAppGroupRecord[]>;
 }

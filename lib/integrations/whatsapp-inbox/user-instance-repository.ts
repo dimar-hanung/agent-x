@@ -7,12 +7,14 @@ import {
 } from "@/lib/db/schema";
 import { getWhatsAppProvider } from "@/lib/integrations/whatsapp/factory";
 import { isEvolutionConfigured } from "@/lib/integrations/whatsapp/env";
+import { syncWhatsAppDirectory } from "@/lib/integrations/whatsapp-inbox/directory/sync-service";
 
 export interface WhatsAppUserInstanceView {
   status: WhatsAppUserInstanceStatus;
   phoneE164: string | null;
   instanceName: string;
   connectedAt: string | null;
+  directorySyncedAt: string | null;
 }
 
 function toView(
@@ -23,6 +25,7 @@ function toView(
     phoneE164: row.phoneE164,
     instanceName: row.instanceName,
     connectedAt: row.connectedAt?.toISOString() ?? null,
+    directorySyncedAt: row.directorySyncedAt?.toISOString() ?? null,
   };
 }
 
@@ -128,6 +131,7 @@ export async function syncUserConnectionStatus(
   const provider = getWhatsAppProvider();
   const remote = await provider.getConnectionStatus(row.instanceName);
   const now = new Date();
+  const wasConnected = row.status === "connected";
   const isNowConnected = remote.status === "connected";
 
   if (isNowConnected) {
@@ -167,6 +171,11 @@ export async function syncUserConnectionStatus(
     .where(eq(whatsappUserInstances.id, row.id))
     .returning();
 
+  if (isNowConnected && !wasConnected) {
+    void syncWhatsAppDirectory(userId).catch((error) => {
+      console.error("[whatsapp-directory] connect-time sync failed", error);
+    });
+  }
 
   return toView(updated);
 }

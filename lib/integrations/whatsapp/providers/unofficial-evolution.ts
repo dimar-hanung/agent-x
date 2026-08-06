@@ -4,7 +4,9 @@ import { normalizePhoneE164 } from "../phone";
 import type {
   WhatsAppAudioMessage,
   WhatsAppConnectionStatus,
+  WhatsAppContactRecord,
   WhatsAppInboundMessage,
+  WhatsAppGroupRecord,
   WhatsAppIngestMediaPlaceholder,
   WhatsAppIngestMessage,
   WhatsAppIngestMessageType,
@@ -626,6 +628,140 @@ function extractSenderJid(
   return jid;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function readString(record: Record<string, unknown>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+function jidSlug(jid: string): string {
+  return jid.replace(/@.*$/, "") || jid;
+}
+
+function extractPhoneFromJid(jid: string): string | undefined {
+  if (
+    !jid ||
+    jid.includes("@g.us") ||
+    jid.includes("@broadcast") ||
+    jid.includes("@lid")
+  ) {
+    return undefined;
+  }
+
+  const digits = jid.replace(/@.*$/, "").replace(/\D/g, "");
+  if (digits.length < 10) {
+    return undefined;
+  }
+
+  try {
+    return normalizePhoneE164(digits);
+  } catch {
+    return undefined;
+  }
+}
+
+function extractEvolutionContactRecords(payload: unknown): WhatsAppContactRecord[] {
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray(asRecord(payload)?.contacts)
+      ? (asRecord(payload)?.contacts as unknown[])
+      : Array.isArray(asRecord(payload)?.data)
+        ? (asRecord(payload)?.data as unknown[])
+        : [];
+
+  const contacts: WhatsAppContactRecord[] = [];
+
+  for (const row of rows) {
+    const record = asRecord(row);
+    if (!record) {
+      continue;
+    }
+
+    const contactJid =
+      readString(record, "remoteJid", "id", "jid", "contactJid") ||
+      readString(asRecord(record.key) ?? {}, "remoteJid", "id");
+
+    if (!contactJid || contactJid.includes("@g.us")) {
+      continue;
+    }
+
+    const phoneE164 = extractPhoneFromJid(contactJid);
+
+    const displayName =
+      readString(record, "pushName", "name", "verifiedName", "notify") ||
+      phoneE164 ||
+      jidSlug(contactJid);
+
+    contacts.push({
+      contactJid,
+      displayName,
+      phoneE164,
+    });
+  }
+
+  return contacts;
+}
+
+function extractEvolutionGroupRecords(payload: unknown): WhatsAppGroupRecord[] {
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray(asRecord(payload)?.groups)
+      ? (asRecord(payload)?.groups as unknown[])
+      : Array.isArray(asRecord(payload)?.data)
+        ? (asRecord(payload)?.data as unknown[])
+        : [];
+
+  const groups: WhatsAppGroupRecord[] = [];
+
+  for (const row of rows) {
+    const record = asRecord(row);
+    if (!record) {
+      continue;
+    }
+
+    const groupJid =
+      readString(record, "id", "groupJid", "jid", "remoteJid") ||
+      readString(asRecord(record.key) ?? {}, "remoteJid", "id");
+
+    if (!groupJid || !groupJid.includes("@g.us")) {
+      continue;
+    }
+
+    const displayName =
+      readString(record, "subject", "name", "groupName", "title", "pushName") ||
+      jidSlug(groupJid);
+
+    const participantCountRaw = record.participants ?? record.participantCount;
+    const participantCount =
+      typeof participantCountRaw === "number"
+        ? participantCountRaw
+        : Array.isArray(participantCountRaw)
+          ? participantCountRaw.length
+          : undefined;
+
+    groups.push({
+      groupJid,
+      displayName,
+      participantCount,
+    });
+  }
+
+  return groups;
+}
+
 export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
   readonly name = "unofficial-evolution";
 
@@ -1131,4 +1267,39 @@ export class UnofficialEvolutionWhatsAppProvider implements WhatsAppProvider {
     };
   }
 
+  async findContacts(instanceName: string): Promise<WhatsAppContactRecord[]> {
+    // Evolution ignores take/skip and always returns the full contact set.
+    // Paginated loops never terminate (batch.length stays >= pageSize).
+    const response = await this.request<unknown>(
+      `/chat/findContacts/${encodeURIComponent(instanceName)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ where: {} }),
+      }
+    );
+
+    const contacts = extractEvolutionContactRecords(response);
+    const deduped = new Map<string, WhatsAppContactRecord>();
+    for (const contact of contacts) {
+      deduped.set(contact.contactJid, contact);
+    }
+
+    return [...deduped.values()];
+  }
+
+  async fetchAllGroups(instanceName: string): Promise<WhatsAppGroupRecord[]> {
+    const response = await this.request<unknown>(
+      `/group/fetchAllGroups/${encodeURIComponent(instanceName)}?getParticipants=false`
+    );
+
+    const groups = extractEvolutionGroupRecords(response);
+
+    if (groups.length === 0) {
+      console.info(
+        `[whatsapp-directory] fetchAllGroups returned empty for ${instanceName}`
+      );
+    }
+
+    return groups;
+  }
 }

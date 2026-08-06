@@ -7,7 +7,7 @@ import {
   transcribeAudio,
   type VoiceConfig,
 } from "@/lib/ai/voice";
-import { processChannelMessage } from "@/lib/channel/process-channel-message";
+import { enqueueWhatsAppBotJob } from "@/lib/integrations/whatsapp/bot-queue/job-repository";
 import {
   getChannelConfig,
   getUserWhatsAppPhone,
@@ -34,7 +34,6 @@ import {
 import {
   isDuplicateWhatsAppInboundContent,
   isDuplicateWhatsAppInboundMessage,
-  withWhatsAppUserProcessingLock,
 } from "@/lib/integrations/whatsapp/webhook-dedup";
 import { getWhatsAppProvider } from "@/lib/integrations/whatsapp/factory";
 import type { WhatsAppProvider } from "@/lib/integrations/whatsapp/provider";
@@ -52,6 +51,17 @@ const UNREGISTERED_REPLY =
 
 const VOICE_TRANSCRIPTION_FAILED_REPLY =
   "Gagal memahami pesan suara. Coba kirim ulang dengan suara yang lebih jelas.";
+
+/** Durable enqueue needs a stable key; real WhatsApp messages always carry key.id. */
+function resolveBotJobMessageId(
+  messageId: string | undefined,
+  senderPhoneE164: string
+): string {
+  const trimmed = messageId?.trim();
+  return trimmed && trimmed.length > 0
+    ? trimmed
+    : `${senderPhoneE164}-${Date.now()}`;
+}
 
 /** Best-effort read receipt + typing while the AI processes the inbound message. */
 async function signalProcessingState(
@@ -327,21 +337,15 @@ export async function POST(req: Request) {
               console.error("WhatsApp read/typing signal gagal:", error);
             });
 
-            await withWhatsAppUserProcessingLock(personalUserId, (signal) =>
-              processChannelMessage({
-                userId: personalUserId,
-                text: bridgedText,
-                source: "whatsapp",
-                replyViaWhatsApp: true,
-                whatsappInputMode: voiceInput ? "voice" : "text",
-                modelSettings: requestModelSettings,
-                abortSignal: signal,
-                metadata: {
-                  messageId: bridgedInbound.messageId,
-                  inputMode: voiceInput ? "voice" : "text",
-                },
-              })
-            );
+            await enqueueWhatsAppBotJob({
+              userId: personalUserId,
+              waMessageId: resolveBotJobMessageId(
+                bridgedInbound.messageId,
+                bridgedInbound.senderPhoneE164
+              ),
+              text: bridgedText,
+              inputMode: voiceInput ? "voice" : "text",
+            });
           } catch (error) {
             console.error("WhatsApp personal bot bridge error:", error);
 
@@ -545,22 +549,16 @@ export async function POST(req: Request) {
         console.error("WhatsApp read/typing signal gagal:", error);
       });
 
-      await withWhatsAppUserProcessingLock(userId, (signal) =>
-        processChannelMessage({
-          userId,
-          text: agentText,
-          attachments: savedAttachments,
-          source: "whatsapp",
-          replyViaWhatsApp: true,
-          whatsappInputMode: voiceInput ? "voice" : "text",
-          modelSettings,
-          abortSignal: signal,
-          metadata: {
-            messageId: inbound.messageId,
-            inputMode: voiceInput ? "voice" : "text",
-          },
-        })
-      );
+      await enqueueWhatsAppBotJob({
+        userId,
+        waMessageId: resolveBotJobMessageId(
+          inbound.messageId,
+          inbound.senderPhoneE164
+        ),
+        text: agentText,
+        attachments: savedAttachments,
+        inputMode: voiceInput ? "voice" : "text",
+      });
     } catch (error) {
       console.error("WhatsApp webhook process error:", error);
 
@@ -583,17 +581,14 @@ export async function POST(req: Request) {
       console.error("WhatsApp read/typing signal gagal:", error);
     });
 
-    await withWhatsAppUserProcessingLock(userId, (signal) =>
-      processChannelMessage({
-        userId,
-        text: inbound.text,
-        source: "whatsapp",
-        replyViaWhatsApp: true,
-        modelSettings,
-        abortSignal: signal,
-        metadata: { messageId: inbound.messageId },
-      })
-    );
+    await enqueueWhatsAppBotJob({
+      userId,
+      waMessageId: resolveBotJobMessageId(
+        inbound.messageId,
+        inbound.senderPhoneE164
+      ),
+      text: inbound.text,
+    });
   } catch (error) {
     console.error("WhatsApp webhook process error:", error);
 

@@ -1,6 +1,8 @@
 import type { WhatsAppProvider } from "../provider";
 import type {
   WhatsAppConnectionStatus,
+  WhatsAppContactRecord,
+  WhatsAppGroupRecord,
   WhatsAppInboundMessage,
   WhatsAppIngestMessage,
   WhatsAppParsedWebhook,
@@ -102,4 +104,11 @@ export class OfficialMetaWhatsAppProvider implements WhatsAppProvider {
     notImplemented();
   }
 
+  async findContacts(): Promise<WhatsAppContactRecord[]> {
+    notImplemented();
+  }
+
+  async fetchAllGroups(): Promise<WhatsAppGroupRecord[]> {
+    notImplemented();
+  }
 }

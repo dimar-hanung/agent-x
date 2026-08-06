@@ -130,6 +130,15 @@ Primary sources:
 
 ## Global bot-channel findings
 
+> **Update (2026-08-05): resolved.** The global bot path (and the personal→bot
+> bridge) now enqueue a durable job into `whatsapp_bot_jobs` and acknowledge
+> Evolution immediately; a separate worker (`npm run whatsapp-bot:worker`)
+> generates and delivers the reply with per-user FIFO ordering, attempts/backoff,
+> and stale-lock requeue. This removes the timeout→retry→dedup-drop loss and the
+> "latest run wins" abort described below. Module:
+> `lib/integrations/whatsapp/bot-queue/`. The findings below are retained as the
+> pre-fix design evidence.
+
 The global channel is not a lossless burst queue either:
 
 - image, document, and video attachments are downloaded sequentially within a

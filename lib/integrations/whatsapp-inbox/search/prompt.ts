@@ -2,6 +2,7 @@ export function buildKeywordGenerationPrompt(options: {
   query: string;
   attemptedKeywords: string[];
   chatQuery?: string;
+  keywordsPerAttempt: number;
 }): string {
   const attempted =
     options.attemptedKeywords.length > 0
@@ -22,11 +23,11 @@ ${scope}
 Kata kunci yang sudah dicoba tanpa hasil:
 ${attempted}
 
-Buat SATU kata kunci pencarian baru (1–4 kata, bisa Bahasa Indonesia atau Inggris) yang berbeda dari daftar di atas.
+Buat ${options.keywordsPerAttempt} kata kunci pencarian baru (masing-masing 1–4 kata, bisa Bahasa Indonesia atau Inggris) yang berbeda dari daftar di atas dan satu sama lain.
 Prioritaskan substring yang kemungkinan besar muncul di isi pesan WhatsApp.
 Jika frasa panjang gagal, coba istilah lebih pendek atau sinonim.
 
-Balas HANYA dengan kata kunci itu, tanpa penjelasan, tanpa tanda kutip, tanpa markdown.`;
+Balas HANYA dengan daftar kata kunci, satu per baris, tanpa penjelasan, tanpa tanda kutip, tanpa markdown.`;
 }
 
 export function buildSearchAnalysisChunkPrompt(

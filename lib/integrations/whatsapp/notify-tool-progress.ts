@@ -19,6 +19,26 @@ export async function notifyWhatsAppToolStart(
   }
 }
 
+/**
+ * Mid-tool status line (e.g. each WhatsApp search keyword attempt).
+ * Failures are logged and swallowed so they never interrupt the agent.
+ */
+export async function notifyWhatsAppToolProgress(
+  userId: string,
+  message: string
+): Promise<void> {
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return;
+  }
+
+  try {
+    await sendWhatsAppToUser(userId, trimmed);
+  } catch (error) {
+    console.error("Mirror progress tool WhatsApp gagal:", error);
+  }
+}
+
 function extractToolErrorFields(toolOutput: {
   type: string;
   output?: unknown;
