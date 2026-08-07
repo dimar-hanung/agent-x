@@ -5,4 +5,5 @@ export interface UserContext {
   email: string;
   role: AppRole;
   displayName: string;
+  onboardingCompletedAt: string | null;
 }

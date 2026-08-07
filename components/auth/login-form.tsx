@@ -45,14 +45,18 @@ export function LoginForm({
         body: JSON.stringify({ email, password }),
       });
 
-      const data = (await response.json()) as { message?: string };
+      const data = (await response.json()) as {
+        message?: string;
+        redirectTo?: string;
+      };
 
       if (!response.ok) {
         setError(data.message ?? "Gagal masuk.");
         return;
       }
 
-      const next = searchParams.get("next") || appRoutes.dashboard;
+      const next =
+        searchParams.get("next") ?? data.redirectTo ?? appRoutes.dashboard;
       router.push(next);
       router.refresh();
     } catch {

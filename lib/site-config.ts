@@ -17,4 +17,5 @@ export const appRoutes = {
   files: "/dashboard/files",
   filesFileChat: (fileId: string) => `/dashboard/files/${fileId}`,
   whatsappInbox: "/dashboard/whatsapp-inbox",
+  panduan: "/dashboard/panduan",
 } as const;

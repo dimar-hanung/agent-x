@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookMarked,
+  BookOpen,
   CalendarClock,
   CheckSquare,
   FolderOpen,
@@ -59,6 +60,17 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         ]
       : [];
 
+  const clientNav =
+    role === "client"
+      ? [
+          {
+            title: "Panduan",
+            url: appRoutes.panduan,
+            icon: BookOpen,
+          },
+        ]
+      : [];
+
   const data = {
     user,
     navMain: [
@@ -98,6 +110,7 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
         icon: MessagesSquare,
       },
       ...adminNav,
+      ...clientNav,
       {
         title: "Pengaturan",
         url: appRoutes.settings,

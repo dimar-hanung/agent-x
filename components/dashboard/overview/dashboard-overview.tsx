@@ -115,6 +115,15 @@ export function DashboardOverviewView({ data }: DashboardOverviewProps) {
           description="Tanya agent, buat todo, atau minta otomatisasi. Semua hasilnya muncul di sini."
           action={{ label: "Buka chat", href: appRoutes.chat }}
         />
+        <p className="text-muted-foreground text-center text-sm">
+          Butuh pengingat?{" "}
+          <Link
+            href={appRoutes.panduan}
+            className="text-foreground underline-offset-4 hover:underline"
+          >
+            Buka panduan
+          </Link>
+        </p>
       </div>
     );
   }

@@ -6,6 +6,7 @@ import { loginSchema } from "@/lib/auth/schemas";
 import { createSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { appRoutes } from "@/lib/site-config";
 
 export async function POST(req: Request) {
   let body: unknown;
@@ -54,5 +55,8 @@ export async function POST(req: Request) {
 
   await createSession(user.id);
 
-  return NextResponse.json({ message: "Logged in successfully." });
+  return NextResponse.json({
+    message: "Logged in successfully.",
+    redirectTo: appRoutes.dashboard,
+  });
 }

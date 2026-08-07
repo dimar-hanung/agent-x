@@ -13,6 +13,7 @@ export async function getUserById(userId: string): Promise<UserContext | null> {
       email: users.email,
       displayName: users.displayName,
       role: users.role,
+      onboardingCompletedAt: users.onboardingCompletedAt,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -27,5 +28,8 @@ export async function getUserById(userId: string): Promise<UserContext | null> {
     email: user.email,
     displayName: user.displayName,
     role: toAppRole(user.role),
+    onboardingCompletedAt: user.onboardingCompletedAt
+      ? user.onboardingCompletedAt.toISOString()
+      : null,
   };
 }

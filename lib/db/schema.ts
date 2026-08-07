@@ -120,6 +120,9 @@ export const users = pgTable(
     role: varchar("role", { length: 32 }).notNull().default("client"),
     whatsappPhoneE164: varchar("whatsapp_phone_e164", { length: 20 }),
     gender: varchar("gender", { length: 16 }).notNull().default("laki_laki"),
+    onboardingCompletedAt: timestamp("onboarding_completed_at", {
+      withTimezone: true,
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
